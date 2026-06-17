@@ -125,7 +125,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=20"></script>
+<script src="assets/app.supabase.js?v=21"></script>
 <script src="assets/bell.js?v=21"></script>
 <script>
 (async function(){
@@ -188,30 +188,32 @@
   const coverFile=document.getElementById('coverFile');
   document.getElementById('coverBtn').addEventListener('click',()=>coverFile.click());
   coverFile.addEventListener('change',async e=>{
-    const f=e.target.files[0]; if(!f) return;
+    const f=e.target.files[0]; coverFile.value=''; if(!f) return;
+    const blob=await JP.cropImage(f,{aspect:2.7,round:false,outW:1600,title:'Repositionne ta couverture'});
+    if(!blob) return;
     JP.toast('Envoi de la couverture…');
     try{
-      const url=await JP.uploadImage('covers', f, 1400, 0.78);
+      const url=await JP.uploadBlob('covers', blob);
       const r=await JP.updateProfile({cover:url});
       if(r.ok){ JP.toast('Couverture mise à jour ✨'); paint(); }
       else JP.toast(r.msg||'Échec de la mise à jour');
     }catch(err){ console.error(err); JP.toast('Échec de l\'envoi — réessaie'); }
-    coverFile.value='';
   });
 
   /* ---- Upload avatar (vers Supabase Storage) ---- */
   const avFile=document.getElementById('avFile');
   document.getElementById('avBtn').addEventListener('click',()=>avFile.click());
   avFile.addEventListener('change',async e=>{
-    const f=e.target.files[0]; if(!f) return;
+    const f=e.target.files[0]; avFile.value=''; if(!f) return;
+    const blob=await JP.cropImage(f,{aspect:1,round:true,outW:512,title:'Repositionne ta photo de profil'});
+    if(!blob) return;
     JP.toast('Envoi de la photo…');
     try{
-      const url=await JP.uploadImage('avatars', f, 400, 0.85);
+      const url=await JP.uploadBlob('avatars', blob);
       const r=await JP.updateProfile({avatar:url});
       if(r.ok){ JP.toast('Photo de profil mise à jour 📸'); paint(); }
       else JP.toast(r.msg||'Échec de la mise à jour');
     }catch(err){ console.error(err); JP.toast('Échec de l\'envoi — réessaie'); }
-    avFile.value='';
   });
 
   /* ---- Modale édition ---- */

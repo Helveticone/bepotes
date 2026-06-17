@@ -52,7 +52,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=20"></script>
+<script src="assets/app.supabase.js?v=21"></script>
 <script src="assets/bell.js?v=21"></script>
 <script>
 (async function(){
@@ -118,8 +118,10 @@
         const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
         inp.onchange=async e=>{
           const f=e.target.files[0]; if(!f) return;
+          const blob=await JP.cropImage(f,{aspect:2.7,round:false,outW:1600,title:'Repositionne la couverture du groupe'});
+          if(!blob) return;
           JP.toast('Envoi de la couverture…');
-          const r=await JP.updateGroupCover(groupId, f);
+          const r=await JP.updateGroupCover(groupId, blob);
           if(r.ok){ JP.toast('Couverture mise à jour ✨'); await loadHeader(); renderComposer(); await renderPending(); }
           else JP.toast(r.msg||'Échec');
         };

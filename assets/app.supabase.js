@@ -143,11 +143,103 @@ window.JP = (() => {
   /* Upload d'une image dans un bucket Storage, renvoie l'URL publique */
   async function uploadImage(bucket, file, maxW, quality){
     const blob = await fileToBlob(file, maxW, quality);
+    return uploadBlob(bucket, blob);
+  }
+
+  /* Upload d'un Blob déjà préparé (ex: sortie de cropImage) */
+  async function uploadBlob(bucket, blob){
     const path = `${_me.id}/${Date.now()}.jpg`;
     const { error } = await sb.storage.from(bucket).upload(path, blob, {contentType:'image/jpeg', upsert:true});
     if(error) throw error;
     const { data } = sb.storage.from(bucket).getPublicUrl(path);
     return data.publicUrl;
+  }
+
+  /* ------------------------------------------------------------
+     Recadrage interactif (façon Facebook) : ouvre une modale où
+     l'utilisateur déplace / zoome l'image, puis renvoie un Blob JPEG
+     déjà cadré. Résout null si annulé.
+       opts.aspect : largeur/hauteur de la zone (1 = carré, 2.7 = bannière)
+       opts.round  : aperçu rond (avatar) — le rendu reste un carré plein
+       opts.outW   : largeur de sortie en px
+       opts.title  : titre de la modale
+     ------------------------------------------------------------ */
+  function cropImage(file, opts={}){
+    return new Promise((resolve)=>{
+      if(!file || !file.type || !file.type.startsWith('image/')){ toast('Fichier non image'); resolve(null); return; }
+      const aspect = opts.aspect || 1;
+      const round  = !!opts.round;
+      const outW   = opts.outW || 1024;
+      const title  = opts.title || 'Repositionne la photo';
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        const img = new Image();
+        img.onload = ()=> openUI(img);
+        img.onerror = ()=>{ toast('Image illisible'); resolve(null); };
+        img.src = reader.result;
+      };
+      reader.onerror = ()=>{ toast('Lecture échouée'); resolve(null); };
+      reader.readAsDataURL(file);
+
+      function openUI(img){
+        const vw = Math.min(window.innerWidth-48, 380);
+        const vh = Math.round(vw/aspect);
+        const baseScale = Math.max(vw/img.naturalWidth, vh/img.naturalHeight);
+        let zoom=1, dispW=0, dispH=0, panX=0, panY=0;
+
+        const bg=document.createElement('div');
+        bg.style.cssText='position:fixed;inset:0;background:rgba(26,20,22,.7);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px';
+        const panel=document.createElement('div');
+        panel.style.cssText='background:#fff;border-radius:18px;max-width:440px;width:100%;padding:18px;box-shadow:0 18px 50px rgba(0,0,0,.3)';
+        panel.innerHTML=`<h3 style="font-family:'Plus Jakarta Sans';font-size:1.1rem;margin:0 0 4px">${esc(title)}</h3>
+          <p style="color:#5C5258;font-size:.85rem;margin:0 0 14px">Fais glisser pour repositionner, et utilise le curseur pour zoomer.</p>`;
+        const vp=document.createElement('div');
+        vp.style.cssText=`position:relative;overflow:hidden;width:${vw}px;height:${vh}px;margin:0 auto;background:#000;border-radius:${round?'50%':'12px'};touch-action:none;cursor:grab;user-select:none`;
+        const pic=document.createElement('img');
+        pic.src=img.src; pic.draggable=false;
+        pic.style.cssText='position:absolute;left:0;top:0;max-width:none;pointer-events:none;will-change:transform';
+        vp.appendChild(pic);
+        const zr=document.createElement('input');
+        zr.type='range'; zr.min='1'; zr.max='4'; zr.step='0.01'; zr.value='1';
+        zr.style.cssText='width:100%;margin:14px 0;accent-color:#E11D2A';
+        const btns=document.createElement('div');
+        btns.style.cssText='display:flex;gap:10px;justify-content:flex-end';
+        btns.innerHTML='<button class="btn btn-ghost btn-sm" data-act="cancel">Annuler</button><button class="btn btn-primary btn-sm" data-act="ok">Enregistrer</button>';
+        panel.appendChild(vp); panel.appendChild(zr); panel.appendChild(btns); bg.appendChild(panel);
+        document.body.appendChild(bg);
+
+        function apply(){ pic.style.width=dispW+'px'; pic.style.height=dispH+'px'; pic.style.transform=`translate(${panX}px,${panY}px)`; }
+        function clamp(){ panX=Math.min(0,Math.max(vw-dispW,panX)); panY=Math.min(0,Math.max(vh-dispH,panY)); apply(); }
+        function recompute(keepCenter){
+          const cx = keepCenter && dispW ? (vw/2 - panX)/dispW : 0.5;
+          const cy = keepCenter && dispH ? (vh/2 - panY)/dispH : 0.5;
+          dispW = img.naturalWidth*baseScale*zoom;
+          dispH = img.naturalHeight*baseScale*zoom;
+          panX = vw/2 - cx*dispW; panY = vh/2 - cy*dispH;
+          clamp();
+        }
+        recompute(false);
+
+        let dragging=false, sx=0, sy=0, px0=0, py0=0;
+        vp.addEventListener('pointerdown',e=>{ dragging=true; sx=e.clientX; sy=e.clientY; px0=panX; py0=panY; try{vp.setPointerCapture(e.pointerId);}catch(_){} vp.style.cursor='grabbing'; });
+        vp.addEventListener('pointermove',e=>{ if(!dragging)return; panX=px0+(e.clientX-sx); panY=py0+(e.clientY-sy); clamp(); });
+        vp.addEventListener('pointerup',()=>{ dragging=false; vp.style.cursor='grab'; });
+        vp.addEventListener('pointercancel',()=>{ dragging=false; });
+        zr.addEventListener('input',()=>{ zoom=parseFloat(zr.value)||1; recompute(true); });
+
+        function close(result){ if(bg.parentNode) document.body.removeChild(bg); resolve(result); }
+        btns.querySelector('[data-act="cancel"]').addEventListener('click',()=>close(null));
+        bg.addEventListener('click',e=>{ if(e.target===bg) close(null); });
+        btns.querySelector('[data-act="ok"]').addEventListener('click',()=>{
+          const oh=Math.round(outW/aspect), k=outW/vw;
+          const cv=document.createElement('canvas'); cv.width=outW; cv.height=oh;
+          const ctx=cv.getContext('2d');
+          ctx.fillStyle='#000'; ctx.fillRect(0,0,outW,oh);
+          ctx.drawImage(img, panX*k, panY*k, dispW*k, dispH*k);
+          cv.toBlob(b=>close(b), 'image/jpeg', 0.85);
+        });
+      }
+    });
   }
 
   /* ============================================================
@@ -654,9 +746,12 @@ window.JP = (() => {
     await sb.from('group_members').delete().eq('group_id',groupId).eq('user_id',userId);
   }
 
-  /* Changer la couverture du groupe (owner ou admin — la RLS le contrôle) */
-  async function updateGroupCover(groupId, file){
-    const url=await uploadImage('covers', file, 1400, 0.78);
+  /* Changer la couverture du groupe (owner ou admin — la RLS le contrôle).
+     Accepte un Blob déjà recadré (cropImage) ou un File (recadré au besoin). */
+  async function updateGroupCover(groupId, fileOrBlob){
+    const isFile = fileOrBlob instanceof File;
+    const url = isFile ? await uploadImage('covers', fileOrBlob, 1400, 0.78)
+                       : await uploadBlob('covers', fileOrBlob);
     const { error } = await sb.from('groups').update({cover_url:url}).eq('id', groupId);
     if(error) return {ok:false, msg:error.message};
     return {ok:true, url};
@@ -857,7 +952,7 @@ window.JP = (() => {
      ============================================================ */
   return {
     sb, loadMe, requireAuth, user, toast, avatarHTML,
-    colorFor, initials, esc, timeAgo, uploadImage, fileToBlob,
+    colorFor, initials, esc, timeAgo, uploadImage, uploadBlob, cropImage, fileToBlob,
     register, login, logout, updateProfile,
     posts, addPost, deletePost, toggleLike, isLiked, addComment,
     events, toggleGoing, isGoing, createEvent,
