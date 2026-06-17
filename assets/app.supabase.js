@@ -209,6 +209,22 @@ window.JP = (() => {
 
   async function logout(){ await sb.auth.signOut(); location.href='index.html'; }
 
+  /* ---------- Compte ---------- */
+  async function updateEmail(email){
+    const { error } = await sb.auth.updateUser({ email });
+    return error ? {ok:false, msg:traduireErreur(error.message)} : {ok:true};
+  }
+  async function updatePassword(password){
+    const { error } = await sb.auth.updateUser({ password });
+    return error ? {ok:false, msg:traduireErreur(error.message)} : {ok:true};
+  }
+  async function deleteAccount(){
+    const { error } = await sb.rpc('delete_my_account');
+    if(error) return {ok:false, msg:error.message};
+    await sb.auth.signOut();
+    return {ok:true};
+  }
+
   function traduireErreur(m){
     if(/already registered/i.test(m)) return "Un compte existe déjà avec cet e-mail.";
     if(/Invalid login/i.test(m)) return "E-mail ou mot de passe incorrect.";
@@ -1327,7 +1343,7 @@ window.JP = (() => {
     sb, loadMe, requireAuth, user, toast, avatarHTML,
     colorFor, initials, esc, timeAgo, uploadImage, uploadBlob, cropImage, fileToBlob,
     mentionHTML, attachMentions, tokenizeMentions, COMMUNES, fillCommuneSelect,
-    register, login, logout, updateProfile,
+    register, login, logout, updateProfile, updateEmail, updatePassword, deleteAccount,
     posts, getPost, addPost, sharePost, deletePost, editPost, editComment, toggleLike, isLiked, reactPost, REACTIONS, reactionMeta, addComment, toggleCommentLike,
     events, getEvent, toggleGoing, isGoing, setEventRsvp, eventComments, addEventComment, deleteEventComment, createEvent, updateEvent, updateEventCover, deleteEvent,
     notifications, unreadCount, markAllRead, notifText, subscribeNotifications,

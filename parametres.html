@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paramètres — Jurapotes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=39">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#E11D2A">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jurapotes">
+</head>
+<body>
+<nav><div class="wrap nav-inner">
+  <a href="index.html" class="logo"><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <div class="nav-links">
+    <a href="fil.html">Le fil</a>
+    <a href="amis.html">Amis</a>
+    <a href="groupes.html">Groupes</a>
+    <a href="pages.html">Pages</a>
+    <a href="marketplace.html">Marché</a>
+    <a href="evenements.html">Événements</a>
+    <a href="messages.html">Messages</a>
+    <a href="profil.html">Profil</a>
+    <a href="notifications.html" class="nav-bell" id="bell" aria-label="Notifications">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="badge-count" id="bellCount">0</span>
+    </a>
+    <a href="#" id="logout" class="btn btn-ghost btn-sm">Déconnexion</a>
+  </div>
+</div></nav>
+
+<div class="page-pad"><div class="narrow">
+  <h1 style="font-size:2rem;margin-bottom:6px">Paramètres</h1>
+  <p style="color:var(--ink-soft);margin-bottom:24px">Gère ton compte et tes accès.</p>
+
+  <div class="side-card" style="margin-bottom:18px">
+    <h3 style="font-family:'Plus Jakarta Sans';font-size:1.05rem;margin-bottom:14px">Adresse e-mail</h3>
+    <div style="font-size:.9rem;color:var(--ink-soft);margin-bottom:12px">E-mail actuel : <b id="curEmail" style="color:var(--ink)">…</b></div>
+    <div class="field"><label for="newEmail">Nouvel e-mail</label><input id="newEmail" type="email" placeholder="nouveau@email.ch"></div>
+    <div style="text-align:right"><button class="btn btn-primary btn-sm" id="emailBtn">Mettre à jour l'e-mail</button></div>
+    <div style="font-size:.8rem;color:var(--ink-soft);margin-top:8px">Un e-mail de confirmation sera envoyé à la nouvelle adresse.</div>
+  </div>
+
+  <div class="side-card" style="margin-bottom:18px">
+    <h3 style="font-family:'Plus Jakarta Sans';font-size:1.05rem;margin-bottom:14px">Mot de passe</h3>
+    <div class="field"><label for="pw1">Nouveau mot de passe</label><input id="pw1" type="password" placeholder="••••••••" autocomplete="new-password"></div>
+    <div class="field"><label for="pw2">Confirme le mot de passe</label><input id="pw2" type="password" placeholder="••••••••" autocomplete="new-password"></div>
+    <div style="text-align:right"><button class="btn btn-primary btn-sm" id="pwBtn">Changer le mot de passe</button></div>
+  </div>
+
+  <div class="side-card" style="border-color:#f6d4d4;background:#FFF7F7">
+    <h3 style="font-family:'Plus Jakarta Sans';font-size:1.05rem;margin-bottom:8px;color:var(--rouge-dark)">Zone de danger</h3>
+    <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:14px">Supprimer ton compte efface définitivement ton profil, tes publications, commentaires, photos et messages. <b>Cette action est irréversible.</b></p>
+    <button class="btn btn-ghost btn-sm" id="delBtn" style="color:var(--rouge);border-color:var(--rouge)">Supprimer mon compte</button>
+  </div>
+</div></div>
+
+<script src="/assets/supabase.min.js?v=18"></script>
+<script src="assets/config.js"></script>
+<script src="assets/app.supabase.js?v=35"></script>
+<script src="assets/nav.js?v=3"></script>
+<script src="assets/bell.js?v=21"></script>
+<script>
+(async function(){
+  const okAuth = await JP.requireAuth();
+  if(!okAuth) return;
+  const me=JP.user();
+  document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
+  document.getElementById('curEmail').textContent = me.email || '—';
+
+  document.getElementById('emailBtn').addEventListener('click',async()=>{
+    const email=document.getElementById('newEmail').value.trim();
+    if(!/^\S+@\S+\.\S+$/.test(email)){ JP.toast('E-mail invalide'); return; }
+    const btn=document.getElementById('emailBtn'); btn.disabled=true;
+    const r=await JP.updateEmail(email);
+    btn.disabled=false;
+    if(r.ok){ JP.toast('Vérifie ta boîte mail pour confirmer 📧'); document.getElementById('newEmail').value=''; }
+    else JP.toast(r.msg||'Échec');
+  });
+
+  document.getElementById('pwBtn').addEventListener('click',async()=>{
+    const a=document.getElementById('pw1').value, b=document.getElementById('pw2').value;
+    if(a.length<6){ JP.toast('Mot de passe trop court (min. 6)'); return; }
+    if(a!==b){ JP.toast('Les deux mots de passe ne correspondent pas'); return; }
+    const btn=document.getElementById('pwBtn'); btn.disabled=true;
+    const r=await JP.updatePassword(a);
+    btn.disabled=false;
+    if(r.ok){ JP.toast('Mot de passe mis à jour ✅'); document.getElementById('pw1').value=''; document.getElementById('pw2').value=''; }
+    else JP.toast(r.msg||'Échec');
+  });
+
+  document.getElementById('delBtn').addEventListener('click',async()=>{
+    const v=prompt('Cette action est irréversible. Tape SUPPRIMER (en majuscules) pour confirmer la suppression de ton compte :');
+    if(v!=='SUPPRIMER'){ if(v!==null) JP.toast('Suppression annulée'); return; }
+    const r=await JP.deleteAccount();
+    if(r.ok){ alert('Ton compte a été supprimé. À bientôt 👋'); location.href='index.html'; }
+    else JP.toast(r.msg||'Échec de la suppression');
+  });
+})();
+</script>
+<script src="/assets/pwa.js?v=18"></script>
+
+<nav class="mobile-nav">
+<a href="fil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Fil</span></a>
+<a href="recherche.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg><span>Recherche</span></a>
+<a href="amis.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"/></svg><span>Amis</span></a>
+<a href="messages.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span>Messages</span></a>
+<a href="notifications.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><span class="mn-badge" id="mnBell">0</span><span>Alertes</span></a>
+<a href="profil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M4 21v-1a6 6 0 0112 0v1"/></svg><span>Profil</span></a>
+</nav>
+</body>
+</html>

@@ -62,7 +62,10 @@
           <div class="loc" id="loc"></div>
           <div class="bio" id="bio"></div>
         </div>
-        <button class="btn btn-ghost btn-sm edit-profile-btn" id="editBtn">Modifier le profil</button>
+        <div class="edit-profile-btn" style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" id="editBtn">Modifier le profil</button>
+          <a class="btn btn-ghost btn-sm" href="parametres.html" title="Paramètres">⚙️ Paramètres</a>
+        </div>
       </div>
       <div class="stat-row">
         <div><b id="sPosts">0</b><span>publications</span></div>
@@ -126,8 +129,8 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=34"></script>
-<script src="assets/nav.js?v=2"></script>
+<script src="assets/app.supabase.js?v=35"></script>
+<script src="assets/nav.js?v=3"></script>
 <script src="assets/bell.js?v=21"></script>
 <script>
 (async function(){
