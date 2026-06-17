@@ -469,39 +469,79 @@ window.JP = (() => {
   /* ============================================================
      ÉVÉNEMENTS
      ============================================================ */
+  function mapEvent(e){
+    const d = e.starts_at ? new Date(e.starts_at) : null;
+    const att=e.attendees||[];
+    return {
+      id:e.id, title:e.title, town:e.town, description:e.description||'', cover:e.cover_url||null,
+      ts:e.starts_at, creatorId:e.creator_id,
+      day: d? String(d.getDate()).padStart(2,'0') : '–',
+      month: d? d.toLocaleDateString('fr-CH',{month:'short'}) : '',
+      going: att.filter(a=>(a.status||'going')==='going').length,
+      interested: att.filter(a=>a.status==='interested').length,
+      goingBy: att.filter(a=>(a.status||'going')==='going').map(a=>a.user_id),
+      myStatus: att.find(a=>a.user_id===_me?.id)?.status || null
+    };
+  }
   async function events(){
     const { data, error } = await sb
       .from('events')
-      .select(`id, title, town, starts_at, attendees:event_attendees ( user_id )`)
+      .select(`id, title, town, starts_at, description, cover_url, creator_id, attendees:event_attendees ( user_id, status )`)
       .order('starts_at', {ascending:true});
     if(error){ console.error(error); return []; }
-    return (data||[]).map(e=>{
-      const d = e.starts_at ? new Date(e.starts_at) : null;
-      return {
-        id:e.id, title:e.title, town:e.town,
-        day: d? String(d.getDate()).padStart(2,'0') : '–',
-        month: d? d.toLocaleDateString('fr-CH',{month:'short'}) : '',
-        going:(e.attendees||[]).length,
-        goingBy:(e.attendees||[]).map(a=>a.user_id)
-      };
-    });
+    return (data||[]).map(mapEvent);
+  }
+  async function getEvent(eid){
+    const { data } = await sb.from('events')
+      .select(`id, title, town, starts_at, description, cover_url, creator_id,
+               creator:profiles!creator_id ( name, avatar_url ),
+               attendees:event_attendees ( user_id, status, profiles:profiles!user_id ( name, avatar_url ) )`)
+      .eq('id', eid).single();
+    if(!data) return null;
+    const ev=mapEvent(data);
+    ev.creatorName=data.creator?.name||'Membre';
+    ev.attendeeList=(data.attendees||[]).map(a=>({ id:a.user_id, status:a.status||'going', name:a.profiles?.name||'Membre', avatar:a.profiles?.avatar_url||null }));
+    return ev;
   }
 
+  /* RSVP : status = 'going' | 'interested' | null (retire) */
+  async function setEventRsvp(eid, status){
+    if(!_me) return;
+    if(!status){ await sb.from('event_attendees').delete().eq('event_id',eid).eq('user_id',_me.id); return; }
+    await sb.from('event_attendees').upsert({event_id:eid, user_id:_me.id, status}, {onConflict:'event_id,user_id'});
+  }
   async function toggleGoing(eid){
     if(!_me) return false;
     const { data } = await sb.from('event_attendees').select('event_id').eq('event_id',eid).eq('user_id',_me.id).maybeSingle();
     if(data){ await sb.from('event_attendees').delete().eq('event_id',eid).eq('user_id',_me.id); return false; }
-    await sb.from('event_attendees').insert({event_id:eid, user_id:_me.id}); return true;
+    await sb.from('event_attendees').insert({event_id:eid, user_id:_me.id, status:'going'}); return true;
   }
   const isGoing = e => !!_me && (e.goingBy||[]).includes(_me.id);
 
+  /* Discussion d'un événement */
+  async function eventComments(eid){
+    const { data } = await sb.from('event_comments')
+      .select(`id, text, created_at, author_id, author:profiles!author_id ( name, avatar_url )`)
+      .eq('event_id', eid).order('created_at',{ascending:true});
+    return (data||[]).map(c=>({ id:c.id, authorId:c.author_id, author:c.author?.name||'Membre',
+      avatar:c.author?.avatar_url||null, text:c.text, ts:c.created_at }));
+  }
+  async function addEventComment(eid, text){
+    if(!_me) return;
+    await sb.from('event_comments').insert({event_id:eid, author_id:_me.id, text});
+  }
+  async function deleteEventComment(cid){
+    if(!_me) return;
+    await sb.from('event_comments').delete().eq('id', cid).eq('author_id', _me.id);
+  }
+
   async function createEvent({title, town, starts_at, description}){
     if(!_me) return {ok:false, msg:'Non connecté'};
-    const { error } = await sb.from('events').insert({
+    const { data, error } = await sb.from('events').insert({
       title, town, starts_at, description, creator_id:_me.id
-    });
+    }).select().single();
     if(error) return {ok:false, msg:error.message};
-    return {ok:true};
+    return {ok:true, id:data.id};
   }
 
   /* ============================================================
@@ -1240,7 +1280,7 @@ window.JP = (() => {
     mentionHTML, attachMentions, tokenizeMentions,
     register, login, logout, updateProfile,
     posts, getPost, addPost, sharePost, deletePost, editPost, editComment, toggleLike, isLiked, reactPost, REACTIONS, reactionMeta, addComment, toggleCommentLike,
-    events, toggleGoing, isGoing, createEvent,
+    events, getEvent, toggleGoing, isGoing, setEventRsvp, eventComments, addEventComment, deleteEventComment, createEvent,
     notifications, unreadCount, markAllRead, notifText, subscribeNotifications,
     follow, unfollow, isFollowing, followCounts,
     members, openConversationWith, contactSeller, conversations, messagesOf, sendMessage, subscribeMessages,

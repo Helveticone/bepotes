@@ -454,6 +454,14 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 .mention-pop .mi:hover,.mention-pop .mi.on{background:var(--rouge-soft)}
 .mention-pop .mi .av{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;color:#fff;font-weight:700;font-size:.72rem}
 
+/* ============ ÉVÉNEMENT (page détail, v39) ============ */
+.ev-datebadge{background:var(--rouge-soft);color:var(--rouge-dark);border-radius:12px;padding:8px 12px;text-align:center;min-width:58px;flex-shrink:0}
+.ev-datebadge .d{font-family:'Fraunces',serif;font-weight:700;font-size:1.6rem;line-height:1}
+.ev-datebadge .m{font-size:.72rem;text-transform:uppercase;letter-spacing:.04em}
+.ev-attendees{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.ev-attendees .av{width:38px;height:38px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;color:#fff;font-weight:700;font-size:.8rem;border:2px solid #fff}
+.ev-attendees a{text-decoration:none}
+
 .group-header{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:24px}
 .group-header .gh-cover{position:relative;height:160px;background:linear-gradient(120deg,var(--rouge),#F2723B);background-size:cover;background-position:center}
 .group-header .gh-body{padding:20px 24px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
