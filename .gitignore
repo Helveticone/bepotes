@@ -5,3 +5,5 @@ package.json
 _*.cjs
 _*.html
 _*.png
+# réglages Claude Code personnels (permissions)
+.claude/settings.local.json
