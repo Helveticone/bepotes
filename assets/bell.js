@@ -25,8 +25,8 @@
     if(!window.JP) return;
     if(!JP.user || !JP.user()){ if(JP.loadMe) await JP.loadMe(); }
     if(!JP.user || !JP.user()) return;   // pas connecté
-    // Révéler le lien Modération si admin
-    try{ if(JP.isAdmin && JP.isAdmin()){ const al=document.getElementById('adminLink'); if(al) al.style.display=''; } }catch(e){}
+    // (Aucun lien d'administration n'est révélé dans le menu : l'accès se fait
+    //  uniquement via l'URL privée, connue de l'admin.)
     let count = await JP.unreadCount();
     paint(count);
     // Temps réel : à chaque nouvelle notif, on ré-interroge le compteur

@@ -75,5 +75,5 @@ create policy "admin gère les profils" on public.profiles for update
 --  where id = (select id from auth.users where email = 'TON-EMAIL@exemple.ch');
 --
 --  Lance cette commande une fois, avec ton vrai e-mail, pour
---  accéder au tableau de bord de modération (admin.html).
+--  accéder au tableau de bord de modération (panneau-hcm-7x2k9.html).
 -- ============================================================

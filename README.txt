@@ -125,13 +125,14 @@ SQL : déjà inclus dans TOUT-LE-SQL.sql (colonnes pages).
 
 --- NOUVEAU (modération & blocage) ---
 SQL : relance TOUT-LE-SQL.sql (section 6 ajoutée), sans danger.
-PUIS désigne-toi admin avec la commande en bas du fichier SQL
-(remplace par ton email) pour accéder à admin.html.
+PUIS désigne-toi admin avec supabase/devenir-admin.sql
+(remplace par ton email) pour accéder au tableau de bord privé
+(panneau-hcm-7x2k9.html — URL secrète, non listée et non indexée).
 
 - SIGNALER une publication ou un membre (menu ⋯ et bouton sur profil)
 - BLOQUER un membre : tu ne vois plus son contenu, il ne peut plus t'écrire
   (gestion des bloqués en bas de ton profil)
-- admin.html : tableau de bord modération (réservé admin)
+- panneau-hcm-7x2k9.html : tableau de bord modération (réservé admin, URL privée)
   -> voir les signalements, supprimer un post, bannir, traiter/rejeter
 
 
