@@ -568,23 +568,43 @@ window.JP = (() => {
   }
 
   function mapGroup(g){
-    const members=(g.members||[]).filter(m=>m.role!=='pending');
-    const myRow=(g.members||[]).find(m=>m.user_id===_me?.id);
+    const all=(g.members||[]);
+    const members=all.filter(m=>m.role!=='pending');
+    const myRow=all.find(m=>m.user_id===_me?.id);
+    const isOwner = g.owner_id===_me?.id;
+    const isAdmin = !!myRow && myRow.role==='admin';
+    const toPerson=m=>({
+      userId:m.user_id,
+      role: m.user_id===g.owner_id ? 'owner' : (m.role||'member'),
+      name: m.profiles?.name || 'Membre',
+      avatar: m.profiles?.avatar_url || null,
+      town: m.profiles?.town || ''
+    });
+    // Administrateurs affichés : le créateur (owner) + les role='admin'
+    const managers = members
+      .filter(m=> m.user_id===g.owner_id || m.role==='admin')
+      .map(toPerson)
+      .sort((a,b)=> (a.role==='owner'?-1:0) - (b.role==='owner'?-1:0));
     return {
       id:g.id, name:g.name, description:g.description, town:g.town, cover:g.cover_url,
+      rules:g.rules||'',
       ownerId:g.owner_id, isPrivate:g.is_private,
       kind:g.kind||'group', category:g.category,
       address:g.address, phone:g.phone, website:g.website,
       memberCount:members.length,
       isMember: !!myRow && myRow.role!=='pending',
       isPending: !!myRow && myRow.role==='pending',
-      isOwner: g.owner_id===_me?.id
+      isOwner,
+      isAdmin,
+      isManager: isOwner || isAdmin,
+      managers,
+      members: members.map(toPerson)
     };
   }
 
   async function getGroup(groupId){
     const { data } = await sb.from('groups')
-      .select(`id, name, description, town, cover_url, owner_id, is_private, kind, category, address, phone, website, members:group_members ( user_id, role )`)
+      .select(`id, name, description, town, cover_url, owner_id, is_private, kind, category, address, phone, website, rules, members:group_members ( user_id, role, profiles!user_id ( name, avatar_url, town ) )`)
       .eq('id', groupId).single();
     if(!data) return null;
     return mapGroup(data);
@@ -634,12 +654,55 @@ window.JP = (() => {
     await sb.from('group_members').delete().eq('group_id',groupId).eq('user_id',userId);
   }
 
-  /* Changer la couverture du groupe (owner) */
+  /* Changer la couverture du groupe (owner ou admin — la RLS le contrôle) */
   async function updateGroupCover(groupId, file){
     const url=await uploadImage('covers', file, 1400, 0.78);
     const { error } = await sb.from('groups').update({cover_url:url}).eq('id', groupId);
     if(error) return {ok:false, msg:error.message};
     return {ok:true, url};
+  }
+
+  /* Modifier les règles du groupe (owner ou admin) */
+  async function updateGroupRules(groupId, rules){
+    const { error } = await sb.from('groups').update({rules}).eq('id', groupId);
+    if(error) return {ok:false, msg:error.message};
+    return {ok:true};
+  }
+
+  /* Modifier des infos du groupe (owner ou admin) : description, name, etc.
+     owner_id est protégé côté base par un trigger (anti-escalade). */
+  async function updateGroupInfo(groupId, fields){
+    const { error } = await sb.from('groups').update(fields).eq('id', groupId);
+    if(error) return {ok:false, msg:error.message};
+    return {ok:true};
+  }
+
+  /* Tous les membres (hors demandes en attente), avec profil + rôle.
+     Pour l'écran de gestion des membres/administrateurs. */
+  async function groupMembers(groupId){
+    const { data } = await sb.from('group_members')
+      .select(`user_id, role, profiles!user_id ( name, town, avatar_url )`)
+      .eq('group_id', groupId).neq('role','pending');
+    return (data||[]).map(m=>({
+      userId:m.user_id, role:m.role||'member',
+      name:m.profiles?.name||'Membre', town:m.profiles?.town||'',
+      avatar:m.profiles?.avatar_url||null
+    }));
+  }
+
+  /* Promouvoir/rétrograder un membre : role = 'admin' | 'member'
+     (owner/admin uniquement ; la RLS interdit de toucher l'owner). */
+  async function setMemberRole(groupId, userId, role){
+    const { error } = await sb.from('group_members').update({role}).eq('group_id',groupId).eq('user_id',userId);
+    if(error) return {ok:false, msg:error.message};
+    return {ok:true};
+  }
+
+  /* Retirer un membre du groupe (owner/admin ; jamais l'owner). */
+  async function removeMember(groupId, userId){
+    const { error } = await sb.from('group_members').delete().eq('group_id',groupId).eq('user_id',userId);
+    if(error) return {ok:false, msg:error.message};
+    return {ok:true};
   }
 
   /* Publications d'un groupe */
@@ -805,6 +868,7 @@ window.JP = (() => {
     friendStatus, sendFriendRequest, acceptFriend, removeFriend, pendingRequests, friends, friendCount, areFriends,
     listGroups, getGroup, createGroup, joinGroup, leaveGroup, groupPosts, addGroupPost,
     uploadImages, pendingMembers, approveMember, rejectMember, updateGroupCover,
+    updateGroupRules, updateGroupInfo, groupMembers, setMemberRole, removeMember,
     publicProfile, userPosts, userPhotos,
     report, block, unblock, isBlocked, blockedList, loadBlocked, blockedIds,
     isAdmin, listReports, resolveReport, adminDeletePost, banUser, unbanUser

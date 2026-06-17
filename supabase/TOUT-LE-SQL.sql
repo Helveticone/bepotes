@@ -241,5 +241,54 @@ create policy "admin gère les profils" on public.profiles for update using ( au
 
 
 -- ============================================================
+--  7. GROUPES : ADMINISTRATEURS + RÈGLES + COUVERTURE (façon FB)
+--     Owner ET admins peuvent éditer le groupe et gérer les membres.
+--     L'owner est protégé (non rétrogradable, propriété verrouillée).
+-- ============================================================
+alter table public.groups add column if not exists rules text;
+
+create or replace function public.is_group_manager(gid uuid)
+returns boolean language sql security definer set search_path = public as $$
+  select exists (
+    select 1 from public.groups g where g.id = gid and g.owner_id = auth.uid()
+  ) or exists (
+    select 1 from public.group_members m
+    where m.group_id = gid and m.user_id = auth.uid() and m.role = 'admin'
+  );
+$$;
+
+drop policy if exists "modifier son groupe" on public.groups;
+drop policy if exists "gerer le groupe" on public.groups;
+create policy "gerer le groupe" on public.groups for update
+  using ( public.is_group_manager(id) );
+
+create or replace function public.protect_group_owner()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.owner_id is distinct from old.owner_id and old.owner_id <> auth.uid() then
+    new.owner_id := old.owner_id;
+  end if;
+  return new;
+end; $$;
+drop trigger if exists trg_protect_group_owner on public.groups;
+create trigger trg_protect_group_owner
+  before update on public.groups
+  for each row execute function public.protect_group_owner();
+
+drop policy if exists "owner gère les membres" on public.group_members;
+drop policy if exists "managers gerent les membres" on public.group_members;
+create policy "managers gerent les membres" on public.group_members for update
+  using ( public.is_group_manager(group_id) and role <> 'owner' )
+  with check ( role in ('member','admin','pending') );
+
+drop policy if exists "quitter un groupe" on public.group_members;
+drop policy if exists "owner retire un membre" on public.group_members;
+drop policy if exists "retirer un membre" on public.group_members;
+create policy "retirer un membre" on public.group_members for delete
+  using ( auth.uid() = user_id
+          or ( public.is_group_manager(group_id) and role <> 'owner' ) );
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================

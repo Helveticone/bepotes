@@ -41,6 +41,8 @@
 <div class="page-pad"><div class="narrow">
   <a href="groupes.html" id="backLink" style="color:var(--ink-soft);text-decoration:none;font-size:.9rem;display:inline-block;margin-bottom:14px">‹ Retour</a>
   <div id="header"></div>
+  <div id="aboutArea"></div>
+  <div id="manageArea"></div>
   <div id="pendingArea"></div>
   <div id="composerArea"></div>
   <div id="feed"></div>
@@ -50,7 +52,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=19"></script>
+<script src="assets/app.supabase.js?v=20"></script>
 <script src="assets/bell.js?v=21"></script>
 <script>
 (async function(){
@@ -63,7 +65,7 @@
   if(!groupId){ location.href='groupes.html'; return; }
 
   const feed=document.getElementById('feed');
-  let group=null, pendingImages=[];
+  let group=null, pendingImages=[], manageOpen=false;
 
   async function loadHeader(){
     group=await JP.getGroup(groupId);
@@ -72,7 +74,8 @@
     const bl=document.getElementById('backLink');
     if(bl){ bl.href = isPage?'pages.html':'groupes.html'; bl.textContent = isPage?'‹ Toutes les pages':'‹ Tous les groupes'; }
     let joinBtn='';
-    if(group.isOwner) joinBtn='<span class="btn btn-ghost btn-sm" style="cursor:default">'+(isPage?'Propriétaire':'Créateur')+'</span>';
+    if(group.isOwner) joinBtn='<span class="btn btn-ghost btn-sm" style="cursor:default">'+(isPage?'Propriétaire':'👑 Créateur')+'</span>';
+    else if(group.isAdmin) joinBtn='<button class="btn btn-ghost btn-sm" id="joinBtn">🛡️ Admin</button>';
     else if(group.isMember) joinBtn='<button class="btn btn-ghost btn-sm" id="joinBtn">'+(isPage?'✓ Abonné':'✓ Membre')+'</button>';
     else if(group.isPending) joinBtn='<button class="btn btn-ghost btn-sm" id="joinBtn">Demande envoyée</button>';
     else joinBtn=`<button class="btn btn-primary btn-sm" id="joinBtn">${isPage?'Suivre':(group.isPrivate?'Demander à rejoindre':'Rejoindre')}</button>`;
@@ -87,7 +90,7 @@
     document.getElementById('header').innerHTML=`
       <div class="group-header">
         <div class="gh-cover" id="ghCover" ${group.cover?`style="background-image:url(${group.cover})"`:''}>
-          ${group.isOwner?'<button class="cover-edit" id="ghCoverBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Couverture</button>':''}
+          ${group.isManager?'<button class="cover-edit" id="ghCoverBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Couverture</button>':''}
         </div>
         <div class="gh-body">
           <div>
@@ -108,7 +111,7 @@
         await loadHeader(); renderComposer(); await renderPending();
       });
     }
-    // bouton couverture (owner)
+    // bouton couverture (owner ou admin)
     const cb=document.getElementById('ghCoverBtn');
     if(cb){
       cb.addEventListener('click',()=>{
@@ -123,6 +126,8 @@
         inp.click();
       });
     }
+    renderAbout();
+    await renderManage();
     renderComposer();
     await renderPending();
   }
@@ -130,7 +135,7 @@
   async function renderPending(){
     const area=document.getElementById('pendingArea');
     if(!area) return;
-    if(!group || !group.isOwner){ area.innerHTML=''; return; }
+    if(!group || !group.isManager){ area.innerHTML=''; return; }
     const reqs=await JP.pendingMembers(groupId);
     if(!reqs.length){ area.innerHTML=''; return; }
     area.innerHTML=`<div class="side-card" style="margin-bottom:20px">
@@ -147,6 +152,109 @@
     }));
     area.querySelectorAll('.rej').forEach(b=>b.addEventListener('click',async()=>{
       await JP.rejectMember(groupId, b.dataset.uid); JP.toast('Demande refusée'); await renderPending();
+    }));
+  }
+
+  /* ---- À propos : règles + administrateurs (visible par tous) ---- */
+  function renderAbout(){
+    const area=document.getElementById('aboutArea');
+    if(!area) return;
+    if(!group){ area.innerHTML=''; return; }
+    const mgr=group.isManager;
+    const showRules = group.rules || mgr;
+    const admins=(group.managers||[]).map(m=>`
+      <div class="pending-row" style="margin-bottom:8px;flex-wrap:wrap;row-gap:6px">
+        ${JP.avatarHTML(m.name,m.avatar,'av')}
+        <div class="pi"><b>${JP.esc(m.name)}</b>
+          <span style="font-size:.78rem;color:var(--ink-soft)">${m.role==='owner'?'👑 Créateur':'🛡️ Administrateur'}</span>
+        </div>
+      </div>`).join('');
+    area.innerHTML=`
+      ${showRules?`<div class="side-card" style="margin-bottom:18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+          <h3 style="font-family:'Plus Jakarta Sans';font-size:1rem;margin:0">📋 Règles du groupe</h3>
+          ${mgr?`<button class="btn btn-ghost btn-sm" id="editRules">${group.rules?'Modifier':'Ajouter'}</button>`:''}
+        </div>
+        ${group.rules?`<div class="gh-desc" style="white-space:pre-wrap;margin:0;overflow-wrap:anywhere">${JP.esc(group.rules)}</div>`
+                     :`<div style="color:var(--ink-soft);font-size:.9rem">Aucune règle pour l'instant.</div>`}
+        <div id="rulesEditor"></div>
+      </div>`:''}
+      <div class="side-card" style="margin-bottom:18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+          <h3 style="font-family:'Plus Jakarta Sans';font-size:1rem;margin:0">Administrateurs</h3>
+          ${mgr?'<button class="btn btn-ghost btn-sm" id="manageBtn">Gérer les membres</button>':''}
+        </div>
+        ${admins||'<div style="color:var(--ink-soft);font-size:.9rem">—</div>'}
+      </div>`;
+    const er=document.getElementById('editRules');
+    if(er) er.addEventListener('click',openRulesEditor);
+    const mb=document.getElementById('manageBtn');
+    if(mb) mb.addEventListener('click',toggleManage);
+  }
+
+  function openRulesEditor(){
+    const box=document.getElementById('rulesEditor'); if(!box) return;
+    if(box.dataset.open==='1'){ box.innerHTML=''; box.dataset.open='0'; return; }
+    box.dataset.open='1';
+    box.innerHTML=`<div style="margin-top:12px">
+      <textarea id="rulesText" maxlength="2000" placeholder="1. Sois respectueux·se…&#10;2. Reste dans le sujet du groupe…" style="width:100%;min-width:0;min-height:130px;border:1.5px solid var(--line);border-radius:12px;padding:12px;font-family:inherit;font-size:.95rem;resize:vertical">${JP.esc(group.rules||'')}</textarea>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" id="rulesCancel">Annuler</button>
+        <button class="btn btn-primary btn-sm" id="rulesSave">Enregistrer</button>
+      </div></div>`;
+    document.getElementById('rulesCancel').addEventListener('click',()=>{ box.innerHTML=''; box.dataset.open='0'; });
+    document.getElementById('rulesSave').addEventListener('click',async()=>{
+      const val=document.getElementById('rulesText').value.trim();
+      const r=await JP.updateGroupRules(groupId, val);
+      if(r.ok){ JP.toast('Règles mises à jour ✅'); await loadHeader(); }
+      else JP.toast(r.msg||'Échec');
+    });
+  }
+
+  /* ---- Gestion des membres / administrateurs (managers) ---- */
+  function toggleManage(){ manageOpen=!manageOpen; renderManage(); }
+  async function renderManage(){
+    const area=document.getElementById('manageArea'); if(!area) return;
+    if(!manageOpen || !group || !group.isManager){ area.innerHTML=''; return; }
+    area.innerHTML='<div class="side-card" style="margin-bottom:18px"><p style="color:var(--ink-soft);margin:0">Chargement…</p></div>';
+    const mems=await JP.groupMembers(groupId);
+    const order={owner:0,admin:1,member:2};
+    mems.sort((a,b)=>((order[a.role]??3)-(order[b.role]??3)) || a.name.localeCompare(b.name));
+    area.innerHTML=`<div class="side-card" style="margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <h3 style="font-family:'Plus Jakarta Sans';font-size:1rem;margin:0">Gérer les membres (${mems.length})</h3>
+        <button class="btn btn-ghost btn-sm" id="closeManage">Fermer</button>
+      </div>
+      ${mems.map(m=>{
+        const isOwnerRow=m.role==='owner';
+        const tag=isOwnerRow?'👑 Créateur':(m.role==='admin'?'🛡️ Admin':'Membre');
+        let actions='';
+        if(!isOwnerRow && m.userId!==me.id){
+          actions += m.role==='admin'
+            ? `<button class="btn btn-ghost btn-sm setrole" data-uid="${m.userId}" data-role="member">Retirer admin</button>`
+            : `<button class="btn btn-ghost btn-sm setrole" data-uid="${m.userId}" data-role="admin">Nommer admin</button>`;
+          actions += `<button class="btn btn-ghost btn-sm kick" data-uid="${m.userId}" style="color:var(--rouge)">Retirer</button>`;
+        }
+        return `<div class="pending-row" style="margin-bottom:8px;flex-wrap:wrap;row-gap:8px">
+          ${JP.avatarHTML(m.name,m.avatar,'av')}
+          <div class="pi" style="min-width:0"><b>${JP.esc(m.name)}</b><span style="font-size:.78rem;color:var(--ink-soft)">${tag}</span></div>
+          ${actions?`<div style="flex:1 1 100%;display:flex;gap:8px;flex-wrap:wrap">${actions}</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>`;
+    document.getElementById('closeManage').addEventListener('click',toggleManage);
+    area.querySelectorAll('.setrole').forEach(b=>b.addEventListener('click',async()=>{
+      b.disabled=true;
+      const r=await JP.setMemberRole(groupId, b.dataset.uid, b.dataset.role);
+      if(r.ok){ JP.toast(b.dataset.role==='admin'?'Nommé administrateur ✅':'Admin retiré'); await loadHeader(); await renderManage(); }
+      else { JP.toast(r.msg||'Échec'); b.disabled=false; }
+    }));
+    area.querySelectorAll('.kick').forEach(b=>b.addEventListener('click',async()=>{
+      if(!confirm('Retirer ce membre du groupe ?')) return;
+      b.disabled=true;
+      const r=await JP.removeMember(groupId, b.dataset.uid);
+      if(r.ok){ JP.toast('Membre retiré'); await loadHeader(); await renderManage(); }
+      else { JP.toast(r.msg||'Échec'); b.disabled=false; }
     }));
   }
 
