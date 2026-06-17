@@ -65,8 +65,21 @@
           <option>Châtenois</option><option>Vicques</option><option>Autre commune du Jura</option>
         </select>
       </div>
-      <div class="field"><label for="evDate">Date et heure</label><input id="evDate" type="datetime-local"></div>
+      <div class="field" style="display:flex;gap:12px">
+        <div style="flex:1"><label for="evDate">Début</label><input id="evDate" type="datetime-local"></div>
+        <div style="flex:1"><label for="evEnd">Fin (optionnel)</label><input id="evEnd" type="datetime-local"></div>
+      </div>
       <div class="field"><label for="evDesc">Description (optionnel)</label><textarea id="evDesc" maxlength="400" placeholder="Détails, lieu précis, infos pratiques…"></textarea></div>
+      <div class="field">
+        <label>Photo de couverture (optionnel)</label>
+        <button class="icon-btn" id="evCoverBtn" type="button"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg> Choisir une couverture</button>
+        <div id="evCoverPrev" style="margin-top:8px"></div>
+      </div>
+      <div class="field">
+        <label>Photos (max 6, optionnel)</label>
+        <button class="icon-btn" id="evPhotosBtn" type="button"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg> Ajouter des photos</button>
+        <div class="comp-previews" id="evPhotosPrev"></div>
+      </div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost btn-sm" id="evCancel">Annuler</button>
@@ -74,10 +87,12 @@
     </div>
   </div>
 </div>
+<input type="file" id="evCoverFile" accept="image/*" style="display:none">
+<input type="file" id="evPhotosFile" accept="image/*" multiple style="display:none">
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=33"></script>
+<script src="assets/app.supabase.js?v=34"></script>
 <script src="assets/nav.js?v=2"></script>
 <script src="assets/bell.js?v=21"></script>
 <script>
@@ -124,9 +139,30 @@
 
   /* ---- Modale création d'événement ---- */
   const evModal=document.getElementById('evModal');
+  let evCover=null, evPhotos=[];
+  function renderEvMedia(){
+    document.getElementById('evCoverPrev').innerHTML = evCover ? `<img src="${URL.createObjectURL(evCover)}" style="width:100%;max-height:140px;object-fit:cover;border-radius:10px">` : '';
+    document.getElementById('evPhotosPrev').innerHTML = evPhotos.map((f,i)=>`<div class="thumb"><img src="${URL.createObjectURL(f)}"><button class="rm" data-i="${i}" type="button">&times;</button></div>`).join('');
+    document.querySelectorAll('#evPhotosPrev .rm').forEach(b=>b.addEventListener('click',()=>{ evPhotos.splice(+b.dataset.i,1); renderEvMedia(); }));
+  }
+  const evCoverFile=document.getElementById('evCoverFile');
+  document.getElementById('evCoverBtn').addEventListener('click',()=>evCoverFile.click());
+  evCoverFile.addEventListener('change',async e=>{
+    const f=e.target.files[0]; evCoverFile.value=''; if(!f) return;
+    const blob=await JP.cropImage(f,{aspect:2.7,round:false,outW:1600,title:'Couverture de l\'événement'});
+    if(blob){ evCover=blob; renderEvMedia(); }
+  });
+  const evPhotosFile=document.getElementById('evPhotosFile');
+  document.getElementById('evPhotosBtn').addEventListener('click',()=>evPhotosFile.click());
+  evPhotosFile.addEventListener('change',e=>{
+    [...e.target.files].filter(f=>f.type.startsWith('image/')).forEach(f=>{ if(evPhotos.length<6) evPhotos.push(f); });
+    evPhotosFile.value=''; renderEvMedia();
+  });
   document.getElementById('newEvBtn').addEventListener('click',()=>{
     document.getElementById('evTitle').value='';
     document.getElementById('evDesc').value='';
+    document.getElementById('evDate').value=''; document.getElementById('evEnd').value='';
+    evCover=null; evPhotos=[]; renderEvMedia();
     evModal.classList.add('open');
   });
   const closeEv=()=>evModal.classList.remove('open');
@@ -137,10 +173,17 @@
     const title=document.getElementById('evTitle').value.trim();
     const town=document.getElementById('evTown').value;
     const dateVal=document.getElementById('evDate').value;
+    const endVal=document.getElementById('evEnd').value;
     const desc=document.getElementById('evDesc').value.trim();
     if(!title){ JP.toast('Donne un titre à l\'événement'); return; }
-    if(!dateVal){ JP.toast('Choisis une date'); return; }
-    const r=await JP.createEvent({title, town, starts_at:new Date(dateVal).toISOString(), description:desc});
+    if(!dateVal){ JP.toast('Choisis une date de début'); return; }
+    if(endVal && new Date(endVal) < new Date(dateVal)){ JP.toast('La fin doit être après le début'); return; }
+    const btn=document.getElementById('evSave'); btn.disabled=true; btn.textContent='Publication…';
+    const r=await JP.createEvent({title, town,
+      starts_at:new Date(dateVal).toISOString(),
+      ends_at: endVal?new Date(endVal).toISOString():null,
+      description:desc, cover:evCover, images:evPhotos});
+    btn.disabled=false; btn.textContent="Publier l'événement";
     if(r.ok){ JP.toast('Événement créé ! 🎉'); closeEv(); await render(); }
     else JP.toast(r.msg||'Échec de la création');
   });

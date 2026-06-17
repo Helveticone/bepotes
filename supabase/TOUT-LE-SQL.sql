@@ -514,5 +514,12 @@ create policy "supprimer son commentaire evenement" on public.event_comments for
 
 
 -- ============================================================
+--  19. ÉVÉNEMENTS : date de fin + photos (cover_url existe déjà)
+-- ============================================================
+alter table public.events add column if not exists ends_at timestamptz;
+alter table public.events add column if not exists images text[] default '{}';
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================

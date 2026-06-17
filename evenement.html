@@ -42,7 +42,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=33"></script>
+<script src="assets/app.supabase.js?v=34"></script>
 <script src="assets/nav.js?v=2"></script>
 <script src="assets/bell.js?v=21"></script>
 <script>
@@ -72,21 +72,26 @@
     const goers=ev.attendeeList.filter(a=>a.status==='going');
     host.innerHTML=`
       <div class="group-header">
-        <div class="gh-cover" ${ev.cover?`style="background-image:url(${ev.cover})"`:''}></div>
+        <div class="gh-cover" ${ev.cover?`style="background-image:url(${ev.cover})"`:''}>
+          ${ev.mine?`<button class="cover-edit" id="evCoverBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Couverture</button>${ev.cover?'<button class="cover-edit" id="evCoverDel" style="right:auto;left:14px">Retirer</button>':''}`:''}
+        </div>
         <div class="gh-body" style="display:block">
           <div style="display:flex;gap:14px;align-items:flex-start">
             <div class="ev-datebadge"><div class="d">${ev.day}</div><div class="m">${JP.esc(ev.month)}</div></div>
             <div style="flex:1;min-width:0">
               <h1 style="margin-bottom:4px">${JP.esc(ev.title)}</h1>
               <div class="gh-meta">📅 ${JP.esc(fullDate(ev.ts))}</div>
+              ${ev.endTs?`<div class="gh-meta">🏁 Fin : ${JP.esc(fullDate(ev.endTs))}</div>`:''}
               <div class="gh-meta">📍 ${JP.esc(ev.town||'Tout le Jura')}</div>
               <div class="gh-meta">Organisé par ${JP.esc(ev.creatorName)}</div>
             </div>
           </div>
           ${ev.description?`<div class="gh-desc" style="white-space:pre-wrap;margin-top:12px;overflow-wrap:anywhere">${JP.esc(ev.description)}</div>`:''}
+          ${ev.images.length?`<div class="post-gallery g${Math.min(ev.images.length,6)}" style="margin-top:14px">${ev.images.slice(0,6).map(u=>`<img src="${u}" alt="" class="gimg">`).join('')}</div>`:''}
           <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
             <button class="btn ${ev.myStatus==='going'?'btn-primary':'btn-ghost'} btn-sm" id="goBtn">${ev.myStatus==='going'?'✓ Je participe':'Je participe'}</button>
             <button class="btn ${ev.myStatus==='interested'?'btn-primary':'btn-ghost'} btn-sm" id="intBtn">${ev.myStatus==='interested'?'✓ Intéressé·e':'Intéressé·e'}</button>
+            ${ev.mine?`<button class="btn btn-ghost btn-sm" id="evDel" style="color:var(--rouge)">Supprimer l'événement</button>`:''}
           </div>
           <div class="gh-meta" style="margin-top:12px"><b>${ev.going}</b> participent · <b>${ev.interested}</b> intéressé·e·s</div>
           ${goers.length?`<div class="ev-attendees">${goers.slice(0,16).map(a=>`<a href="membre.html?id=${a.id}" title="${JP.esc(a.name)}">${JP.avatarHTML(a.name,a.avatar,'av')}</a>`).join('')}</div>`:''}
@@ -109,6 +114,30 @@
     document.getElementById('intBtn').addEventListener('click',async()=>{
       await JP.setEventRsvp(eid, ev.myStatus==='interested'?null:'interested');
       JP.toast(ev.myStatus==='interested'?'Retiré':'Marqué intéressé·e ✨'); await load();
+    });
+
+    const cb=document.getElementById('evCoverBtn');
+    if(cb) cb.addEventListener('click',()=>{
+      const fi=document.createElement('input'); fi.type='file'; fi.accept='image/*';
+      fi.onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
+        const blob=await JP.cropImage(f,{aspect:2.7,round:false,outW:1600,title:'Couverture de l\'événement'});
+        if(!blob) return; JP.toast('Envoi…');
+        const r=await JP.updateEventCover(eid, blob);
+        if(r.ok){ JP.toast('Couverture mise à jour ✨'); await load(); } else JP.toast(r.msg||'Échec');
+      };
+      fi.click();
+    });
+    const cd=document.getElementById('evCoverDel');
+    if(cd) cd.addEventListener('click',async()=>{
+      if(!confirm('Retirer la couverture ?')) return;
+      const r=await JP.updateEvent(eid,{cover_url:null});
+      if(r.ok){ JP.toast('Couverture retirée'); await load(); } else JP.toast(r.msg||'Échec');
+    });
+    const ed=document.getElementById('evDel');
+    if(ed) ed.addEventListener('click',async()=>{
+      if(!confirm('Supprimer définitivement cet événement ?')) return;
+      const r=await JP.deleteEvent(eid);
+      if(r.ok){ JP.toast('Événement supprimé'); location.href='evenements.html'; } else JP.toast(r.msg||'Échec');
     });
 
     const inp=document.getElementById('ecText');

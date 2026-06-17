@@ -504,7 +504,8 @@ window.JP = (() => {
     const att=e.attendees||[];
     return {
       id:e.id, title:e.title, town:e.town, description:e.description||'', cover:e.cover_url||null,
-      ts:e.starts_at, creatorId:e.creator_id,
+      ts:e.starts_at, endTs:e.ends_at||null, images:Array.isArray(e.images)?e.images.filter(Boolean):[],
+      creatorId:e.creator_id, mine:e.creator_id===_me?.id,
       day: d? String(d.getDate()).padStart(2,'0') : '–',
       month: d? d.toLocaleDateString('fr-CH',{month:'short'}) : '',
       going: att.filter(a=>(a.status||'going')==='going').length,
@@ -516,14 +517,14 @@ window.JP = (() => {
   async function events(){
     const { data, error } = await sb
       .from('events')
-      .select(`id, title, town, starts_at, description, cover_url, creator_id, attendees:event_attendees ( user_id, status )`)
+      .select(`id, title, town, starts_at, ends_at, description, cover_url, images, creator_id, attendees:event_attendees ( user_id, status )`)
       .order('starts_at', {ascending:true});
     if(error){ console.error(error); return []; }
     return (data||[]).map(mapEvent);
   }
   async function getEvent(eid){
     const { data } = await sb.from('events')
-      .select(`id, title, town, starts_at, description, cover_url, creator_id,
+      .select(`id, title, town, starts_at, ends_at, description, cover_url, images, creator_id,
                creator:profiles!creator_id ( name, avatar_url ),
                attendees:event_attendees ( user_id, status, profiles:profiles!user_id ( name, avatar_url ) )`)
       .eq('id', eid).single();
@@ -532,6 +533,20 @@ window.JP = (() => {
     ev.creatorName=data.creator?.name||'Membre';
     ev.attendeeList=(data.attendees||[]).map(a=>({ id:a.user_id, status:a.status||'going', name:a.profiles?.name||'Membre', avatar:a.profiles?.avatar_url||null }));
     return ev;
+  }
+  /* Modifier un événement (créateur — RLS) */
+  async function updateEvent(eid, fields){
+    const { error } = await sb.from('events').update(fields).eq('id', eid);
+    return error ? {ok:false, msg:error.message} : {ok:true};
+  }
+  async function updateEventCover(eid, fileOrBlob){
+    const isFile = fileOrBlob instanceof File;
+    const url = isFile ? await uploadImage('covers', fileOrBlob, 1400, 0.78) : await uploadBlob('covers', fileOrBlob);
+    return updateEvent(eid, {cover_url:url});
+  }
+  async function deleteEvent(eid){
+    const { error } = await sb.from('events').delete().eq('id', eid);
+    return error ? {ok:false, msg:error.message} : {ok:true};
   }
 
   /* RSVP : status = 'going' | 'interested' | null (retire) */
@@ -565,10 +580,14 @@ window.JP = (() => {
     await sb.from('event_comments').delete().eq('id', cid).eq('author_id', _me.id);
   }
 
-  async function createEvent({title, town, starts_at, description}){
+  async function createEvent({title, town, starts_at, ends_at, description, cover, images}){
     if(!_me) return {ok:false, msg:'Non connecté'};
+    let coverUrl=null, imgUrls=[];
+    if(cover){ try{ coverUrl = cover instanceof File ? await uploadImage('covers',cover,1400,0.78) : await uploadBlob('covers',cover); }catch(e){} }
+    if(images && images.length){ try{ imgUrls=await uploadImages('posts', images, 1280, 0.82); }catch(e){} }
     const { data, error } = await sb.from('events').insert({
-      title, town, starts_at, description, creator_id:_me.id
+      title, town, starts_at, ends_at:ends_at||null, description, creator_id:_me.id,
+      cover_url:coverUrl, images:imgUrls
     }).select().single();
     if(error) return {ok:false, msg:error.message};
     return {ok:true, id:data.id};
@@ -1310,7 +1329,7 @@ window.JP = (() => {
     mentionHTML, attachMentions, tokenizeMentions, COMMUNES, fillCommuneSelect,
     register, login, logout, updateProfile,
     posts, getPost, addPost, sharePost, deletePost, editPost, editComment, toggleLike, isLiked, reactPost, REACTIONS, reactionMeta, addComment, toggleCommentLike,
-    events, getEvent, toggleGoing, isGoing, setEventRsvp, eventComments, addEventComment, deleteEventComment, createEvent,
+    events, getEvent, toggleGoing, isGoing, setEventRsvp, eventComments, addEventComment, deleteEventComment, createEvent, updateEvent, updateEventCover, deleteEvent,
     notifications, unreadCount, markAllRead, notifText, subscribeNotifications,
     follow, unfollow, isFollowing, followCounts,
     members, openConversationWith, contactSeller, conversations, messagesOf, sendMessage, subscribeMessages,
