@@ -27,11 +27,18 @@ profiles, follows, friendships, posts (+ images[], shared_post_id, group_id), co
 Fonctions clés (SECURITY DEFINER) : `is_conversation_member`, `are_friends`, `is_group_manager`, `protect_group_owner` (trigger), `is_admin`, `contact_user`, `friend_suggestions`, `notify_on_*` (triggers).
 
 ## Fonctionnalités déjà en place
-Auth, profils (avatar/couverture recadrables), fil (posts multi-photos, réactions 👍❤️😆😮😢, commentaires façon FB : aperçu/voir tous/tri/like/**réponses 1 niveau**/édition, **@mentions** autocomplétion+notif), permalien `post.html`, **repartage**, amis + abonnements, **suggestions d'amis** (amis communs), groupes + **pages** (admins, règles, couverture, avis ⭐), **marketplace** (`marketplace.html`, contact vendeur), **événements** (`evenements.html`/`evenement.html` : Intéressé+participe, discussion), messagerie temps réel (amis only + contact vendeur), notifications (cliquables), recherche, modération/blocage/admin, PWA, menu mobile (tiroir).
+Auth, profils (avatar/couverture recadrables), fil (posts multi-photos, réactions 👍❤️😆😮😢, commentaires façon FB : aperçu/voir tous/tri/like/**réponses 1 niveau**/édition, **@mentions** autocomplétion+notif), permalien `post.html`, **repartage**, **sondages** 📊 (`posts.poll_options`+`poll_votes`, vote/retrait, fil+post.html), amis + abonnements, **suggestions d'amis** (amis communs), groupes + **pages** (admins, règles, couverture, avis ⭐), **marketplace** (`marketplace.html`, contact vendeur), **événements** (`evenements.html`/`evenement.html` : Intéressé+participe, discussion), messagerie temps réel (amis only + contact vendeur), notifications (cliquables), **page Paramètres** (`parametres.html` : e-mail, mot de passe, suppression nLPD, pref e-mails), **mode sombre** 🌙 (`assets/theme.js`+`JPTheme`, bascule dans nav.js, palette `[data-theme=dark]`), recherche, modération/blocage/admin, PWA, menu mobile (tiroir).
+- **Régie publicitaire** (admin) : table `ads` + `active_ads(device)`/`ad_impression`/`ad_click` ; carte « Sponsorisé » dans le fil (image PC/mobile + texte, lien interne/externe, rotation aléatoire, plafond mensuel, affichages+clics+CTR). Gérée via `regie-hcm-7x2k9.html` (drag&drop+▲▼).
+- **Notifications e-mail** : pref `profiles.email_notifications` ; envoi via Edge Function `supabase/functions/notify-email` (Resend) + Database Webhook sur `notifications` — voir `supabase/notifications-email-GUIDE.md` (à déployer manuellement).
+
+## Pages admin (URL privées, NON listées, `noindex`)
+- `panneau-hcm-7x2k9.html` = modération (ex-`admin.html`). `regie-hcm-7x2k9.html` = régie pub (ex-`admin-pub.html`).
+- **Aucun lien dans le menu** (volontaire). Vraie sécurité = RLS `is_admin()`. Devenir admin : `supabase/devenir-admin.sql` (compte `office@helveticonemedia.ch`).
 
 ## Reste à faire (priorité « confort / lancement »)
-Page Paramètres/compte (changer e-mail/mot de passe, **supprimer son compte** nLPD), notifications e-mail, mode sombre, sondages, aperçu de liens (OG), vidéos, pagination/infini.
+Aperçu de liens (OG), vidéos, pagination/scroll infini. (Optionnel : digest e-mail quotidien via `pg_cron` au lieu d'un mail/notif.)
 
 ## Pièges connus
 - Messagerie **amis-only** (RLS `cm_insert`) ; le Marché contourne via la fonction `contact_user` uniquement.
 - Liste des **communes** : centralisée dans `JP.COMMUNES` / `JP.communeOptions()` (inclut Moutier, rattaché au Jura en 2026). À utiliser partout (inscription, profil, groupes, pages, marketplace, événements).
+- **Cache-busting** : `theme.js` injecté dans le `<head>` (avant rendu, anti-flash) ; versions actuelles `app.supabase.js?v=39`, `style.css?v=43`, `nav.js?v=4`, `bell.js?v=22`, `theme.js?v=1`.
