@@ -363,17 +363,20 @@ window.JP = (() => {
   /* ============================================================
      PUBLICATIONS
      ============================================================ */
-  async function posts(){
-    const { data, error } = await sb
+  /* Fil paginé par curseur : opts.before = created_at du dernier post chargé
+     (renvoie les plus anciens que `before`), opts.limit = taille de page. */
+  async function posts({before=null, limit=100}={}){
+    let q = sb
       .from('posts')
       .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
                shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
                likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
-      .is('group_id', null)
-      .order('created_at', {ascending:false})
-      .limit(100);
+      .is('group_id', null);
+    if(before) q = q.lt('created_at', before);
+    q = q.order('created_at', {ascending:false}).limit(limit);
+    const { data, error } = await q;
     if(error){ console.error(error); return []; }
     await loadBlocked();
     const blocked=blockedIds();

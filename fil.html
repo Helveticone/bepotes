@@ -92,6 +92,7 @@
       <button data-s="pertinent">Pertinent</button>
     </div>
     <div id="feed"></div>
+    <div id="feedSentinel" style="height:1px"></div>
   </main>
 
   <aside class="side side-r">
@@ -114,7 +115,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=39"></script>
+<script src="assets/app.supabase.js?v=40"></script>
 <script src="assets/nav.js?v=4"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=22"></script>
@@ -155,7 +156,7 @@
       if(feedSort===b.dataset.s) return;
       feedSort=b.dataset.s; try{ localStorage.setItem('jp-feed-sort', feedSort); }catch(e){}
       document.querySelectorAll('#feedTabs button').forEach(x=>x.classList.toggle('active', x.dataset.s===feedSort));
-      render();
+      renderFeed();   // re-classe les posts déjà chargés, sans refetch
     });
   });
 
@@ -177,14 +178,16 @@
     }));
   }
 
-  async function render(){
-    feed.innerHTML='<div class="empty"><p>Chargement…</p></div>';
-    const posts=await JP.posts();
-    if(!posts.length){
+  /* ---- Fil paginé + scroll infini ---- */
+  const PAGE=20;
+  let loadedPosts=[], loadingMore=false, reachedEnd=false;
+
+  function renderFeed(){
+    if(!loadedPosts.length){
       feed.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><p>Aucune publication pour l\'instant. Sois le premier à lancer la discussion !</p></div>';
       return;
     }
-    const list=orderPosts(posts);
+    const list=orderPosts(loadedPosts);
     feed.innerHTML=list.map(p=>postHTML(p)).join('');
     list.forEach(p=>bind(p));
     wireFollowButtons();
@@ -194,6 +197,34 @@
       document.getElementById('lightbox').classList.add('open');
     }));
     insertFeedAds();
+  }
+
+  // Recharge complète depuis la 1ère page (après une action : publier, voter…)
+  async function render(){
+    feed.innerHTML='<div class="empty"><p>Chargement…</p></div>';
+    reachedEnd=false;
+    loadedPosts=await JP.posts({limit:PAGE});
+    reachedEnd = loadedPosts.length<PAGE;
+    renderFeed();
+  }
+
+  async function loadMore(){
+    if(loadingMore || reachedEnd || !loadedPosts.length) return;
+    loadingMore=true;
+    const before=loadedPosts[loadedPosts.length-1].ts;
+    const more=await JP.posts({before, limit:PAGE});
+    if(more.length<PAGE) reachedEnd=true;
+    const have=new Set(loadedPosts.map(p=>p.id));
+    loadedPosts.push(...more.filter(p=>!have.has(p.id)));
+    renderFeed();
+    loadingMore=false;
+  }
+
+  // Déclencheur : sentinelle observée en bas de page
+  const sentinel=document.getElementById('feedSentinel');
+  if(sentinel && 'IntersectionObserver' in window){
+    new IntersectionObserver(es=>{ if(es.some(e=>e.isIntersecting)) loadMore(); },
+      {rootMargin:'600px'}).observe(sentinel);
   }
 
   /* ---- Publicités dans le fil (cartes « Sponsorisé » espacées, façon FB) ----
