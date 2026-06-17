@@ -251,7 +251,7 @@ window.JP = (() => {
       .select(`id, text, tag, image_url, images, created_at, author_id,
                author:profiles!author_id ( name, town, avatar_url ),
                likes ( user_id ),
-               comments ( id, text, created_at, author:profiles!author_id ( name, avatar_url ) )`)
+               comments ( id, text, created_at, author_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .is('group_id', null)
       .order('created_at', {ascending:false})
       .limit(100);
@@ -270,9 +270,16 @@ window.JP = (() => {
       authorEmail:p.author_id,
       author:p.author?.name||'Membre', town:p.author?.town||'', authorAvatar:p.author?.avatar_url||null,
       likes:likedBy.length, likedBy,
-      comments:(p.comments||[])
-        .sort((a,b)=>new Date(a.created_at)-new Date(b.created_at))
-        .map(c=>({author:c.author?.name||'Membre', avatar:c.author?.avatar_url||null, text:c.text}))
+      comments:(p.comments||[]).map(c=>({
+        id:c.id,
+        authorId:c.author_id,
+        author:c.author?.name||'Membre',
+        avatar:c.author?.avatar_url||null,
+        text:c.text,
+        ts:c.created_at,
+        likes:(c.comment_likes||[]).length,
+        liked:(c.comment_likes||[]).some(l=>l.user_id===_me?.id)
+      }))
     };
   }
 
@@ -315,6 +322,15 @@ window.JP = (() => {
   async function addComment(pid, text){
     if(!_me) return;
     await sb.from('comments').insert({post_id:pid, author_id:_me.id, text});
+  }
+
+  /* Aimer / ne plus aimer un commentaire (toggle) */
+  async function toggleCommentLike(commentId){
+    if(!_me) return;
+    const { data } = await sb.from('comment_likes')
+      .select('comment_id').eq('comment_id', commentId).eq('user_id', _me.id).maybeSingle();
+    if(data) await sb.from('comment_likes').delete().eq('comment_id', commentId).eq('user_id', _me.id);
+    else      await sb.from('comment_likes').insert({comment_id:commentId, user_id:_me.id});
   }
 
   /* ============================================================
@@ -806,7 +822,7 @@ window.JP = (() => {
       .select(`id, text, tag, image_url, images, created_at, author_id,
                author:profiles!author_id ( name, town, avatar_url ),
                likes ( user_id ),
-               comments ( id, text, created_at, author:profiles!author_id ( name, avatar_url ) )`)
+               comments ( id, text, created_at, author_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .eq('group_id', groupId)
       .order('created_at', {ascending:false})
       .limit(100);
@@ -843,7 +859,7 @@ window.JP = (() => {
       .select(`id, text, tag, image_url, images, created_at, author_id,
                author:profiles!author_id ( name, town, avatar_url ),
                likes ( user_id ),
-               comments ( id, text, created_at, author:profiles!author_id ( name, avatar_url ) )`)
+               comments ( id, text, created_at, author_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .eq('author_id', userId).is('group_id', null)
       .order('created_at', {ascending:false}).limit(100);
     return (data||[]).map(mapPost);
@@ -954,7 +970,7 @@ window.JP = (() => {
     sb, loadMe, requireAuth, user, toast, avatarHTML,
     colorFor, initials, esc, timeAgo, uploadImage, uploadBlob, cropImage, fileToBlob,
     register, login, logout, updateProfile,
-    posts, addPost, deletePost, toggleLike, isLiked, addComment,
+    posts, addPost, deletePost, toggleLike, isLiked, addComment, toggleCommentLike,
     events, toggleGoing, isGoing, createEvent,
     notifications, unreadCount, markAllRead, notifText, subscribeNotifications,
     follow, unfollow, isFollowing, followCounts,

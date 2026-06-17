@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=27">
+<link rel="stylesheet" href="assets/style.css?v=28">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -102,7 +102,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=21"></script>
+<script src="assets/app.supabase.js?v=22"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=21"></script>
 <script>
@@ -231,11 +231,6 @@
 
   function postHTML(p){
     const mine=p.authorEmail===me.id;
-    const comments=p.comments.map(c=>`
-      <div class="comment">
-        ${JP.avatarHTML(c.author,c.avatar,'av')}
-        <div class="bubble"><b>${JP.esc(c.author)}</b><p>${JP.esc(c.text)}</p></div>
-      </div>`).join('');
     return `<article class="post" data-id="${p.id}" data-author="${p.authorEmail}">
       <div class="post-head">
         <a href="membre.html?id=${p.authorEmail}" style="text-decoration:none">${JP.avatarHTML(p.author,p.authorAvatar,'av')}</a>
@@ -266,8 +261,16 @@
           Partager
         </button>
       </div>
-      <div class="comments">
-        ${comments}
+      <div class="comments open">
+        <div class="comments-controls" style="display:none">
+          <select class="csort">
+            <option value="all">Tous les commentaires</option>
+            <option value="recent">Les plus récents</option>
+            <option value="top">Le plus de like</option>
+          </select>
+        </div>
+        <button class="see-all" type="button" style="display:none"></button>
+        <div class="comment-list"></div>
         <div class="comment-form">
           <input type="text" placeholder="Écris un commentaire…" maxlength="240">
           <button class="btn btn-primary btn-sm csend">Envoyer</button>
@@ -286,7 +289,46 @@
       const lc=el.querySelector('.lc'); lc.textContent=Math.max(0,parseInt(lc.textContent)+(liked?-1:1));
       await JP.toggleLike(pid);
     });
-    el.querySelector('.cbtn').addEventListener('click',()=>el.querySelector('.comments').classList.toggle('open'));
+    /* ---- Commentaires : aperçu (2) + voir tous + tri + like (façon FB) ---- */
+    const cstate={expanded:false, sort:'recent'};
+    const cList=el.querySelector('.comment-list');
+    const cCtrls=el.querySelector('.comments-controls');
+    const cSel=el.querySelector('.csort');
+    const cSeeAll=el.querySelector('.see-all');
+    function commentHTML(c){
+      return `<div class="comment" data-cid="${c.id}">
+        ${JP.avatarHTML(c.author,c.avatar,'av')}
+        <div class="bubble"><b>${JP.esc(c.author)}</b><p>${JP.esc(c.text)}</p>
+          <button class="clike ${c.liked?'liked':''}" type="button" data-cid="${c.id}">♥ <span class="cl-count">${c.likes}</span></button>
+        </div></div>`;
+    }
+    function paintComments(){
+      const byRecent=(a,b)=>new Date(b.ts)-new Date(a.ts);
+      const sorters={ all:(a,b)=>new Date(a.ts)-new Date(b.ts), recent:byRecent, top:(a,b)=>(b.likes-a.likes)||byRecent(a,b) };
+      let list=p.comments.slice();
+      if(cstate.expanded){
+        list.sort(sorters[cstate.sort]||sorters.all);
+        cCtrls.style.display=''; cSeeAll.style.display='none';
+        if(cSel) cSel.value=cstate.sort;
+      } else {
+        list.sort(byRecent); list=list.slice(0,2).reverse();
+        cCtrls.style.display='none';
+        cSeeAll.textContent='Voir les '+p.comments.length+' commentaires';
+        cSeeAll.style.display = p.comments.length>2 ? '' : 'none';
+      }
+      cList.innerHTML=list.map(commentHTML).join('');
+      cList.querySelectorAll('.clike').forEach(b=>b.addEventListener('click',async()=>{
+        const cid=b.dataset.cid, c=p.comments.find(x=>x.id===cid); if(!c) return;
+        c.liked=!c.liked; c.likes=Math.max(0,c.likes+(c.liked?1:-1));
+        b.classList.toggle('liked',c.liked);
+        const cc=b.querySelector('.cl-count'); if(cc) cc.textContent=c.likes;
+        await JP.toggleCommentLike(cid);
+      }));
+    }
+    if(cSel) cSel.addEventListener('change',()=>{ cstate.sort=cSel.value; paintComments(); });
+    if(cSeeAll) cSeeAll.addEventListener('click',()=>{ cstate.expanded=true; cstate.sort='all'; paintComments(); });
+    el.querySelector('.cbtn').addEventListener('click',()=>{ cstate.expanded=!cstate.expanded; paintComments(); if(cstate.expanded){ const i=el.querySelector('.comment-form input'); if(i) i.focus(); } });
+    paintComments();
     el.querySelector('.share').addEventListener('click',()=>{
       const url=location.origin+'/fil.html';
       if(navigator.clipboard) navigator.clipboard.writeText(url).then(()=>JP.toast('Lien copié \u{1F517}'),()=>JP.toast('Lien : '+url));
