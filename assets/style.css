@@ -444,5 +444,34 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
   img{max-width:100%;height:auto}
   .post,.composer,.side-card{overflow-wrap:break-word;word-break:break-word}
   .post-gallery img{max-width:100%}
+
+  /* --- Anti-débordement réel (v25) : l'en-tête de post tenait sur une
+     seule rangée de boutons non-rétrécissables (largeur mini ~384px),
+     ce qui débordait à droite sur tout écran < ~390px (iPhone SE, Android).
+     On laisse l'en-tête passer à la ligne et le nom se tronquer. --- */
+  /* L'item de grille (main) ne doit pas refuser de rétrécir sous son
+     min-content (défaut min-width:auto des items grid/flex). */
+  .app-grid{grid-template-columns:minmax(0,1fr)}
+  .app-grid>main{min-width:0}
+  .post-gallery,.post-gallery img{min-width:0}
+
+  .post-head{flex-wrap:wrap}
+  .post-head .meta{flex:1 1 120px;min-width:0}
+  .post-head .meta b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .post-head .meta b a{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
+  .post-head .meta span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .post-head .tag{margin-left:auto}
+
+  /* Composer : laisser le textarea et la barre d'options se réduire */
+  .composer textarea{min-width:0;width:100%}
+  .composer .bar{flex-wrap:wrap;gap:10px}
+  .composer .opts{min-width:0;flex:1 1 auto;flex-wrap:wrap}
+  .composer .chip{max-width:100%;min-width:0}
+
+  /* Champ commentaire : input rétrécissable (sinon pousse le bouton hors écran) */
+  .comment-form input{min-width:0}
+
+  /* Boutons d'action : éviter que "Partager" se coupe sur deux lignes */
+  .post-actions .act{white-space:nowrap}
 }
 
