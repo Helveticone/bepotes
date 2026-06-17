@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=34">
+<link rel="stylesheet" href="assets/style.css?v=35">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -44,7 +44,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=28"></script>
+<script src="assets/app.supabase.js?v=29"></script>
 <script src="assets/bell.js?v=21"></script>
 <script>
 (async function(){
@@ -70,12 +70,14 @@
       ${s.image?`<img src="${s.image}" alt="" class="sc-img">`:''}
     </a>`;
   }
-  function commentHTML(c){
+  function commentHTML(c,isReply){
     const mineC=c.authorId===me.id;
-    return `<div class="comment" data-cid="${c.id}">
+    const parentTarget=isReply?c.parentId:c.id;
+    return `<div class="comment ${isReply?'reply':''}" data-cid="${c.id}">
       ${JP.avatarHTML(c.author,c.avatar,'av')}
       <div class="bubble"><b>${JP.esc(c.author)}</b><p>${JP.esc(c.text)}</p>
         <button class="clike ${c.liked?'liked':''}" type="button" data-cid="${c.id}">♥ <span class="cl-count">${c.likes}</span></button>
+        <button class="creply" type="button" data-parent="${parentTarget}">Répondre</button>
         ${mineC?`<button class="cedit" type="button" data-cid="${c.id}">Modifier</button>`:''}
       </div></div>`;
   }
@@ -194,9 +196,14 @@
   function paintComments(){
     const box=host.querySelector('.comment-list'); if(!box) return;
     const byRecent=(a,b)=>new Date(b.ts)-new Date(a.ts);
-    const sorters={ all:(a,b)=>new Date(a.ts)-new Date(b.ts), recent:byRecent, top:(a,b)=>(b.likes-a.likes)||byRecent(a,b) };
-    const list=p.comments.slice().sort(sorters[sort]||sorters.all);
-    box.innerHTML=list.map(commentHTML).join('');
+    const byOld=(a,b)=>new Date(a.ts)-new Date(b.ts);
+    const sorters={ all:byOld, recent:byRecent, top:(a,b)=>(b.likes-a.likes)||byRecent(a,b) };
+    const tops=p.comments.filter(c=>!c.parentId).sort(sorters[sort]||sorters.all);
+    const repliesByParent={}; p.comments.filter(c=>c.parentId).forEach(r=>{(repliesByParent[r.parentId]=repliesByParent[r.parentId]||[]).push(r);});
+    box.innerHTML=tops.map(top=>{
+      const replies=(repliesByParent[top.id]||[]).slice().sort(byOld);
+      return `<div class="cthread">${commentHTML(top,false)}<div class="replies">${replies.map(r=>commentHTML(r,true)).join('')}</div></div>`;
+    }).join('');
     box.querySelectorAll('.clike').forEach(b=>b.addEventListener('click',async()=>{
       const cid=b.dataset.cid, c=p.comments.find(x=>x.id===cid); if(!c) return;
       c.liked=!c.liked; c.likes=Math.max(0,c.likes+(c.liked?1:-1));
@@ -211,6 +218,10 @@
       const r=await JP.editComment(cid, v);
       if(r.ok){ c.text=v; paintComments(); JP.toast('Commentaire modifié'); }
       else JP.toast(r.msg||'Échec');
+    }));
+    box.querySelectorAll('.creply').forEach(b=>b.addEventListener('click',async()=>{
+      const v=(prompt('Ta réponse :','')||'').trim(); if(!v) return;
+      await JP.addComment(pid, v, b.dataset.parent); JP.toast('Réponse envoyée'); await load();
     }));
   }
 

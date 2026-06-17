@@ -252,7 +252,7 @@ window.JP = (() => {
                author:profiles!author_id ( name, town, avatar_url ),
                shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
                likes ( user_id, type ),
-               comments ( id, text, created_at, author_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
+               comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .is('group_id', null)
       .order('created_at', {ascending:false})
       .limit(100);
@@ -292,6 +292,7 @@ window.JP = (() => {
       comments:(p.comments||[]).map(c=>({
         id:c.id,
         authorId:c.author_id,
+        parentId:c.parent_id||null,
         author:c.author?.name||'Membre',
         avatar:c.author?.avatar_url||null,
         text:c.text,
@@ -339,7 +340,7 @@ window.JP = (() => {
                author:profiles!author_id ( name, town, avatar_url ),
                shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
                likes ( user_id, type ),
-               comments ( id, text, created_at, author_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
+               comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .eq('id', pid).single();
     if(error){ console.error(error); return null; }
     return mapPost(data);
@@ -387,9 +388,9 @@ window.JP = (() => {
     await sb.from('likes').upsert({post_id:pid, user_id:_me.id, type}, {onConflict:'post_id,user_id'});
   }
 
-  async function addComment(pid, text){
+  async function addComment(pid, text, parentId){
     if(!_me) return;
-    await sb.from('comments').insert({post_id:pid, author_id:_me.id, text});
+    await sb.from('comments').insert({post_id:pid, author_id:_me.id, text, parent_id:parentId||null});
   }
 
   /* Aimer / ne plus aimer un commentaire (toggle) */
@@ -901,7 +902,7 @@ window.JP = (() => {
       .select(`id, text, tag, image_url, images, created_at, author_id,
                author:profiles!author_id ( name, town, avatar_url ),
                likes ( user_id, type ),
-               comments ( id, text, created_at, author_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
+               comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .eq('group_id', groupId)
       .order('created_at', {ascending:false})
       .limit(100);
@@ -939,7 +940,7 @@ window.JP = (() => {
                author:profiles!author_id ( name, town, avatar_url ),
                shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
                likes ( user_id, type ),
-               comments ( id, text, created_at, author_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
+               comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .eq('author_id', userId).is('group_id', null)
       .order('created_at', {ascending:false}).limit(100);
     return (data||[]).map(mapPost);

@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=34">
+<link rel="stylesheet" href="assets/style.css?v=35">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -103,7 +103,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=28"></script>
+<script src="assets/app.supabase.js?v=29"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=21"></script>
 <script>
@@ -120,6 +120,7 @@
 
   const feed=document.getElementById('feed');
   let pendingImages=[];   // jusqu'à 6 fichiers File
+  const expandedPosts=new Set();   // posts dont les commentaires sont dépliés (persiste au re-rendu)
 
   /* ---- Photos dans le composer (multi, max 6) ---- */
   const photoFile=document.getElementById('photoFile');
@@ -327,36 +328,44 @@
     likeBtn.addEventListener('click',e=>e.stopPropagation());
     picker.querySelectorAll('.rx').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); picker.classList.remove('open'); setReact(b.dataset.t); }));
     document.addEventListener('click',()=>picker.classList.remove('open'));
-    /* ---- Commentaires : aperçu (2) + voir tous + tri + like (façon FB) ---- */
-    const cstate={expanded:false, sort:'recent'};
+    /* ---- Commentaires : aperçu (2) + voir tous + tri + like + réponses (façon FB) ---- */
+    const cstate={expanded:expandedPosts.has(pid), sort:'recent'};
     const cList=el.querySelector('.comment-list');
     const cCtrls=el.querySelector('.comments-controls');
     const cSel=el.querySelector('.csort');
     const cSeeAll=el.querySelector('.see-all');
-    function commentHTML(c){
+    function commentHTML(c,isReply){
       const mineC=c.authorId===me.id;
-      return `<div class="comment" data-cid="${c.id}">
+      const parentTarget=isReply?c.parentId:c.id;
+      return `<div class="comment ${isReply?'reply':''}" data-cid="${c.id}">
         ${JP.avatarHTML(c.author,c.avatar,'av')}
         <div class="bubble"><b>${JP.esc(c.author)}</b><p>${JP.esc(c.text)}</p>
           <button class="clike ${c.liked?'liked':''}" type="button" data-cid="${c.id}">♥ <span class="cl-count">${c.likes}</span></button>
+          <button class="creply" type="button" data-parent="${parentTarget}">Répondre</button>
           ${mineC?`<button class="cedit" type="button" data-cid="${c.id}">Modifier</button>`:''}
         </div></div>`;
     }
     function paintComments(){
       const byRecent=(a,b)=>new Date(b.ts)-new Date(a.ts);
-      const sorters={ all:(a,b)=>new Date(a.ts)-new Date(b.ts), recent:byRecent, top:(a,b)=>(b.likes-a.likes)||byRecent(a,b) };
-      let list=p.comments.slice();
+      const byOld=(a,b)=>new Date(a.ts)-new Date(b.ts);
+      const sorters={ all:byOld, recent:byRecent, top:(a,b)=>(b.likes-a.likes)||byRecent(a,b) };
+      const tops=p.comments.filter(c=>!c.parentId);
+      const repliesByParent={}; p.comments.filter(c=>c.parentId).forEach(r=>{(repliesByParent[r.parentId]=repliesByParent[r.parentId]||[]).push(r);});
+      let list;
       if(cstate.expanded){
-        list.sort(sorters[cstate.sort]||sorters.all);
+        list=tops.slice().sort(sorters[cstate.sort]||sorters.all);
         cCtrls.style.display=''; cSeeAll.style.display='none';
         if(cSel) cSel.value=cstate.sort;
       } else {
-        list.sort(byRecent); list=list.slice(0,2).reverse();
+        list=tops.slice().sort(byRecent).slice(0,2).reverse();
         cCtrls.style.display='none';
         cSeeAll.textContent='Voir les '+p.comments.length+' commentaires';
         cSeeAll.style.display = p.comments.length>2 ? '' : 'none';
       }
-      cList.innerHTML=list.map(commentHTML).join('');
+      cList.innerHTML=list.map(top=>{
+        const replies=cstate.expanded ? (repliesByParent[top.id]||[]).slice().sort(byOld) : [];
+        return `<div class="cthread">${commentHTML(top,false)}<div class="replies">${replies.map(r=>commentHTML(r,true)).join('')}</div></div>`;
+      }).join('');
       cList.querySelectorAll('.clike').forEach(b=>b.addEventListener('click',async()=>{
         const cid=b.dataset.cid, c=p.comments.find(x=>x.id===cid); if(!c) return;
         c.liked=!c.liked; c.likes=Math.max(0,c.likes+(c.liked?1:-1));
@@ -372,10 +381,15 @@
         if(r.ok){ c.text=v; paintComments(); JP.toast('Commentaire modifié'); }
         else JP.toast(r.msg||'Échec');
       }));
+      cList.querySelectorAll('.creply').forEach(b=>b.addEventListener('click',async()=>{
+        const v=(prompt('Ta réponse :','')||'').trim(); if(!v) return;
+        await JP.addComment(pid, v, b.dataset.parent);
+        expandedPosts.add(pid); JP.toast('Réponse envoyée'); await render();
+      }));
     }
     if(cSel) cSel.addEventListener('change',()=>{ cstate.sort=cSel.value; paintComments(); });
-    if(cSeeAll) cSeeAll.addEventListener('click',()=>{ cstate.expanded=true; cstate.sort='all'; paintComments(); });
-    el.querySelector('.cbtn').addEventListener('click',()=>{ cstate.expanded=!cstate.expanded; paintComments(); if(cstate.expanded){ const i=el.querySelector('.comment-form input'); if(i) i.focus(); } });
+    if(cSeeAll) cSeeAll.addEventListener('click',()=>{ cstate.expanded=true; cstate.sort='all'; expandedPosts.add(pid); paintComments(); });
+    el.querySelector('.cbtn').addEventListener('click',()=>{ cstate.expanded=!cstate.expanded; if(cstate.expanded) expandedPosts.add(pid); else expandedPosts.delete(pid); paintComments(); if(cstate.expanded){ const i=el.querySelector('.comment-form input'); if(i) i.focus(); } });
     paintComments();
     const shareMenu=el.querySelector('.share-menu');
     el.querySelector('.share').addEventListener('click',e=>{ e.stopPropagation(); shareMenu.classList.toggle('open'); });
