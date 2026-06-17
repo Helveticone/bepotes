@@ -350,6 +350,18 @@ window.JP = (() => {
     await sb.from('posts').delete().eq('id', pid).eq('author_id', _me.id);
   }
 
+  /* Modifier sa publication / son commentaire */
+  async function editPost(pid, text){
+    if(!_me) return {ok:false};
+    const { error } = await sb.from('posts').update({text}).eq('id', pid).eq('author_id', _me.id);
+    return error ? {ok:false, msg:error.message} : {ok:true};
+  }
+  async function editComment(cid, text){
+    if(!_me) return {ok:false};
+    const { error } = await sb.from('comments').update({text}).eq('id', cid).eq('author_id', _me.id);
+    return error ? {ok:false, msg:error.message} : {ok:true};
+  }
+
   async function toggleLike(pid){
     if(!_me) return;
     const { data } = await sb.from('likes').select('post_id').eq('post_id',pid).eq('user_id',_me.id).maybeSingle();
@@ -1119,7 +1131,7 @@ window.JP = (() => {
     sb, loadMe, requireAuth, user, toast, avatarHTML,
     colorFor, initials, esc, timeAgo, uploadImage, uploadBlob, cropImage, fileToBlob,
     register, login, logout, updateProfile,
-    posts, getPost, addPost, sharePost, deletePost, toggleLike, isLiked, reactPost, REACTIONS, reactionMeta, addComment, toggleCommentLike,
+    posts, getPost, addPost, sharePost, deletePost, editPost, editComment, toggleLike, isLiked, reactPost, REACTIONS, reactionMeta, addComment, toggleCommentLike,
     events, toggleGoing, isGoing, createEvent,
     notifications, unreadCount, markAllRead, notifText, subscribeNotifications,
     follow, unfollow, isFollowing, followCounts,

@@ -412,5 +412,13 @@ grant execute on function public.contact_user(uuid) to authenticated, anon;
 
 
 -- ============================================================
+--  14. ÉDITION DES COMMENTAIRES (policy UPDATE manquante)
+-- ============================================================
+drop policy if exists "modifier ses commentaires" on public.comments;
+create policy "modifier ses commentaires" on public.comments for update
+  using ( auth.uid() = author_id );
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================

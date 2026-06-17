@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=33">
+<link rel="stylesheet" href="assets/style.css?v=34">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -44,7 +44,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=27"></script>
+<script src="assets/app.supabase.js?v=28"></script>
 <script src="assets/bell.js?v=21"></script>
 <script>
 (async function(){
@@ -71,10 +71,12 @@
     </a>`;
   }
   function commentHTML(c){
+    const mineC=c.authorId===me.id;
     return `<div class="comment" data-cid="${c.id}">
       ${JP.avatarHTML(c.author,c.avatar,'av')}
       <div class="bubble"><b>${JP.esc(c.author)}</b><p>${JP.esc(c.text)}</p>
         <button class="clike ${c.liked?'liked':''}" type="button" data-cid="${c.id}">♥ <span class="cl-count">${c.likes}</span></button>
+        ${mineC?`<button class="cedit" type="button" data-cid="${c.id}">Modifier</button>`:''}
       </div></div>`;
   }
 
@@ -92,6 +94,7 @@
         <a href="membre.html?id=${p.authorEmail}" style="text-decoration:none">${JP.avatarHTML(p.author,p.authorAvatar,'av')}</a>
         <div class="meta"><b><a href="membre.html?id=${p.authorEmail}" style="color:inherit;text-decoration:none">${JP.esc(p.author)}</a></b><span>${JP.esc(p.town)} · ${JP.timeAgo(p.ts)}</span></div>
         <span class="tag">${JP.esc(p.tag)}</span>
+        ${p.authorEmail===me.id?`<div class="post-menu"><button class="dots">⋯</button><div class="pop"><button class="edit-post">✏️ Modifier</button><button class="del">Supprimer</button></div></div>`:''}
       </div>
       <div class="post-body">${JP.esc(p.text)}</div>
       ${galleryHTML(p.images)}
@@ -155,6 +158,29 @@
     host.querySelectorAll('.gimg').forEach(img=>img.addEventListener('click',()=>{
       document.getElementById('lbImg').src=img.src; document.getElementById('lightbox').classList.add('open');
     }));
+    const menu=host.querySelector('.post-menu');
+    if(menu){
+      const pop=menu.querySelector('.pop');
+      menu.querySelector('.dots').addEventListener('click',e=>{e.stopPropagation();pop.classList.toggle('open');});
+      document.addEventListener('click',()=>pop.classList.remove('open'));
+      menu.querySelector('.del').addEventListener('click',async()=>{
+        if(confirm('Supprimer cette publication ?')){ await JP.deletePost(pid); JP.toast('Publication supprimée'); location.href='fil.html'; }
+      });
+      menu.querySelector('.edit-post').addEventListener('click',()=>{
+        const body=host.querySelector('.post-body');
+        if(host.querySelector('.edit-ta')) return;
+        body.innerHTML=`<textarea class="edit-ta" maxlength="500" style="width:100%;min-width:0;min-height:80px;border:1.5px solid var(--line);border-radius:12px;padding:10px;font-family:inherit;font-size:1rem;resize:vertical">${JP.esc(p.text)}</textarea>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="btn btn-ghost btn-sm cancel-edit" type="button">Annuler</button><button class="btn btn-primary btn-sm save-edit" type="button">Enregistrer</button></div>`;
+        const ta=body.querySelector('.edit-ta'); ta.focus();
+        body.querySelector('.cancel-edit').addEventListener('click',()=>{ body.textContent=p.text; });
+        body.querySelector('.save-edit').addEventListener('click',async()=>{
+          const v=ta.value.trim(); if(!v){ JP.toast('Le texte ne peut pas être vide'); return; }
+          const r=await JP.editPost(pid, v);
+          if(r.ok){ p.text=v; body.textContent=v; JP.toast('Publication modifiée'); }
+          else JP.toast(r.msg||'Échec');
+        });
+      });
+    }
 
     const sel=host.querySelector('.csort');
     if(sel){ sel.value=sort; sel.addEventListener('change',()=>{ sort=sel.value; paintComments(); }); }
@@ -177,6 +203,14 @@
       b.classList.toggle('liked',c.liked);
       const cc=b.querySelector('.cl-count'); if(cc) cc.textContent=c.likes;
       await JP.toggleCommentLike(cid);
+    }));
+    box.querySelectorAll('.cedit').forEach(b=>b.addEventListener('click',async()=>{
+      const cid=b.dataset.cid, c=p.comments.find(x=>x.id===cid); if(!c) return;
+      const v=(prompt('Modifier ton commentaire :', c.text)||'').trim();
+      if(!v || v===c.text) return;
+      const r=await JP.editComment(cid, v);
+      if(r.ok){ c.text=v; paintComments(); JP.toast('Commentaire modifié'); }
+      else JP.toast(r.msg||'Échec');
     }));
   }
 

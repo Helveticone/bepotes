@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=33">
+<link rel="stylesheet" href="assets/style.css?v=34">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -103,7 +103,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=27"></script>
+<script src="assets/app.supabase.js?v=28"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=21"></script>
 <script>
@@ -249,7 +249,7 @@
         ${!mine?`<button class="btn btn-ghost btn-sm follow-btn" data-target="${p.authorEmail}">Suivre</button>`:''}
         <span class="tag">${JP.esc(p.tag)}</span>
         ${mine?`<div class="post-menu"><button class="dots">\u22EF</button>
-          <div class="pop"><button class="del"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg> Supprimer</button></div>
+          <div class="pop"><button class="edit-post">\u270F\uFE0F Modifier</button><button class="del"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg> Supprimer</button></div>
         </div>`:`<div class="post-menu"><button class="dots">\u22EF</button>
           <div class="pop"><button class="report-post" data-pid="${p.id}">Signaler</button><button class="block-author" data-uid="${p.authorEmail}">Bloquer l'auteur</button></div>
         </div>`}
@@ -334,10 +334,12 @@
     const cSel=el.querySelector('.csort');
     const cSeeAll=el.querySelector('.see-all');
     function commentHTML(c){
+      const mineC=c.authorId===me.id;
       return `<div class="comment" data-cid="${c.id}">
         ${JP.avatarHTML(c.author,c.avatar,'av')}
         <div class="bubble"><b>${JP.esc(c.author)}</b><p>${JP.esc(c.text)}</p>
           <button class="clike ${c.liked?'liked':''}" type="button" data-cid="${c.id}">♥ <span class="cl-count">${c.likes}</span></button>
+          ${mineC?`<button class="cedit" type="button" data-cid="${c.id}">Modifier</button>`:''}
         </div></div>`;
     }
     function paintComments(){
@@ -361,6 +363,14 @@
         b.classList.toggle('liked',c.liked);
         const cc=b.querySelector('.cl-count'); if(cc) cc.textContent=c.likes;
         await JP.toggleCommentLike(cid);
+      }));
+      cList.querySelectorAll('.cedit').forEach(b=>b.addEventListener('click',async()=>{
+        const cid=b.dataset.cid, c=p.comments.find(x=>x.id===cid); if(!c) return;
+        const v=(prompt('Modifier ton commentaire :', c.text)||'').trim();
+        if(!v || v===c.text) return;
+        const r=await JP.editComment(cid, v);
+        if(r.ok){ c.text=v; paintComments(); JP.toast('Commentaire modifié'); }
+        else JP.toast(r.msg||'Échec');
       }));
     }
     if(cSel) cSel.addEventListener('change',()=>{ cstate.sort=cSel.value; paintComments(); });
@@ -395,6 +405,21 @@
       const del=menu.querySelector('.del');
       if(del) del.addEventListener('click',async()=>{
         if(confirm('Supprimer cette publication ?')){ await JP.deletePost(pid); JP.toast('Publication supprimée'); await render(); }
+      });
+      const editP=menu.querySelector('.edit-post');
+      if(editP) editP.addEventListener('click',()=>{
+        const body=el.querySelector('.post-body');
+        if(el.querySelector('.edit-ta')) return;
+        body.innerHTML=`<textarea class="edit-ta" maxlength="500" style="width:100%;min-width:0;min-height:80px;border:1.5px solid var(--line);border-radius:12px;padding:10px;font-family:inherit;font-size:1rem;resize:vertical">${JP.esc(p.text)}</textarea>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="btn btn-ghost btn-sm cancel-edit" type="button">Annuler</button><button class="btn btn-primary btn-sm save-edit" type="button">Enregistrer</button></div>`;
+        const ta=body.querySelector('.edit-ta'); ta.focus();
+        body.querySelector('.cancel-edit').addEventListener('click',()=>{ body.textContent=p.text; });
+        body.querySelector('.save-edit').addEventListener('click',async()=>{
+          const v=ta.value.trim(); if(!v){ JP.toast('Le texte ne peut pas être vide'); return; }
+          const r=await JP.editPost(pid, v);
+          if(r.ok){ p.text=v; body.textContent=v; JP.toast('Publication modifiée'); }
+          else JP.toast(r.msg||'Échec');
+        });
       });
       const rep=menu.querySelector('.report-post');
       if(rep) rep.addEventListener('click',()=>Mod.openReport({postId:rep.dataset.pid}));
