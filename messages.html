@@ -71,7 +71,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=26"></script>
+<script src="assets/app.supabase.js?v=27"></script>
 <script src="assets/bell.js?v=21"></script>
 <script>
 (async function(){
@@ -202,8 +202,11 @@
   /* ---- Démarrage : ouvrir direct une conv si ?to=ID (depuis un profil) ---- */
   const params=new URLSearchParams(location.search);
   const to=params.get('to');
+  const convParam=params.get('c');   // ouvrir directement une conversation (ex: depuis le Marché)
   await loadConvs();
-  if(to){
+  if(convParam){
+    await loadConvs(convParam);
+  } else if(to){
     const cid=await JP.openConversationWith(to);
     if(typeof cid==='string') await loadConvs(cid);
     // sinon (pas amis) le toast est déjà affiché ; on reste sur la liste

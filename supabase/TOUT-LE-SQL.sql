@@ -384,5 +384,33 @@ alter table public.likes add column if not exists type text default 'like';
 
 
 -- ============================================================
+--  13. CONTACTER UN VENDEUR (Marché) sans être amis
+--     Fonction dédiée (SECURITY DEFINER) : crée/retrouve une
+--     conversation 1-à-1. La messagerie reste amis-only ailleurs.
+-- ============================================================
+create or replace function public.contact_user(other_id uuid)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare conv uuid;
+begin
+  if other_id is null or other_id = auth.uid() then
+    raise exception 'destinataire invalide';
+  end if;
+  select c.id into conv
+  from public.conversations c
+  where coalesce(c.is_group, false) = false
+    and exists (select 1 from public.conversation_members m where m.conversation_id = c.id and m.user_id = auth.uid())
+    and exists (select 1 from public.conversation_members m where m.conversation_id = c.id and m.user_id = other_id)
+    and (select count(*) from public.conversation_members m where m.conversation_id = c.id) = 2
+  limit 1;
+  if conv is not null then return conv; end if;
+  insert into public.conversations (is_group) values (false) returning id into conv;
+  insert into public.conversation_members (conversation_id, user_id)
+  values (conv, auth.uid()), (conv, other_id);
+  return conv;
+end; $$;
+grant execute on function public.contact_user(uuid) to authenticated, anon;
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================

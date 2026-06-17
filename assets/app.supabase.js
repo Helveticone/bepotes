@@ -563,6 +563,15 @@ window.JP = (() => {
     return conv.id;
   }
 
+  /* Contacter quelqu'un SANS être amis (Marché) : crée/retrouve la
+     conversation 1-à-1 via la fonction dédiée et renvoie son id. */
+  async function contactSeller(otherId){
+    if(!_me || !otherId) return null;
+    const { data, error } = await sb.rpc('contact_user', { other_id: otherId });
+    if(error){ console.error(error); toast('Impossible de contacter ce membre'); return null; }
+    return data;
+  }
+
   /* Mes conversations, avec le dernier message et l'autre interlocuteur */
   async function conversations(){
     if(!_me) return [];
@@ -1114,7 +1123,7 @@ window.JP = (() => {
     events, toggleGoing, isGoing, createEvent,
     notifications, unreadCount, markAllRead, notifText, subscribeNotifications,
     follow, unfollow, isFollowing, followCounts,
-    members, openConversationWith, conversations, messagesOf, sendMessage, subscribeMessages,
+    members, openConversationWith, contactSeller, conversations, messagesOf, sendMessage, subscribeMessages,
     searchPosts,
     friendStatus, sendFriendRequest, acceptFriend, removeFriend, pendingRequests, friends, friendCount, areFriends,
     listGroups, getGroup, createGroup, joinGroup, leaveGroup, groupPosts, addGroupPost,

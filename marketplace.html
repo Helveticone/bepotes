@@ -104,7 +104,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=26"></script>
+<script src="assets/app.supabase.js?v=27"></script>
 <script src="assets/bell.js?v=21"></script>
 <script>
 (async function(){
@@ -161,7 +161,7 @@
            <button class="btn btn-ghost btn-sm" id="dDel" style="color:var(--rouge)">Supprimer</button>
          </div>`
       : `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
-           <a class="btn btn-primary btn-sm" href="membre.html?id=${l.sellerId}">Contacter le vendeur</a>
+           <button class="btn btn-primary btn-sm" id="contactSeller" data-id="${l.sellerId}">Contacter le vendeur</button>
            <a class="btn btn-ghost btn-sm" href="membre.html?id=${l.sellerId}">Voir le profil</a>
          </div>`;
     document.getElementById('dBody').innerHTML=`
@@ -188,6 +188,13 @@
       const r=await JP.deleteListing(l.id);
       if(r.ok){ JP.toast('Annonce supprimée'); dModal.classList.remove('open'); await render(); }
       else JP.toast(r.msg||'Échec');
+    });
+    const contact=document.getElementById('contactSeller');
+    if(contact) contact.addEventListener('click',async()=>{
+      contact.disabled=true; contact.textContent='Ouverture…';
+      const cid=await JP.contactSeller(contact.dataset.id);
+      if(cid) location.href='messages.html?c='+cid;
+      else { contact.disabled=false; contact.textContent='Contacter le vendeur'; }
     });
   }
   document.getElementById('dClose').addEventListener('click',()=>dModal.classList.remove('open'));
