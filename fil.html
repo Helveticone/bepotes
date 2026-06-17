@@ -87,6 +87,10 @@
       </div>
     </div>
     <div id="suggestStrip"></div>
+    <div class="search-tabs" id="feedTabs" style="margin-bottom:16px">
+      <button data-s="recent" class="active">Récent</button>
+      <button data-s="pertinent">Pertinent</button>
+    </div>
     <div id="feed"></div>
   </main>
 
@@ -130,6 +134,31 @@
   let pendingImages=[];   // jusqu'à 6 fichiers File
   const expandedPosts=new Set();   // posts dont les commentaires sont dépliés (persiste au re-rendu)
 
+  /* ---- Tri du fil : 'recent' (chrono) | 'pertinent' (algo léger) ---- */
+  let feedSort = (function(){ try{ return localStorage.getItem('jp-feed-sort')||'recent'; }catch(e){ return 'recent'; } })();
+  const friendSet = new Set();   // ids de mes amis (bonus d'affinité)
+  function scorePost(p){
+    const ageH = (Date.now()-new Date(p.ts).getTime())/3600000;
+    const freshness = Math.exp(-ageH/18);                       // récence (demi-vie ~12 h)
+    const eng = Math.log(1 + (p.likes||0) + 2*(p.comments?.length||0));
+    const affinity = friendSet.has(p.authorEmail) ? 1 : 0;      // ami = coup de pouce
+    const newGuard = ageH < 2 ? 0.5 : 0;                        // garde-fou : un post récent remonte toujours
+    return 1.0*freshness + 0.5*eng + 0.6*affinity + newGuard;
+  }
+  function orderPosts(posts){
+    if(feedSort!=='pertinent') return posts;                    // 'recent' = ordre chronologique d'origine
+    return posts.slice().sort((a,b)=> scorePost(b)-scorePost(a));
+  }
+  document.querySelectorAll('#feedTabs button').forEach(b=>{
+    if(b.dataset.s===feedSort){ b.classList.add('active'); } else b.classList.remove('active');
+    b.addEventListener('click',()=>{
+      if(feedSort===b.dataset.s) return;
+      feedSort=b.dataset.s; try{ localStorage.setItem('jp-feed-sort', feedSort); }catch(e){}
+      document.querySelectorAll('#feedTabs button').forEach(x=>x.classList.toggle('active', x.dataset.s===feedSort));
+      render();
+    });
+  });
+
   /* ---- Photos dans le composer (multi, max 6) ---- */
   const photoFile=document.getElementById('photoFile');
   document.getElementById('photoBtn').addEventListener('click',()=>photoFile.click());
@@ -155,8 +184,9 @@
       feed.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><p>Aucune publication pour l\'instant. Sois le premier à lancer la discussion !</p></div>';
       return;
     }
-    feed.innerHTML=posts.map(p=>postHTML(p)).join('');
-    posts.forEach(p=>bind(p));
+    const list=orderPosts(posts);
+    feed.innerHTML=list.map(p=>postHTML(p)).join('');
+    list.forEach(p=>bind(p));
     wireFollowButtons();
     wireFriendButtons();
     feed.querySelectorAll('.gimg').forEach(img=>img.addEventListener('click',()=>{
@@ -622,6 +652,7 @@
     }));
   }
 
+  try{ (await JP.friends()).forEach(f=>{ if(f && f.id) friendSet.add(f.id); }); }catch(e){}
   await render();
   renderSuggestions();
   const lb=document.getElementById('lightbox');
