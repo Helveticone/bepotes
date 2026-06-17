@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=29">
+<link rel="stylesheet" href="assets/style.css?v=30">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -103,7 +103,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=23"></script>
+<script src="assets/app.supabase.js?v=24"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=21"></script>
 <script>
@@ -230,6 +230,14 @@
       `</div>`;
   }
 
+  function sharedCardHTML(s){
+    return `<a href="post.html?id=${s.id}" class="shared-card">
+      <div class="sc-head">${JP.avatarHTML(s.author,s.authorAvatar,'av')}<b>${JP.esc(s.author)}</b></div>
+      ${s.text?`<div class="sc-text">${JP.esc(s.text)}</div>`:''}
+      ${s.image?`<img src="${s.image}" alt="" class="sc-img">`:''}
+    </a>`;
+  }
+
   function postHTML(p){
     const mine=p.authorEmail===me.id;
     return `<article class="post" data-id="${p.id}" data-author="${p.authorEmail}">
@@ -248,6 +256,7 @@
       </div>
       <div class="post-body">${JP.esc(p.text)}</div>
       ${galleryHTML(p.images)}
+      ${p.shared?sharedCardHTML(p.shared):''}
       <div class="post-actions">
         <button class="act like ${JP.isLiked(p)?'liked':''}">
           <svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>
@@ -257,10 +266,16 @@
           <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           <span class="cc">${p.comments.length}</span>
         </button>
-        <button class="act share">
-          <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
-          Partager
-        </button>
+        <div class="act-share">
+          <button class="act share">
+            <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+            Partager
+          </button>
+          <div class="share-menu">
+            <button class="sh-link" type="button">Copier le lien</button>
+            <button class="sh-reshare" type="button">Partager dans mon fil</button>
+          </div>
+        </div>
       </div>
       <div class="comments open">
         <div class="comments-controls" style="display:none">
@@ -330,10 +345,18 @@
     if(cSeeAll) cSeeAll.addEventListener('click',()=>{ cstate.expanded=true; cstate.sort='all'; paintComments(); });
     el.querySelector('.cbtn').addEventListener('click',()=>{ cstate.expanded=!cstate.expanded; paintComments(); if(cstate.expanded){ const i=el.querySelector('.comment-form input'); if(i) i.focus(); } });
     paintComments();
-    el.querySelector('.share').addEventListener('click',()=>{
-      const url=location.origin+'/fil.html';
+    const shareMenu=el.querySelector('.share-menu');
+    el.querySelector('.share').addEventListener('click',e=>{ e.stopPropagation(); shareMenu.classList.toggle('open'); });
+    document.addEventListener('click',()=>shareMenu.classList.remove('open'));
+    el.querySelector('.sh-link').addEventListener('click',()=>{
+      const url=location.origin+'/post.html?id='+pid;
       if(navigator.clipboard) navigator.clipboard.writeText(url).then(()=>JP.toast('Lien copié \u{1F517}'),()=>JP.toast('Lien : '+url));
       else JP.toast('Lien : '+url);
+    });
+    el.querySelector('.sh-reshare').addEventListener('click',async()=>{
+      const cap=(prompt('Ajoute un mot (optionnel) :','')||'').trim();
+      await JP.sharePost(pid, cap);
+      JP.toast('Partagé dans ton fil ! \u{1F501}'); await render();
     });
     const inp=el.querySelector('.comment-form input');
     const send=async()=>{ const t=inp.value.trim(); if(!t) return;

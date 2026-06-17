@@ -336,5 +336,13 @@ create policy "supprimer son annonce" on public.listings for delete using ( auth
 
 
 -- ============================================================
+--  10. REPARTAGE DE PUBLICATIONS (une publication en repartage une autre)
+-- ============================================================
+alter table public.posts
+  add column if not exists shared_post_id uuid references public.posts(id) on delete set null;
+create index if not exists posts_shared_idx on public.posts(shared_post_id);
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================

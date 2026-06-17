@@ -248,8 +248,9 @@ window.JP = (() => {
   async function posts(){
     const { data, error } = await sb
       .from('posts')
-      .select(`id, text, tag, image_url, images, created_at, author_id,
+      .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
+               shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
                likes ( user_id ),
                comments ( id, text, created_at, author_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .is('group_id', null)
@@ -261,6 +262,18 @@ window.JP = (() => {
     return (data||[]).map(mapPost).filter(p=>!blocked.includes(p.authorEmail));
   }
 
+  /* Aperçu d'une publication repartagée (carte intégrée) */
+  function mapSharedPost(s){
+    if(!s) return null;
+    let imgs = Array.isArray(s.images) ? s.images.filter(Boolean) : [];
+    if(!imgs.length && s.image_url) imgs=[s.image_url];
+    return {
+      id:s.id, text:s.text||'', image:imgs[0]||null, ts:s.created_at,
+      authorEmail:s.author_id, author:s.author?.name||'Membre',
+      authorAvatar:s.author?.avatar_url||null
+    };
+  }
+
   function mapPost(p){
     const likedBy=(p.likes||[]).map(l=>l.user_id);
     let imgs = Array.isArray(p.images) ? p.images.filter(Boolean) : [];
@@ -270,6 +283,8 @@ window.JP = (() => {
       authorEmail:p.author_id,
       author:p.author?.name||'Membre', town:p.author?.town||'', authorAvatar:p.author?.avatar_url||null,
       likes:likedBy.length, likedBy,
+      sharedId:p.shared_post_id||null,
+      shared: mapSharedPost(p.shared),
       comments:(p.comments||[]).map(c=>({
         id:c.id,
         authorId:c.author_id,
@@ -294,16 +309,36 @@ window.JP = (() => {
     return urls;
   }
 
-  async function addPost({text, tag, image, images}){
+  async function addPost({text, tag, image, images, sharedPostId}){
     if(!_me) return;
     let urls=[];
     if(images && images.length) urls=await uploadImages('posts', images, 1280, 0.82);
     else if(image){ try{ urls=[await uploadImage('posts', image, 1280, 0.82)]; }catch(e){ toast('Photo trop lourde'); } }
     const { error } = await sb.from('posts').insert({
       author_id:_me.id, text, tag:tag||'Général',
-      image_url:urls[0]||null, images:urls
+      image_url:urls[0]||null, images:urls,
+      shared_post_id: sharedPostId||null
     });
     if(error) toast(error.message);
+  }
+
+  /* Repartager une publication dans son fil (avec un mot optionnel) */
+  async function sharePost(postId, text=''){
+    return addPost({text:text||'', tag:'Partage', sharedPostId:postId});
+  }
+
+  /* Une seule publication (permalien) avec ses commentaires */
+  async function getPost(pid){
+    const { data, error } = await sb
+      .from('posts')
+      .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
+               author:profiles!author_id ( name, town, avatar_url ),
+               shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
+               likes ( user_id ),
+               comments ( id, text, created_at, author_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
+      .eq('id', pid).single();
+    if(error){ console.error(error); return null; }
+    return mapPost(data);
   }
 
   async function deletePost(pid){
@@ -378,7 +413,7 @@ window.JP = (() => {
     if(!_me) return [];
     const { data, error } = await sb
       .from('notifications')
-      .select(`id, type, read, created_at, post_id,
+      .select(`id, type, read, created_at, post_id, actor_id,
                actor:profiles!actor_id ( name, avatar_url )`)
       .eq('user_id', _me.id)
       .order('created_at', {ascending:false})
@@ -387,15 +422,17 @@ window.JP = (() => {
     return (data||[]).map(n=>({
       id:n.id, type:n.type, read:n.read, ts:n.created_at, postId:n.post_id,
       actorName:n.actor?.name||'Quelqu\'un', actorAvatar:n.actor?.avatar_url||null,
-      link: notifLink(n.type)
+      link: notifLink(n.type, n.post_id, n.actor_id)
     }));
   }
 
-  /* Où mène une notification quand on clique dessus */
-  function notifLink(type){
+  /* Où mène une notification quand on clique dessus (lien profond) */
+  function notifLink(type, postId, actorId){
     if(type==='friend_request' || type==='friend_accept') return 'amis.html';
     if(type==='message') return 'messages.html';
-    return 'fil.html';   // like / comment / follow -> le fil
+    if(type==='follow')  return actorId ? ('membre.html?id='+actorId) : 'fil.html';
+    if((type==='like' || type==='comment') && postId) return 'post.html?id='+postId;
+    return 'fil.html';
   }
 
   async function unreadCount(){
@@ -856,8 +893,9 @@ window.JP = (() => {
   /* Publications d'un membre donné */
   async function userPosts(userId){
     const { data } = await sb.from('posts')
-      .select(`id, text, tag, image_url, images, created_at, author_id,
+      .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
+               shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
                likes ( user_id ),
                comments ( id, text, created_at, author_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .eq('author_id', userId).is('group_id', null)
@@ -1022,7 +1060,7 @@ window.JP = (() => {
     sb, loadMe, requireAuth, user, toast, avatarHTML,
     colorFor, initials, esc, timeAgo, uploadImage, uploadBlob, cropImage, fileToBlob,
     register, login, logout, updateProfile,
-    posts, addPost, deletePost, toggleLike, isLiked, addComment, toggleCommentLike,
+    posts, getPost, addPost, sharePost, deletePost, toggleLike, isLiked, addComment, toggleCommentLike,
     events, toggleGoing, isGoing, createEvent,
     notifications, unreadCount, markAllRead, notifText, subscribeNotifications,
     follow, unfollow, isFollowing, followCounts,

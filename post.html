@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Publication — Jurapotes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=30">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#E11D2A">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jurapotes">
+</head>
+<body>
+<nav><div class="wrap nav-inner">
+  <a href="index.html" class="logo"><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <div class="nav-links">
+    <a href="fil.html">Le fil</a>
+    <a href="amis.html">Amis</a>
+    <a href="groupes.html">Groupes</a>
+    <a href="pages.html">Pages</a>
+    <a href="marketplace.html">Marché</a>
+    <a href="evenements.html">Événements</a>
+    <a href="messages.html">Messages</a>
+    <a href="profil.html">Profil</a>
+    <a href="notifications.html" class="nav-bell" id="bell" aria-label="Notifications">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="badge-count" id="bellCount">0</span>
+    </a>
+    <a href="#" id="logout" class="btn btn-ghost btn-sm">Déconnexion</a>
+  </div>
+</div></nav>
+
+<div class="page-pad"><div class="narrow">
+  <a href="fil.html" style="color:var(--ink-soft);text-decoration:none;font-size:.9rem;display:inline-block;margin-bottom:14px">‹ Retour au fil</a>
+  <div id="post"></div>
+</div></div>
+
+<div class="lightbox" id="lightbox"><button class="lb-close">&times;</button><img id="lbImg" alt=""></div>
+
+<script src="/assets/supabase.min.js?v=18"></script>
+<script src="assets/config.js"></script>
+<script src="assets/app.supabase.js?v=24"></script>
+<script src="assets/bell.js?v=21"></script>
+<script>
+(async function(){
+  const okAuth = await JP.requireAuth();
+  if(!okAuth) return;
+  const me=JP.user();
+  document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
+
+  const pid=new URLSearchParams(location.search).get('id');
+  const host=document.getElementById('post');
+  if(!pid){ host.innerHTML='<div class="empty"><p>Publication introuvable.</p></div>'; return; }
+
+  function galleryHTML(images){
+    const imgs=(images||[]).filter(Boolean);
+    if(!imgs.length) return '';
+    const n=Math.min(imgs.length,6);
+    return `<div class="post-gallery g${n}">`+imgs.slice(0,6).map(u=>`<img src="${u}" alt="" class="gimg">`).join('')+`</div>`;
+  }
+  function sharedCardHTML(s){
+    return `<a href="post.html?id=${s.id}" class="shared-card">
+      <div class="sc-head">${JP.avatarHTML(s.author,s.authorAvatar,'av')}<b>${JP.esc(s.author)}</b></div>
+      ${s.text?`<div class="sc-text">${JP.esc(s.text)}</div>`:''}
+      ${s.image?`<img src="${s.image}" alt="" class="sc-img">`:''}
+    </a>`;
+  }
+  function commentHTML(c){
+    return `<div class="comment" data-cid="${c.id}">
+      ${JP.avatarHTML(c.author,c.avatar,'av')}
+      <div class="bubble"><b>${JP.esc(c.author)}</b><p>${JP.esc(c.text)}</p>
+        <button class="clike ${c.liked?'liked':''}" type="button" data-cid="${c.id}">♥ <span class="cl-count">${c.likes}</span></button>
+      </div></div>`;
+  }
+
+  let p=null, sort='all';
+
+  async function load(){
+    p=await JP.getPost(pid);
+    if(!p){ host.innerHTML='<div class="empty"><p>Publication introuvable ou supprimée.</p></div>'; return; }
+    render();
+  }
+
+  function render(){
+    host.innerHTML=`<article class="post">
+      <div class="post-head">
+        <a href="membre.html?id=${p.authorEmail}" style="text-decoration:none">${JP.avatarHTML(p.author,p.authorAvatar,'av')}</a>
+        <div class="meta"><b><a href="membre.html?id=${p.authorEmail}" style="color:inherit;text-decoration:none">${JP.esc(p.author)}</a></b><span>${JP.esc(p.town)} · ${JP.timeAgo(p.ts)}</span></div>
+        <span class="tag">${JP.esc(p.tag)}</span>
+      </div>
+      <div class="post-body">${JP.esc(p.text)}</div>
+      ${galleryHTML(p.images)}
+      ${p.shared?sharedCardHTML(p.shared):''}
+      <div class="post-actions">
+        <button class="act like ${JP.isLiked(p)?'liked':''}"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg><span class="lc">${p.likes}</span></button>
+        <button class="act cbtn"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>${p.comments.length}</span></button>
+        <button class="act sh-link"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg> Copier le lien</button>
+      </div>
+      <div class="comments open">
+        ${p.comments.length>1?`<div class="comments-controls"><select class="csort">
+          <option value="all">Tous les commentaires</option>
+          <option value="recent">Les plus récents</option>
+          <option value="top">Le plus de like</option>
+        </select></div>`:''}
+        <div class="comment-list"></div>
+        <div class="comment-form">
+          <input type="text" placeholder="Écris un commentaire…" maxlength="240">
+          <button class="btn btn-primary btn-sm csend">Envoyer</button>
+        </div>
+      </div>
+    </article>`;
+
+    const likeBtn=host.querySelector('.like');
+    likeBtn.addEventListener('click',async()=>{
+      const liked=likeBtn.classList.contains('liked');
+      likeBtn.classList.toggle('liked',!liked);
+      const lc=host.querySelector('.lc'); lc.textContent=Math.max(0,parseInt(lc.textContent)+(liked?-1:1));
+      await JP.toggleLike(pid);
+    });
+    host.querySelector('.sh-link').addEventListener('click',()=>{
+      const url=location.origin+'/post.html?id='+pid;
+      if(navigator.clipboard) navigator.clipboard.writeText(url).then(()=>JP.toast('Lien copié 🔗'),()=>JP.toast('Lien : '+url));
+      else JP.toast('Lien : '+url);
+    });
+    host.querySelector('.cbtn').addEventListener('click',()=>host.querySelector('.comment-form input').focus());
+    host.querySelectorAll('.gimg').forEach(img=>img.addEventListener('click',()=>{
+      document.getElementById('lbImg').src=img.src; document.getElementById('lightbox').classList.add('open');
+    }));
+
+    const sel=host.querySelector('.csort');
+    if(sel){ sel.value=sort; sel.addEventListener('change',()=>{ sort=sel.value; paintComments(); }); }
+    const inp=host.querySelector('.comment-form input');
+    const send=async()=>{ const t=inp.value.trim(); if(!t) return; inp.value=''; await JP.addComment(pid,t); await load(); };
+    host.querySelector('.csend').addEventListener('click',send);
+    inp.addEventListener('keydown',e=>{ if(e.key==='Enter') send(); });
+    paintComments();
+  }
+
+  function paintComments(){
+    const box=host.querySelector('.comment-list'); if(!box) return;
+    const byRecent=(a,b)=>new Date(b.ts)-new Date(a.ts);
+    const sorters={ all:(a,b)=>new Date(a.ts)-new Date(b.ts), recent:byRecent, top:(a,b)=>(b.likes-a.likes)||byRecent(a,b) };
+    const list=p.comments.slice().sort(sorters[sort]||sorters.all);
+    box.innerHTML=list.map(commentHTML).join('');
+    box.querySelectorAll('.clike').forEach(b=>b.addEventListener('click',async()=>{
+      const cid=b.dataset.cid, c=p.comments.find(x=>x.id===cid); if(!c) return;
+      c.liked=!c.liked; c.likes=Math.max(0,c.likes+(c.liked?1:-1));
+      b.classList.toggle('liked',c.liked);
+      const cc=b.querySelector('.cl-count'); if(cc) cc.textContent=c.likes;
+      await JP.toggleCommentLike(cid);
+    }));
+  }
+
+  const lb=document.getElementById('lightbox');
+  lb.querySelector('.lb-close').addEventListener('click',()=>lb.classList.remove('open'));
+  lb.addEventListener('click',e=>{ if(e.target===lb) lb.classList.remove('open'); });
+
+  await load();
+})();
+</script>
+<script src="/assets/pwa.js?v=18"></script>
+
+<nav class="mobile-nav">
+<a href="fil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Fil</span></a>
+<a href="recherche.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg><span>Recherche</span></a>
+<a href="amis.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"/></svg><span>Amis</span></a>
+<a href="messages.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span>Messages</span></a>
+<a href="notifications.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><span class="mn-badge" id="mnBell">0</span><span>Alertes</span></a>
+<a href="profil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M4 21v-1a6 6 0 0112 0v1"/></svg><span>Profil</span></a>
+</nav>
+</body>
+</html>
