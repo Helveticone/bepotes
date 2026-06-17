@@ -168,7 +168,8 @@ window.JP = (() => {
     _me = data ? {
       id:data.id, email:user.email, name:data.name, town:data.town,
       bio:data.bio||'', avatar:data.avatar_url, cover:data.cover_url,
-      is_pro:data.is_pro, is_admin:data.is_admin, is_banned:data.is_banned, joined:data.created_at
+      is_pro:data.is_pro, is_admin:data.is_admin, is_banned:data.is_banned, joined:data.created_at,
+      email_notifications: data.email_notifications!==false   // défaut: activé
     } : null;
     return _me;
   }
@@ -222,6 +223,13 @@ window.JP = (() => {
     const { error } = await sb.rpc('delete_my_account');
     if(error) return {ok:false, msg:error.message};
     await sb.auth.signOut();
+    return {ok:true};
+  }
+  async function setEmailNotifications(on){
+    if(!_me) return {ok:false};
+    const { error } = await sb.from('profiles').update({email_notifications:!!on}).eq('id', _me.id);
+    if(error) return {ok:false, msg:error.message};
+    _me.email_notifications=!!on;
     return {ok:true};
   }
 
@@ -1434,7 +1442,7 @@ window.JP = (() => {
     sb, loadMe, requireAuth, user, toast, avatarHTML,
     colorFor, initials, esc, timeAgo, uploadImage, uploadBlob, cropImage, fileToBlob,
     mentionHTML, attachMentions, tokenizeMentions, COMMUNES, fillCommuneSelect,
-    register, login, logout, updateProfile, updateEmail, updatePassword, deleteAccount,
+    register, login, logout, updateProfile, updateEmail, updatePassword, deleteAccount, setEmailNotifications,
     posts, getPost, addPost, sharePost, deletePost, editPost, editComment, toggleLike, isLiked, reactPost, REACTIONS, reactionMeta, addComment, toggleCommentLike,
     votePoll, removePollVote,
     events, getEvent, toggleGoing, isGoing, setEventRsvp, eventComments, addEventComment, deleteEventComment, createEvent, updateEvent, updateEventCover, deleteEvent,

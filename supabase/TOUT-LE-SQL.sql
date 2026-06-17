@@ -638,5 +638,14 @@ create policy "retirer son vote" on public.poll_votes for delete using ( auth.ui
 
 
 -- ============================================================
+--  23. NOTIFICATIONS PAR E-MAIL (préférence membre)
+--      L'envoi est assuré par l'Edge Function « notify-email » +
+--      un Database Webhook (voir notifications-email-GUIDE.md).
+-- ============================================================
+alter table public.profiles
+  add column if not exists email_notifications boolean default true;
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================

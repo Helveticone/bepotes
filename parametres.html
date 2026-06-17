@@ -55,6 +55,14 @@
     <div style="text-align:right"><button class="btn btn-primary btn-sm" id="pwBtn">Changer le mot de passe</button></div>
   </div>
 
+  <div class="side-card" style="margin-bottom:18px">
+    <h3 style="font-family:'Plus Jakarta Sans';font-size:1.05rem;margin-bottom:8px">Notifications par e-mail</h3>
+    <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:14px">Reçois un e-mail quand quelqu'un t'écrit, commente, t'identifie ou t'ajoute en ami. Tu peux les couper quand tu veux.</p>
+    <label style="display:flex;gap:10px;align-items:center;font-size:.95rem;cursor:pointer">
+      <input type="checkbox" id="emailNotif"> Recevoir les notifications par e-mail
+    </label>
+  </div>
+
   <div class="side-card" style="border-color:#f6d4d4;background:#FFF7F7">
     <h3 style="font-family:'Plus Jakarta Sans';font-size:1.05rem;margin-bottom:8px;color:var(--rouge-dark)">Zone de danger</h3>
     <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:14px">Supprimer ton compte efface définitivement ton profil, tes publications, commentaires, photos et messages. <b>Cette action est irréversible.</b></p>
@@ -64,7 +72,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=38"></script>
+<script src="assets/app.supabase.js?v=39"></script>
 <script src="assets/nav.js?v=4"></script>
 <script src="assets/bell.js?v=22"></script>
 <script>
@@ -74,6 +82,14 @@
   const me=JP.user();
   document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
   document.getElementById('curEmail').textContent = me.email || '—';
+
+  const emailNotif=document.getElementById('emailNotif');
+  emailNotif.checked = me.email_notifications!==false;
+  emailNotif.addEventListener('change',async()=>{
+    const r=await JP.setEmailNotifications(emailNotif.checked);
+    if(r.ok) JP.toast(emailNotif.checked?'E-mails activés ✅':'E-mails désactivés');
+    else { JP.toast(r.msg||'Échec'); emailNotif.checked=!emailNotif.checked; }
+  });
 
   document.getElementById('emailBtn').addEventListener('click',async()=>{
     const email=document.getElementById('newEmail').value.trim();
