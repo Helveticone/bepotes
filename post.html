@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=37">
+<link rel="stylesheet" href="assets/style.css?v=38">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -44,7 +44,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=30"></script>
+<script src="assets/app.supabase.js?v=31"></script>
 <script src="assets/nav.js?v=2"></script>
 <script src="assets/bell.js?v=21"></script>
 <script>
@@ -76,7 +76,7 @@
     const parentTarget=isReply?c.parentId:c.id;
     return `<div class="comment ${isReply?'reply':''}" data-cid="${c.id}">
       ${JP.avatarHTML(c.author,c.avatar,'av')}
-      <div class="bubble"><b>${JP.esc(c.author)}</b><p>${JP.esc(c.text)}</p>
+      <div class="bubble"><b>${JP.esc(c.author)}</b><p>${JP.mentionHTML(c.text)}</p>
         <button class="clike ${c.liked?'liked':''}" type="button" data-cid="${c.id}">♥ <span class="cl-count">${c.likes}</span></button>
         <button class="creply" type="button" data-parent="${parentTarget}">Répondre</button>
         ${mineC?`<button class="cedit" type="button" data-cid="${c.id}">Modifier</button>`:''}
@@ -99,7 +99,7 @@
         <span class="tag">${JP.esc(p.tag)}</span>
         ${p.authorEmail===me.id?`<div class="post-menu"><button class="dots">⋯</button><div class="pop"><button class="edit-post">✏️ Modifier</button><button class="del">Supprimer</button></div></div>`:''}
       </div>
-      <div class="post-body">${JP.esc(p.text)}</div>
+      <div class="post-body">${JP.mentionHTML(p.text)}</div>
       ${galleryHTML(p.images)}
       ${p.shared?sharedCardHTML(p.shared):''}
       <div class="post-actions">
@@ -187,8 +187,8 @@
 
     const sel=host.querySelector('.csort');
     if(sel){ sel.value=sort; sel.addEventListener('change',()=>{ sort=sel.value; paintComments(); }); }
-    const inp=host.querySelector('.comment-form input');
-    const send=async()=>{ const t=inp.value.trim(); if(!t) return; inp.value=''; await JP.addComment(pid,t); await load(); };
+    const inp=host.querySelector('.comment-form input'); JP.attachMentions(inp);
+    const send=async()=>{ const raw=inp.value.trim(); if(!raw) return; const t=JP.tokenizeMentions(raw, inp._mentions); inp.value=''; inp._mentions=[]; await JP.addComment(pid,t); await load(); };
     host.querySelector('.csend').addEventListener('click',send);
     inp.addEventListener('keydown',e=>{ if(e.key==='Enter') send(); });
     paintComments();

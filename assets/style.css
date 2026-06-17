@@ -446,6 +446,14 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 .sugg-row .si span{font-size:.78rem;color:var(--ink-soft);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sugg-row .sugg-add{flex:0 0 auto}
 
+/* ============ @MENTIONS (v38) ============ */
+.mention{color:var(--rouge);font-weight:600;text-decoration:none}
+.mention:hover{text-decoration:underline}
+.mention-pop{position:absolute;z-index:400;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow-lg);padding:6px;max-height:240px;overflow-y:auto}
+.mention-pop .mi{display:flex;align-items:center;gap:9px;width:100%;padding:7px 9px;border:none;background:none;cursor:pointer;border-radius:9px;font-family:inherit;font-size:.9rem;text-align:left;color:var(--ink)}
+.mention-pop .mi:hover,.mention-pop .mi.on{background:var(--rouge-soft)}
+.mention-pop .mi .av{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;color:#fff;font-weight:700;font-size:.72rem}
+
 .group-header{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:24px}
 .group-header .gh-cover{position:relative;height:160px;background:linear-gradient(120deg,var(--rouge),#F2723B);background-size:cover;background-position:center}
 .group-header .gh-body{padding:20px 24px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}

@@ -37,6 +37,70 @@ window.JP = (() => {
     return `<div class="${cls}" style="background:${colorFor(name)};${style}">${initials(name)}</div>`;
   }
 
+  /* ---------- @mentions ----------
+     Stockage : @[Nom](uuid). Affichage : lien vers le profil. */
+  function mentionHTML(text){
+    return esc(text).replace(/@\[([^\]]+)\]\(([0-9a-fA-F-]{36})\)/g,
+      (m,name,id)=>`<a class="mention" href="membre.html?id=${id}">@${name}</a>`);
+  }
+  // Convertit les "@Nom" choisis dans l'autocomplétion en jetons @[Nom](uuid)
+  function tokenizeMentions(text, mentions){
+    let out=text||'';
+    (mentions||[]).forEach(m=>{
+      const needle='@'+m.name;
+      const idx=out.indexOf(needle);
+      if(idx>=0) out = out.slice(0,idx) + '@['+m.name+']('+m.id+')' + out.slice(idx+needle.length);
+    });
+    return out;
+  }
+  // Autocomplétion : attache à un <textarea>/<input>. Mémorise el._mentions.
+  function attachMentions(el){
+    if(!el || el._mentionsAttached) return;
+    el._mentionsAttached=true; el._mentions=[];
+    let box=null, items=[], active=-1;
+    function close(){ if(box){ box.remove(); box=null; } items=[]; active=-1; }
+    function currentQuery(){
+      const pos=el.selectionStart, before=el.value.slice(0,pos);
+      const m=before.match(/(?:^|\s)@([\p{L}][\p{L}\-' ]{0,28})$/u);
+      if(!m) return null;
+      return { q:m[1].trim(), start:pos-m[1].length-1, end:pos };
+    }
+    async function update(){
+      const cq=currentQuery();
+      if(!cq || cq.q.length<1){ close(); return; }
+      let list=[]; try{ list=await members(cq.q); }catch(e){ list=[]; }
+      if(!list.length){ close(); return; }
+      items=list.slice(0,6); active=0; render(cq);
+    }
+    function render(cq){
+      if(!box){ box=document.createElement('div'); box.className='mention-pop'; document.body.appendChild(box); }
+      box.innerHTML=items.map((m,i)=>`<button type="button" class="mi ${i===active?'on':''}" data-i="${i}">${avatarHTML(m.name,m.avatar,'av')}<span>${esc(m.name)}</span></button>`).join('');
+      const r=el.getBoundingClientRect();
+      box.style.left=(r.left+window.scrollX)+'px';
+      box.style.top=(r.bottom+window.scrollY+4)+'px';
+      box.style.width=Math.min(Math.max(r.width,200),320)+'px';
+      box.querySelectorAll('.mi').forEach(b=>b.addEventListener('mousedown',e=>{ e.preventDefault(); pick(+b.dataset.i, cq); }));
+    }
+    function pick(i, cq){
+      const m=items[i]; if(!m) return;
+      const before=el.value.slice(0,cq.start), after=el.value.slice(cq.end);
+      el.value = before + '@' + m.name + ' ' + after;
+      el._mentions.push({name:m.name, id:m.id});
+      const np=(before+'@'+m.name+' ').length;
+      try{ el.setSelectionRange(np,np); }catch(_){}
+      el.focus(); close();
+    }
+    el.addEventListener('input', update);
+    el.addEventListener('keydown', e=>{
+      if(!box) return;
+      if(e.key==='ArrowDown'){ active=Math.min(items.length-1,active+1); e.preventDefault(); render(currentQuery()||{start:0,end:0}); }
+      else if(e.key==='ArrowUp'){ active=Math.max(0,active-1); e.preventDefault(); render(currentQuery()||{start:0,end:0}); }
+      else if((e.key==='Enter'||e.key==='Tab') && active>=0){ const cq=currentQuery(); if(cq){ e.preventDefault(); pick(active,cq); } }
+      else if(e.key==='Escape'){ close(); }
+    });
+    el.addEventListener('blur', ()=>setTimeout(close,150));
+  }
+
   function toast(msg){
     let t=document.querySelector('.toast');
     if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t);}
@@ -465,7 +529,7 @@ window.JP = (() => {
     if(type==='friend_request' || type==='friend_accept') return 'amis.html';
     if(type==='message') return 'messages.html';
     if(type==='follow')  return actorId ? ('membre.html?id='+actorId) : 'fil.html';
-    if((type==='like' || type==='comment') && postId) return 'post.html?id='+postId;
+    if((type==='like' || type==='comment' || type==='mention') && postId) return 'post.html?id='+postId;
     return 'fil.html';
   }
 
@@ -528,6 +592,7 @@ window.JP = (() => {
     if(type==='message') return "t'a envoyé un message";
     if(type==='friend_request') return "t'a envoyé une demande d'ami";
     if(type==='friend_accept')  return "a accepté ta demande d'ami";
+    if(type==='mention')        return "t'a mentionné·e";
     return "a interagi avec toi";
   }
 
@@ -1172,6 +1237,7 @@ window.JP = (() => {
   return {
     sb, loadMe, requireAuth, user, toast, avatarHTML,
     colorFor, initials, esc, timeAgo, uploadImage, uploadBlob, cropImage, fileToBlob,
+    mentionHTML, attachMentions, tokenizeMentions,
     register, login, logout, updateProfile,
     posts, getPost, addPost, sharePost, deletePost, editPost, editComment, toggleLike, isLiked, reactPost, REACTIONS, reactionMeta, addComment, toggleCommentLike,
     events, toggleGoing, isGoing, createEvent,

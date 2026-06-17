@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=37">
+<link rel="stylesheet" href="assets/style.css?v=38">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -105,7 +105,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=30"></script>
+<script src="assets/app.supabase.js?v=31"></script>
 <script src="assets/nav.js?v=2"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=21"></script>
@@ -258,7 +258,7 @@
           <div class="pop"><button class="report-post" data-pid="${p.id}">Signaler</button><button class="block-author" data-uid="${p.authorEmail}">Bloquer l'auteur</button></div>
         </div>`}
       </div>
-      <div class="post-body">${JP.esc(p.text)}</div>
+      <div class="post-body">${JP.mentionHTML(p.text)}</div>
       ${galleryHTML(p.images)}
       ${p.shared?sharedCardHTML(p.shared):''}
       <div class="post-actions">
@@ -342,7 +342,7 @@
       const parentTarget=isReply?c.parentId:c.id;
       return `<div class="comment ${isReply?'reply':''}" data-cid="${c.id}">
         ${JP.avatarHTML(c.author,c.avatar,'av')}
-        <div class="bubble"><b>${JP.esc(c.author)}</b><p>${JP.esc(c.text)}</p>
+        <div class="bubble"><b>${JP.esc(c.author)}</b><p>${JP.mentionHTML(c.text)}</p>
           <button class="clike ${c.liked?'liked':''}" type="button" data-cid="${c.id}">♥ <span class="cl-count">${c.likes}</span></button>
           <button class="creply" type="button" data-parent="${parentTarget}">Répondre</button>
           ${mineC?`<button class="cedit" type="button" data-cid="${c.id}">Modifier</button>`:''}
@@ -408,9 +408,10 @@
       JP.toast('Partagé dans ton fil ! \u{1F501}'); await render();
     });
     const inp=el.querySelector('.comment-form input');
-    const send=async()=>{ const t=inp.value.trim(); if(!t) return;
-      inp.value=''; await JP.addComment(pid,t); await render();
-      const again=feed.querySelector(`[data-id="${pid}"] .comments`); if(again) again.classList.add('open');
+    JP.attachMentions(inp);
+    const send=async()=>{ const raw=inp.value.trim(); if(!raw) return;
+      const t=JP.tokenizeMentions(raw, inp._mentions); inp.value=''; inp._mentions=[];
+      await JP.addComment(pid,t); expandedPosts.add(pid); await render();
     };
     el.querySelector('.csend').addEventListener('click',send);
     inp.addEventListener('keydown',e=>{if(e.key==='Enter')send();});
@@ -445,14 +446,17 @@
     }
   }
 
+  const compText=document.getElementById('compText');
+  JP.attachMentions(compText);
   const compGo=document.getElementById('compGo');
   compGo.addEventListener('click',async()=>{
-    const t=document.getElementById('compText').value.trim();
-    if(!t && !pendingImages.length){JP.toast('Écris un mot ou ajoute une photo \u{1F642}');return;}
+    const raw=compText.value.trim();
+    if(!raw && !pendingImages.length){JP.toast('Écris un mot ou ajoute une photo \u{1F642}');return;}
+    const t=JP.tokenizeMentions(raw, compText._mentions);
     compGo.disabled=true; compGo.textContent='Publication…';
     await JP.addPost({text:t, tag:document.getElementById('compTag').value, images:pendingImages});
     compGo.disabled=false; compGo.textContent='Publier';
-    document.getElementById('compText').value='';
+    compText.value=''; compText._mentions=[];
     pendingImages=[];
     renderPreviews();
     JP.toast('Publié ! \u{1F389}'); await render();
