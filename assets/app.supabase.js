@@ -101,6 +101,36 @@ window.JP = (() => {
     el.addEventListener('blur', ()=>setTimeout(close,150));
   }
 
+  /* ---------- Communes du Jura (exhaustif, incl. Moutier rattaché en 2026) ----------
+     Communes officielles + principaux villages/localités (fusions). */
+  const COMMUNES = [
+    'Alle','Asuel','La Baroche','Bassecourt','Belprahon','Berlincourt','Beurnevésin','Boécourt',
+    'Boncourt','Bonfol','Bourrignon','Bressaucourt','Les Breuleux','Buix','Bure','Charmoille',
+    'Châtillon','La Chaux-des-Breuleux','Chevenez','Clos du Doubs','Cœuve','Corban','Cornol',
+    'Courchapoix','Courchavon','Courfaivre','Courgenay','Courrendlin','Courroux','Courtedoux',
+    'Courtemaîche','Courtételle','Damphreux','Damphreux-Lugnez','Damvant','Delémont','Develier',
+    'Ederswiler','Les Enfers','Épauvillers','Épiquerez','Fahy','Fontenais','Fregiécourt',
+    'Les Genevez','Glovelier','Goumois','Grandfontaine','Haute-Ajoie','Haute-Sorne','Lajoux',
+    'Lugnez','Mervelier','Mettembert','Miécourt','Montfaucon','Montignez','Montmelon','Montsevelier',
+    'Mormont','Moutier','Movelier','Le Noirmont','Ocourt','Pleigne','Pleujouse','Les Pommerats',
+    'Porrentruy','Réclère','Rebeuvelier','Roche-d\'Or','Rocourt','Rossemaison','Saignelégier',
+    'Saint-Brais','Saint-Ursanne','Saulcy','Séprais','Seleute','Soubey','Soulce','Soyhières',
+    'Undervelier','Vendlincourt','Vermes','Vicques'
+  ];
+  /* Remplit un <select> de communes. opts.first = libellé d'option vide en tête ;
+     opts.selected = valeur présélectionnée (ajoutée si absente de la liste). */
+  function fillCommuneSelect(sel, opts={}){
+    if(!sel) return;
+    const selected = opts.selected || '';
+    let list = COMMUNES.slice();
+    if(selected && !list.includes(selected)) list.unshift(selected);
+    let html = '';
+    if(opts.first!==undefined) html += `<option value="">${esc(opts.first)}</option>`;
+    html += list.map(c=>`<option${c===selected?' selected':''}>${esc(c)}</option>`).join('');
+    html += '<option>Autre commune du Jura</option>';
+    sel.innerHTML = html;
+  }
+
   function toast(msg){
     let t=document.querySelector('.toast');
     if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t);}
@@ -1277,7 +1307,7 @@ window.JP = (() => {
   return {
     sb, loadMe, requireAuth, user, toast, avatarHTML,
     colorFor, initials, esc, timeAgo, uploadImage, uploadBlob, cropImage, fileToBlob,
-    mentionHTML, attachMentions, tokenizeMentions,
+    mentionHTML, attachMentions, tokenizeMentions, COMMUNES, fillCommuneSelect,
     register, login, logout, updateProfile,
     posts, getPost, addPost, sharePost, deletePost, editPost, editComment, toggleLike, isLiked, reactPost, REACTIONS, reactionMeta, addComment, toggleCommentLike,
     events, getEvent, toggleGoing, isGoing, setEventRsvp, eventComments, addEventComment, deleteEventComment, createEvent,

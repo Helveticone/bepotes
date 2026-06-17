@@ -82,13 +82,14 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=32"></script>
+<script src="assets/app.supabase.js?v=33"></script>
 <script src="assets/nav.js?v=2"></script>
 <script src="assets/bell.js?v=21"></script>
 <script>
 (async function(){
   const okAuth = await JP.requireAuth();
   if(!okAuth) return;
+  JP.fillCommuneSelect(document.getElementById('gTown'), {first:'Tout le Jura'});
   document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
   const grid=document.getElementById('groupGrid');
 
