@@ -585,16 +585,31 @@ language sql security definer set search_path = public as $$
 $$;
 grant execute on function public.active_ads(text) to authenticated, anon;
 
+alter table public.ads add column if not exists clicks int default 0;
+
 create or replace function public.ad_impression(ad_id uuid)
 returns void language plpgsql security definer set search_path = public as $$
 declare mk text := to_char(now(),'YYYY-MM');
 begin
   update public.ads
      set impressions = case when month_key = mk then impressions + 1 else 1 end,
+         clicks      = case when month_key = mk then clicks else 0 end,
          month_key   = mk
    where id = ad_id;
 end; $$;
 grant execute on function public.ad_impression(uuid) to authenticated, anon;
+
+create or replace function public.ad_click(ad_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare mk text := to_char(now(),'YYYY-MM');
+begin
+  update public.ads
+     set clicks      = case when month_key = mk then clicks + 1 else 1 end,
+         impressions = case when month_key = mk then impressions else 0 end,
+         month_key   = mk
+   where id = ad_id;
+end; $$;
+grant execute on function public.ad_click(uuid) to authenticated, anon;
 
 
 -- ============================================================

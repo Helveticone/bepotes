@@ -1362,6 +1362,9 @@ window.JP = (() => {
   async function adImpression(id){
     try{ await sb.rpc('ad_impression', { ad_id: id }); }catch(e){ /* silencieux */ }
   }
+  async function adClick(id){
+    try{ await sb.rpc('ad_click', { ad_id: id }); }catch(e){ /* silencieux */ }
+  }
 
   /* --- Régie (admin) --- */
   async function listAds(){
@@ -1373,7 +1376,10 @@ window.JP = (() => {
       // affichages du mois en cours (0 si le compteur date d'un autre mois)
       const now = new Date();
       const curKey = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-      return { ...a, shownThisMonth: (mk===curKey ? (a.impressions||0) : 0) };
+      const cur = mk===curKey;
+      return { ...a,
+        shownThisMonth: cur ? (a.impressions||0) : 0,
+        clicksThisMonth: cur ? (a.clicks||0) : 0 };
     });
   }
   async function createAd(fields){
@@ -1417,7 +1423,7 @@ window.JP = (() => {
     publicProfile, userPosts, userPhotos,
     listListings, getListing, createListing, markListingSold, deleteListing,
     pageReviews, saveReview, deleteMyReview,
-    activeAds, pickAd, adImpression, listAds, createAd, updateAd, deleteAd, reorderAds,
+    activeAds, pickAd, adImpression, adClick, listAds, createAd, updateAd, deleteAd, reorderAds,
     report, block, unblock, isBlocked, blockedList, loadBlocked, blockedIds,
     isAdmin, listReports, resolveReport, adminDeletePost, banUser, unbanUser
   };

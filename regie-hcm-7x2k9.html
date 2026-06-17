@@ -122,7 +122,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=36"></script>
+<script src="assets/app.supabase.js?v=37"></script>
 <script src="assets/nav.js?v=3"></script>
 <script src="assets/bell.js?v=22"></script>
 <script>
@@ -267,6 +267,7 @@
     const thumb=a.image_pc||a.image_mobile;
     const cap=a.impressions_cap||0;
     const pct=cap? Math.min(100, Math.round((a.shownThisMonth/cap)*100)) : 0;
+    const ctr=a.shownThisMonth? ((a.clicksThisMonth||0)/a.shownThisMonth*100).toFixed(1) : '0.0';
     const dates=[a.starts_on,a.ends_on].filter(Boolean).join(' → ');
     return `<div class="ad-row" data-id="${a.id}" draggable="true">
       <div class="ad-grip" title="Glisser pour réordonner">⠿</div>
@@ -274,7 +275,7 @@
       <div class="ad-info">
         <b>${JP.esc(a.title||'(sans titre)')} <span class="ad-pill ${a.active?'on':'off'}">${a.active?'Active':'En pause'}</span></b>
         <div class="meta">${a.advertiser?JP.esc(a.advertiser)+' · ':''}${a.plan==='annee'?'Annuel':'Mensuel'}${dates?' · '+JP.esc(dates):''}</div>
-        <div class="meta">${a.shownThisMonth} / ${cap} affichages ce mois</div>
+        <div class="meta">${a.shownThisMonth} / ${cap} affichages ce mois · <b>${a.clicksThisMonth||0} clic${(a.clicksThisMonth||0)>1?'s':''}</b> · CTR ${ctr}%</div>
         <div class="ad-bar"><i style="width:${pct}%"></i></div>
       </div>
       <div class="ad-row-actions">
