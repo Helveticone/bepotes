@@ -394,6 +394,15 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 .mkt-title{font-weight:600;font-size:.95rem;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .mkt-meta{font-size:.8rem;color:var(--ink-soft);margin-top:auto;padding-top:4px}
 
+/* ============ AVIS / ÉTOILES (v31) ============ */
+.stars{display:inline-flex;gap:1px;vertical-align:middle}
+.stars .star{color:#E0D5D5;font-size:1rem;line-height:1}
+.stars .star.on{color:#F5A623}
+.star-pick{display:inline-flex;gap:5px}
+.star-pick .star{background:none;border:none;cursor:pointer;font-size:1.8rem;line-height:1;color:#E0D5D5;padding:0;font-family:inherit;transition:color .12s}
+.star-pick .star.on{color:#F5A623}
+.star-pick .star:hover{color:#F5A623}
+
 .group-header{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:24px}
 .group-header .gh-cover{position:relative;height:160px;background:linear-gradient(120deg,var(--rouge),#F2723B);background-size:cover;background-position:center}
 .group-header .gh-body{padding:20px 24px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}

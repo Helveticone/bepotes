@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=30">
+<link rel="stylesheet" href="assets/style.css?v=31">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -43,6 +43,7 @@
   <a href="groupes.html" id="backLink" style="color:var(--ink-soft);text-decoration:none;font-size:.9rem;display:inline-block;margin-bottom:14px">‹ Retour</a>
   <div id="header"></div>
   <div id="aboutArea"></div>
+  <div id="reviewsArea"></div>
   <div id="manageArea"></div>
   <div id="pendingArea"></div>
   <div id="composerArea"></div>
@@ -53,7 +54,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=24"></script>
+<script src="assets/app.supabase.js?v=25"></script>
 <script src="assets/bell.js?v=21"></script>
 <script>
 (async function(){
@@ -130,6 +131,7 @@
       });
     }
     renderAbout();
+    await renderReviews();
     await renderManage();
     renderComposer();
     await renderPending();
@@ -193,6 +195,74 @@
     if(er) er.addEventListener('click',openRulesEditor);
     const mb=document.getElementById('manageBtn');
     if(mb) mb.addEventListener('click',toggleManage);
+  }
+
+  /* ---- Avis & notes (Pages uniquement) ---- */
+  function starsHTML(n){
+    const full=Math.round(n);
+    let s='';
+    for(let i=1;i<=5;i++) s+=`<span class="star ${i<=full?'on':''}">★</span>`;
+    return `<span class="stars">${s}</span>`;
+  }
+  async function renderReviews(){
+    const area=document.getElementById('reviewsArea');
+    if(!area) return;
+    if(!group || group.kind!=='page'){ area.innerHTML=''; return; }
+    const r=await JP.pageReviews(groupId);
+    const canReview = !group.isOwner;   // une page ne se note pas elle-même
+    let draftRating = r.mine ? r.mine.rating : 0;
+
+    const form = canReview ? `
+      <div style="border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px">
+        <div style="font-weight:600;margin-bottom:8px">${r.mine?'Ton avis':'Laisse ton avis'}</div>
+        <div class="star-pick" id="starPick">${[1,2,3,4,5].map(i=>`<button type="button" class="star ${i<=draftRating?'on':''}" data-v="${i}">★</button>`).join('')}</div>
+        <textarea id="revText" maxlength="500" placeholder="Partage ton expérience…" style="width:100%;min-width:0;min-height:70px;border:1.5px solid var(--line);border-radius:12px;padding:10px;font-family:inherit;font-size:.92rem;resize:vertical;margin-top:10px">${JP.esc(r.mine?r.mine.text:'')}</textarea>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap">
+          ${r.mine?'<button class="btn btn-ghost btn-sm" id="revDel" style="color:var(--rouge)">Supprimer</button>':''}
+          <button class="btn btn-primary btn-sm" id="revSave">${r.mine?'Modifier mon avis':'Publier mon avis'}</button>
+        </div>
+      </div>` : '';
+
+    const listHTML = r.list.length ? r.list.map(rv=>`
+      <div class="pending-row" style="align-items:flex-start;margin-bottom:10px;flex-wrap:wrap;row-gap:4px">
+        ${JP.avatarHTML(rv.author,rv.avatar,'av')}
+        <div class="pi" style="min-width:0">
+          <b>${JP.esc(rv.author)}</b>
+          <div style="margin:2px 0">${starsHTML(rv.rating)}</div>
+          ${rv.text?`<div style="font-size:.92rem;color:var(--ink);overflow-wrap:anywhere">${JP.esc(rv.text)}</div>`:''}
+          <span style="font-size:.75rem;color:var(--ink-soft)">${JP.timeAgo(rv.ts)}</span>
+        </div>
+      </div>`).join('') : '<div style="color:var(--ink-soft);font-size:.9rem">Aucun avis pour l\'instant.</div>';
+
+    area.innerHTML=`<div class="side-card" style="margin-bottom:18px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+        <h3 style="font-family:'Plus Jakarta Sans';font-size:1rem;margin:0">Avis</h3>
+        ${r.count?`<div style="display:flex;align-items:center;gap:6px"><b style="font-family:'Fraunces',serif;font-size:1.2rem;color:var(--rouge)">${r.avg.toFixed(1)}</b>${starsHTML(r.avg)}<span style="font-size:.8rem;color:var(--ink-soft)">(${r.count} avis)</span></div>`:'<span style="font-size:.85rem;color:var(--ink-soft)">Pas encore noté</span>'}
+      </div>
+      ${form}
+      ${listHTML}
+    </div>`;
+
+    if(canReview){
+      const pick=document.getElementById('starPick');
+      pick.querySelectorAll('.star').forEach(b=>b.addEventListener('click',()=>{
+        draftRating=+b.dataset.v;
+        pick.querySelectorAll('.star').forEach(s=>s.classList.toggle('on', (+s.dataset.v)<=draftRating));
+      }));
+      document.getElementById('revSave').addEventListener('click',async()=>{
+        if(!draftRating){ JP.toast('Choisis une note (étoiles)'); return; }
+        const res=await JP.saveReview(groupId,{rating:draftRating, text:document.getElementById('revText').value.trim()});
+        if(res.ok){ JP.toast('Merci pour ton avis ⭐'); await renderReviews(); }
+        else JP.toast(res.msg||'Échec');
+      });
+      const del=document.getElementById('revDel');
+      if(del) del.addEventListener('click',async()=>{
+        if(!confirm('Supprimer ton avis ?')) return;
+        const res=await JP.deleteMyReview(groupId);
+        if(res.ok){ JP.toast('Avis supprimé'); await renderReviews(); }
+        else JP.toast(res.msg||'Échec');
+      });
+    }
   }
 
   function openRulesEditor(){

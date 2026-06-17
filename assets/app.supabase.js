@@ -1054,6 +1054,35 @@ window.JP = (() => {
   }
 
   /* ============================================================
+     AVIS & NOTES SUR LES PAGES
+     ============================================================ */
+  async function pageReviews(pageId){
+    const { data } = await sb.from('page_reviews')
+      .select(`id, rating, text, created_at, author_id, author:profiles!author_id ( name, avatar_url )`)
+      .eq('page_id', pageId).order('created_at',{ascending:false});
+    const list=(data||[]).map(r=>({
+      id:r.id, userId:r.author_id, rating:r.rating, text:r.text||'', ts:r.created_at,
+      author:r.author?.name||'Membre', avatar:r.author?.avatar_url||null
+    }));
+    const count=list.length;
+    const avg=count ? (list.reduce((s,r)=>s+r.rating,0)/count) : 0;
+    const mine=list.find(r=>r.userId===_me?.id)||null;
+    return { count, avg, mine, list };
+  }
+  async function saveReview(pageId, {rating, text}){
+    if(!_me) return {ok:false, msg:'Non connecté'};
+    if(!(rating>=1 && rating<=5)) return {ok:false, msg:'Note invalide'};
+    const { error } = await sb.from('page_reviews')
+      .upsert({page_id:pageId, author_id:_me.id, rating, text:text||null}, {onConflict:'page_id,author_id'});
+    return error ? {ok:false, msg:error.message} : {ok:true};
+  }
+  async function deleteMyReview(pageId){
+    if(!_me) return {ok:false};
+    const { error } = await sb.from('page_reviews').delete().eq('page_id',pageId).eq('author_id',_me.id);
+    return error ? {ok:false, msg:error.message} : {ok:true};
+  }
+
+  /* ============================================================
      API publique
      ============================================================ */
   return {
@@ -1072,6 +1101,7 @@ window.JP = (() => {
     updateGroupRules, updateGroupInfo, groupMembers, setMemberRole, removeMember,
     publicProfile, userPosts, userPhotos,
     listListings, getListing, createListing, markListingSold, deleteListing,
+    pageReviews, saveReview, deleteMyReview,
     report, block, unblock, isBlocked, blockedList, loadBlocked, blockedIds,
     isAdmin, listReports, resolveReport, adminDeletePost, banUser, unbanUser
   };
