@@ -455,12 +455,17 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
   .app-grid>main{min-width:0}
   .post-gallery,.post-gallery img{min-width:0}
 
-  .post-head{flex-wrap:wrap}
-  .post-head .meta{flex:1 1 120px;min-width:0}
-  .post-head .meta b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .post-head{flex-wrap:wrap;align-items:center;row-gap:8px}
+  /* Le nom/la ville occupent la 1re ligne et se tronquent ("…") sur UNE ligne
+     (sans casser caractère par caractère malgré le word-break de .post). */
+  .post-head .meta{flex:1 1 60%;min-width:0}
+  .post-head .meta b,.post-head .meta span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;word-break:normal;overflow-wrap:normal}
+  .post-head .meta b{display:block}
   .post-head .meta b a{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
-  .post-head .meta span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .post-head .tag{margin-left:auto}
+  /* Boutons (✉ / + Ami / Suivre) et tag : largeur naturelle, texte JAMAIS
+     cassé → ils passent proprement à la ligne suivante quand ça ne tient pas. */
+  .post-head .btn,.post-head .tag{flex:0 0 auto;white-space:nowrap;word-break:normal;overflow-wrap:normal}
+  .post-head .post-menu{flex:0 0 auto;margin-left:auto}
 
   /* Composer : laisser le textarea et la barre d'options se réduire */
   .composer textarea{min-width:0;width:100%}
