@@ -964,6 +964,58 @@ window.JP = (() => {
   }
 
   /* ============================================================
+     MARKETPLACE / PETITES ANNONCES
+     ============================================================ */
+  function mapListing(l){
+    const imgs = Array.isArray(l.images) ? l.images.filter(Boolean) : [];
+    return {
+      id:l.id, title:l.title, description:l.description||'',
+      price:(l.price===null||l.price===undefined)?null:Number(l.price),
+      category:l.category||'Divers', town:l.town||'', images:imgs,
+      status:l.status||'active', ts:l.created_at,
+      sellerId:l.seller_id, sellerName:l.seller?.name||'Membre',
+      sellerAvatar:l.seller?.avatar_url||null, sellerTown:l.seller?.town||'',
+      mine: l.seller_id===_me?.id
+    };
+  }
+  async function listListings({search='', category=''}={}){
+    let q=sb.from('listings')
+      .select(`id, title, description, price, category, town, images, status, created_at, seller_id, seller:profiles!seller_id ( name, avatar_url, town )`)
+      .order('created_at',{ascending:false}).limit(120);
+    if(category) q=q.eq('category', category);
+    if(search)   q=q.ilike('title', `%${search}%`);
+    const { data } = await q;
+    return (data||[]).map(mapListing);
+  }
+  async function getListing(id){
+    const { data } = await sb.from('listings')
+      .select(`id, title, description, price, category, town, images, status, created_at, seller_id, seller:profiles!seller_id ( name, avatar_url, town )`)
+      .eq('id', id).single();
+    return data ? mapListing(data) : null;
+  }
+  async function createListing({title, description, price, category, town, images}){
+    if(!_me) return {ok:false, msg:'Non connecté'};
+    let urls=[];
+    if(images && images.length) urls=await uploadImages('posts', images, 1280, 0.82);
+    const row={
+      seller_id:_me.id, title, description:description||null,
+      category:category||'Divers', town:town||null, images:urls,
+      price:(price===''||price===null||price===undefined)?null:Number(price)
+    };
+    const { data, error } = await sb.from('listings').insert(row).select().single();
+    if(error) return {ok:false, msg:error.message};
+    return {ok:true, id:data.id};
+  }
+  async function markListingSold(id, sold=true){
+    const { error } = await sb.from('listings').update({status:sold?'sold':'active'}).eq('id', id);
+    return error ? {ok:false, msg:error.message} : {ok:true};
+  }
+  async function deleteListing(id){
+    const { error } = await sb.from('listings').delete().eq('id', id);
+    return error ? {ok:false, msg:error.message} : {ok:true};
+  }
+
+  /* ============================================================
      API publique
      ============================================================ */
   return {
@@ -981,6 +1033,7 @@ window.JP = (() => {
     uploadImages, pendingMembers, approveMember, rejectMember, updateGroupCover,
     updateGroupRules, updateGroupInfo, groupMembers, setMemberRole, removeMember,
     publicProfile, userPosts, userPhotos,
+    listListings, getListing, createListing, markListingSold, deleteListing,
     report, block, unblock, isBlocked, blockedList, loadBlocked, blockedIds,
     isAdmin, listReports, resolveReport, adminDeletePost, banUser, unbanUser
   };

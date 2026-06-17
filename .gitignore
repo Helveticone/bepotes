@@ -1,0 +1,7 @@
+node_modules/
+package-lock.json
+package.json
+# fichiers de test temporaires (bancs d'essai headless)
+_*.cjs
+_*.html
+_*.png
