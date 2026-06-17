@@ -1,0 +1,16 @@
+# Pages HTML : jamais mises en cache longtemps -> les mises à jour sont visibles tout de suite
+/*.html
+  Cache-Control: no-cache, must-revalidate
+
+/
+  Cache-Control: no-cache, must-revalidate
+
+# Fichiers JS/CSS : ils ont déjà un ?v= pour casser le cache, on peut les garder
+/assets/*
+  Cache-Control: public, max-age=3600
+
+# Service worker et manifeste : toujours frais (sinon les MAJ ne passent pas)
+/sw.js
+  Cache-Control: no-cache, must-revalidate
+/manifest.json
+  Cache-Control: no-cache, must-revalidate

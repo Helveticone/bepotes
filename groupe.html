@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Groupe — Jurapotes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=25">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#E11D2A">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jurapotes">
+</head>
+<body>
+<nav><div class="wrap nav-inner">
+  <a href="index.html" class="logo"><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <div class="nav-links">
+    <form class="nav-search" onsubmit="location.href='recherche.html?q='+encodeURIComponent(this.q.value);return false;">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input name="q" type="search" placeholder="Rechercher…" aria-label="Rechercher">
+    </form>
+    <a href="fil.html">Le fil</a>
+    <a href="amis.html">Amis</a>
+    <a href="groupes.html" class="active">Groupes</a>
+    <a href="pages.html">Pages</a>
+    <a href="evenements.html">Événements</a>
+    <a href="messages.html">Messages</a>
+    <a href="profil.html">Profil</a>
+    <a href="notifications.html" class="nav-bell" id="bell" aria-label="Notifications">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="badge-count" id="bellCount">0</span>
+    </a>
+    <a href="#" id="logout" class="btn btn-ghost btn-sm">Déconnexion</a>
+  </div>
+</div></nav>
+
+<div class="page-pad"><div class="narrow">
+  <a href="groupes.html" id="backLink" style="color:var(--ink-soft);text-decoration:none;font-size:.9rem;display:inline-block;margin-bottom:14px">‹ Retour</a>
+  <div id="header"></div>
+  <div id="pendingArea"></div>
+  <div id="composerArea"></div>
+  <div id="feed"></div>
+</div></div>
+
+<input type="file" id="photoFile" accept="image/*" multiple style="display:none">
+
+<script src="/assets/supabase.min.js?v=18"></script>
+<script src="assets/config.js"></script>
+<script src="assets/app.supabase.js?v=19"></script>
+<script src="assets/bell.js?v=21"></script>
+<script>
+(async function(){
+  const okAuth = await JP.requireAuth();
+  if(!okAuth) return;
+  const me=JP.user();
+  document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
+
+  const groupId=new URLSearchParams(location.search).get('id');
+  if(!groupId){ location.href='groupes.html'; return; }
+
+  const feed=document.getElementById('feed');
+  let group=null, pendingImages=[];
+
+  async function loadHeader(){
+    group=await JP.getGroup(groupId);
+    if(!group){ document.getElementById('header').innerHTML='<div class="empty"><p>Groupe introuvable.</p></div>'; return; }
+    const isPage = group.kind==='page';
+    const bl=document.getElementById('backLink');
+    if(bl){ bl.href = isPage?'pages.html':'groupes.html'; bl.textContent = isPage?'‹ Toutes les pages':'‹ Tous les groupes'; }
+    let joinBtn='';
+    if(group.isOwner) joinBtn='<span class="btn btn-ghost btn-sm" style="cursor:default">'+(isPage?'Propriétaire':'Créateur')+'</span>';
+    else if(group.isMember) joinBtn='<button class="btn btn-ghost btn-sm" id="joinBtn">'+(isPage?'✓ Abonné':'✓ Membre')+'</button>';
+    else if(group.isPending) joinBtn='<button class="btn btn-ghost btn-sm" id="joinBtn">Demande envoyée</button>';
+    else joinBtn=`<button class="btn btn-primary btn-sm" id="joinBtn">${isPage?'Suivre':(group.isPrivate?'Demander à rejoindre':'Rejoindre')}</button>`;
+
+    const contact = isPage ? `
+      ${group.category?`<div class="gh-meta">${JP.esc(group.category)}</div>`:''}
+      ${group.address?`<div class="gh-meta">📍 ${JP.esc(group.address)}</div>`:''}
+      ${group.phone?`<div class="gh-meta">📞 ${JP.esc(group.phone)}</div>`:''}
+      ${group.website?`<div class="gh-meta">🔗 <a href="${JP.esc(group.website)}" target="_blank" rel="noopener" style="color:var(--rouge)">${JP.esc(group.website)}</a></div>`:''}
+    ` : '';
+
+    document.getElementById('header').innerHTML=`
+      <div class="group-header">
+        <div class="gh-cover" id="ghCover" ${group.cover?`style="background-image:url(${group.cover})"`:''}>
+          ${group.isOwner?'<button class="cover-edit" id="ghCoverBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Couverture</button>':''}
+        </div>
+        <div class="gh-body">
+          <div>
+            <h1>${JP.esc(group.name)} ${(!isPage && group.isPrivate)?'🔒':''}</h1>
+            <div class="gh-meta">📍 ${JP.esc(group.town||'Tout le Jura')} · ${group.memberCount} ${isPage?'abonné':'membre'}${group.memberCount>1?'s':''}</div>
+            ${contact}
+            ${group.description?`<div class="gh-desc">${JP.esc(group.description)}</div>`:''}
+          </div>
+          ${joinBtn}
+        </div>
+      </div>`;
+
+    const jb=document.getElementById('joinBtn');
+    if(jb && !group.isOwner){
+      jb.addEventListener('click',async()=>{
+        if(group.isMember || group.isPending){ await JP.leaveGroup(groupId); JP.toast(group.isPending?'Demande annulée':'Tu as quitté le groupe'); }
+        else { const r=await JP.joinGroup(groupId); JP.toast(r.pending?'Demande envoyée ✋':'Bienvenue ! 🎉'); }
+        await loadHeader(); renderComposer(); await renderPending();
+      });
+    }
+    // bouton couverture (owner)
+    const cb=document.getElementById('ghCoverBtn');
+    if(cb){
+      cb.addEventListener('click',()=>{
+        const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+        inp.onchange=async e=>{
+          const f=e.target.files[0]; if(!f) return;
+          JP.toast('Envoi de la couverture…');
+          const r=await JP.updateGroupCover(groupId, f);
+          if(r.ok){ JP.toast('Couverture mise à jour ✨'); await loadHeader(); renderComposer(); await renderPending(); }
+          else JP.toast(r.msg||'Échec');
+        };
+        inp.click();
+      });
+    }
+    renderComposer();
+    await renderPending();
+  }
+
+  async function renderPending(){
+    const area=document.getElementById('pendingArea');
+    if(!area) return;
+    if(!group || !group.isOwner){ area.innerHTML=''; return; }
+    const reqs=await JP.pendingMembers(groupId);
+    if(!reqs.length){ area.innerHTML=''; return; }
+    area.innerHTML=`<div class="side-card" style="margin-bottom:20px">
+      <h3 style="font-family:'Plus Jakarta Sans';font-size:1rem;margin-bottom:12px">Demandes d'adhésion (${reqs.length})</h3>
+      ${reqs.map(r=>`<div class="pending-row" data-uid="${r.userId}">
+        ${JP.avatarHTML(r.name,r.avatar,'av')}
+        <div class="pi"><b>${JP.esc(r.name)}</b><span style="font-size:.8rem;color:var(--ink-soft)">📍 ${JP.esc(r.town||'Jura')}</span></div>
+        <button class="btn btn-primary btn-sm appr" data-uid="${r.userId}">Accepter</button>
+        <button class="btn btn-ghost btn-sm rej" data-uid="${r.userId}">Refuser</button>
+      </div>`).join('')}
+    </div>`;
+    area.querySelectorAll('.appr').forEach(b=>b.addEventListener('click',async()=>{
+      await JP.approveMember(groupId, b.dataset.uid); JP.toast('Membre accepté ✅'); await loadHeader(); await renderPending();
+    }));
+    area.querySelectorAll('.rej').forEach(b=>b.addEventListener('click',async()=>{
+      await JP.rejectMember(groupId, b.dataset.uid); JP.toast('Demande refusée'); await renderPending();
+    }));
+  }
+
+  function renderComposer(){
+    const area=document.getElementById('composerArea');
+    if(!group || !group.isMember){ area.innerHTML='<div class="side-card" style="text-align:center;color:var(--ink-soft);margin-bottom:20px">'+(group&&group.isPending?'Ta demande est en attente de validation.':'Rejoins le groupe pour publier.')+'</div>'; return; }
+    area.innerHTML=`
+      <div class="composer">
+        <div class="top">
+          ${JP.avatarHTML(me.name,me.avatar,'av')}
+          <textarea id="compText" placeholder="Partage quelque chose dans ${JP.esc(group.name)}…" maxlength="500"></textarea>
+        </div>
+        <div class="comp-previews" id="previews"></div>
+        <div class="bar">
+          <div class="opts"><button class="icon-btn" id="photoBtn"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg> Photos (max 6)</button></div>
+          <button class="btn btn-primary btn-sm" id="compGo">Publier</button>
+        </div>
+      </div>`;
+    const photoFile=document.getElementById('photoFile');
+    document.getElementById('photoBtn').addEventListener('click',()=>photoFile.click());
+    photoFile.onchange=e=>{
+      const files=[...e.target.files].filter(f=>f.type.startsWith('image/'));
+      for(const f of files){ if(pendingImages.length<6) pendingImages.push(f); }
+      renderPreviews(); photoFile.value='';
+    };
+    renderPreviews();
+    document.getElementById('compGo').addEventListener('click',async()=>{
+      const t=document.getElementById('compText').value.trim();
+      if(!t && !pendingImages.length){ JP.toast('Écris un mot ou ajoute une photo'); return; }
+      await JP.addGroupPost(groupId, {text:t, tag:'Groupe', images:pendingImages});
+      pendingImages=[];
+      JP.toast('Publié ! 🎉'); await render();
+    });
+  }
+  function renderPreviews(){
+    const box=document.getElementById('previews'); if(!box) return;
+    box.innerHTML=pendingImages.map((f,i)=>`<div class="thumb"><img src="${URL.createObjectURL(f)}"><button class="rm" data-i="${i}">&times;</button></div>`).join('');
+    box.querySelectorAll('.rm').forEach(b=>b.addEventListener('click',()=>{ pendingImages.splice(+b.dataset.i,1); renderPreviews(); }));
+  }
+
+  async function render(){
+    feed.innerHTML='<div class="empty"><p>Chargement…</p></div>';
+    const posts=await JP.groupPosts(groupId);
+    if(!posts.length){ feed.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><p>Aucune publication dans ce groupe. Lance la discussion !</p></div>'; return; }
+    feed.innerHTML=posts.map(postHTML).join('');
+    posts.forEach(p=>bind(p));
+  }
+
+  function galleryHTML(images){
+    const imgs=(images||[]).filter(Boolean);
+    if(!imgs.length) return '';
+    const n=Math.min(imgs.length,6);
+    return `<div class="post-gallery g${n}">`+imgs.slice(0,6).map(u=>`<img src="${u}" alt="" class="gimg">`).join('')+`</div>`;
+  }
+
+  function postHTML(p){
+    const mine=p.authorEmail===me.id;
+    const comments=p.comments.map(c=>`
+      <div class="comment">${JP.avatarHTML(c.author,c.avatar,'av')}
+        <div class="bubble"><b>${JP.esc(c.author)}</b><p>${JP.esc(c.text)}</p></div></div>`).join('');
+    return `<article class="post" data-id="${p.id}">
+      <div class="post-head">
+        ${JP.avatarHTML(p.author,p.authorAvatar,'av')}
+        <div class="meta"><b>${JP.esc(p.author)}</b><span>${JP.esc(p.town)} · ${JP.timeAgo(p.ts)}</span></div>
+        ${mine?`<div class="post-menu"><button class="dots">⋯</button><div class="pop"><button class="del">Supprimer</button></div></div>`:''}
+      </div>
+      <div class="post-body">${JP.esc(p.text)}</div>
+      ${galleryHTML(p.images)}
+      <div class="post-actions">
+        <button class="act like ${JP.isLiked(p)?'liked':''}"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg><span class="lc">${p.likes}</span></button>
+        <button class="act cbtn"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>${p.comments.length}</span></button>
+      </div>
+      <div class="comments">${comments}
+        <div class="comment-form"><input type="text" placeholder="Commenter…" maxlength="240"><button class="btn btn-primary btn-sm csend">Envoyer</button></div>
+      </div>
+    </article>`;
+  }
+
+  function bind(p){
+    const pid=p.id;
+    const el=feed.querySelector(`[data-id="${pid}"]`);
+    const likeBtn=el.querySelector('.like');
+    likeBtn.addEventListener('click',async()=>{
+      const liked=likeBtn.classList.contains('liked');
+      likeBtn.classList.toggle('liked',!liked);
+      const lc=el.querySelector('.lc'); lc.textContent=Math.max(0,parseInt(lc.textContent)+(liked?-1:1));
+      await JP.toggleLike(pid);
+    });
+    el.querySelector('.cbtn').addEventListener('click',()=>el.querySelector('.comments').classList.toggle('open'));
+    const inp=el.querySelector('.comment-form input');
+    const send=async()=>{ const t=inp.value.trim(); if(!t) return; inp.value=''; await JP.addComment(pid,t); await render();
+      const again=feed.querySelector(`[data-id="${pid}"] .comments`); if(again) again.classList.add('open'); };
+    el.querySelector('.csend').addEventListener('click',send);
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter')send();});
+    const menu=el.querySelector('.post-menu');
+    if(menu){ const pop=menu.querySelector('.pop');
+      menu.querySelector('.dots').addEventListener('click',e=>{e.stopPropagation();pop.classList.toggle('open');});
+      document.addEventListener('click',()=>pop.classList.remove('open'));
+      menu.querySelector('.del').addEventListener('click',async()=>{ if(confirm('Supprimer ?')){ await JP.deletePost(pid); await render(); } });
+    }
+  }
+
+  await loadHeader();
+  await render();
+})();
+</script>
+<script src="/assets/pwa.js?v=18"></script>
+
+<nav class="mobile-nav">
+<a href="fil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Fil</span></a>
+<a href="recherche.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg><span>Recherche</span></a>
+<a href="amis.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"/></svg><span>Amis</span></a>
+<a href="messages.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span>Messages</span></a>
+<a href="notifications.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><span class="mn-badge" id="mnBell">0</span><span>Alertes</span></a>
+<a href="profil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M4 21v-1a6 6 0 0112 0v1"/></svg><span>Profil</span></a>
+</nav>
+</body>
+</html>

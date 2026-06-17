@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Messages — Jurapotes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=25">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#E11D2A">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jurapotes">
+</head>
+<body>
+<nav><div class="wrap nav-inner">
+  <a href="index.html" class="logo"><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <div class="nav-links">
+    <form class="nav-search" onsubmit="location.href='recherche.html?q='+encodeURIComponent(this.q.value);return false;">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input name="q" type="search" placeholder="Rechercher…" aria-label="Rechercher">
+    </form>
+    
+    <a href="fil.html">Le fil</a>
+    <a href="amis.html">Amis</a>
+    <a href="groupes.html">Groupes</a>
+    <a href="pages.html">Pages</a>
+    <a href="evenements.html">Événements</a>
+    <a href="messages.html" class="active">Messages</a>
+    <a href="profil.html">Profil</a>
+    <a href="notifications.html" class="nav-bell" id="bell" aria-label="Notifications">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="badge-count" id="bellCount">0</span>
+    </a>
+    <a href="#" id="logout" class="btn btn-ghost btn-sm">Déconnexion</a>
+  </div>
+</div></nav>
+
+<div class="page-pad"><div class="wrap">
+  <div class="msg-layout" id="layout">
+    <div class="conv-col">
+      <div class="conv-head">
+        <h2>Messages</h2>
+        <button class="conv-new" id="newConv" title="Nouvelle conversation">+</button>
+      </div>
+      <div class="conv-items" id="convItems"></div>
+    </div>
+    <div class="thread-col">
+      <div id="threadArea" class="thread-empty">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <p>Choisis une conversation, ou démarres-en une nouvelle avec le bouton +.</p>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<!-- Modale nouvelle conversation -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-head"><h3>Nouvelle conversation</h3><button class="x" id="mClose">&times;</button></div>
+    <div class="modal-body">
+      <div class="field"><input id="search" type="text" placeholder="Chercher un membre par son nom…"></div>
+      <div id="memberList"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/supabase.min.js?v=18"></script>
+<script src="assets/config.js"></script>
+<script src="assets/app.supabase.js?v=19"></script>
+<script src="assets/bell.js?v=21"></script>
+<script>
+(async function(){
+  const okAuth = await JP.requireAuth();
+  if(!okAuth) return;
+  const me=JP.user();
+  document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
+
+  const layout=document.getElementById('layout');
+  const convItems=document.getElementById('convItems');
+  const threadArea=document.getElementById('threadArea');
+  let activeConv=null, unsub=null;
+
+  /* ---- Liste des conversations ---- */
+  async function loadConvs(selectId){
+    const convs=await JP.conversations();
+    if(!convs.length){
+      convItems.innerHTML='<div style="padding:20px;color:var(--ink-soft);font-size:.9rem">Aucune conversation. Clique sur + pour écrire à quelqu\'un.</div>';
+    } else {
+      convItems.innerHTML=convs.map(c=>`
+        <div class="conv-item ${c.id===activeConv?'active':''}" data-id="${c.id}" data-name="${JP.esc(c.name)}" data-avatar="${c.avatar||''}">
+          ${JP.avatarHTML(c.name,c.avatar,'av')}
+          <div class="ci"><b>${JP.esc(c.name)}</b><span>${c.lastText?JP.esc(c.lastText):'Démarrez la discussion'}</span></div>
+        </div>`).join('');
+      convItems.querySelectorAll('.conv-item').forEach(el=>{
+        el.addEventListener('click',()=>openThread(el.dataset.id, el.dataset.name, el.dataset.avatar));
+      });
+    }
+    if(selectId){
+      const el=convItems.querySelector(`[data-id="${selectId}"]`);
+      if(el) openThread(selectId, el.dataset.name, el.dataset.avatar);
+    }
+  }
+
+  /* ---- Ouvrir un fil de discussion ---- */
+  async function openThread(convId, name, avatar){
+    activeConv=convId;
+    if(unsub){ unsub(); unsub=null; }
+    convItems.querySelectorAll('.conv-item').forEach(e=>e.classList.toggle('active', e.dataset.id===convId));
+    layout.classList.add('show-thread');
+    threadArea.className='';
+    threadArea.style.display='flex';
+    threadArea.style.flexDirection='column';
+    threadArea.style.minHeight='0';
+    threadArea.style.flex='1';
+    threadArea.innerHTML=`
+      <div class="thread-head">
+        <button class="back" id="backBtn">‹</button>
+        ${JP.avatarHTML(name,avatar||null,'av')}
+        <b>${JP.esc(name)}</b>
+      </div>
+      <div class="thread-body" id="tbody"></div>
+      <div class="thread-input">
+        <input type="text" id="msgInput" placeholder="Écris ton message…" maxlength="1000" autocomplete="off">
+        <button class="btn btn-primary" id="sendBtn">Envoyer</button>
+      </div>`;
+    document.getElementById('backBtn').addEventListener('click',()=>{ layout.classList.remove('show-thread'); });
+
+    const tbody=document.getElementById('tbody');
+    const shown=new Set();   // ids déjà affichés (évite les doublons)
+    const msgs=await JP.messagesOf(convId);
+    msgs.forEach(m=>shown.add(m.id));
+    tbody.innerHTML=msgs.map(bubbleHTML).join('');
+    scrollBottom(tbody);
+
+    function appendMsg(m){
+      if(m.id && shown.has(m.id)) return;   // déjà affiché
+      if(m.id) shown.add(m.id);
+      tbody.insertAdjacentHTML('beforeend', bubbleHTML(m));
+      scrollBottom(tbody);
+    }
+
+    // Temps réel : messages des autres (et confirmation des miens)
+    unsub=JP.subscribeMessages(convId, m=>{
+      appendMsg(m);
+      loadConvs();   // rafraîchit l'aperçu dans la liste
+    });
+
+    const input=document.getElementById('msgInput');
+    const send=async()=>{
+      const t=input.value.trim(); if(!t) return;
+      input.value='';
+      // Affichage immédiat (optimiste), sans attendre le temps réel
+      appendMsg({id:null, text:t, ts:new Date().toISOString(), mine:true});
+      const r=await JP.sendMessage(convId, t);
+      if(r && r.error){ JP.toast('Message non envoyé'); }
+      loadConvs();
+    };
+    document.getElementById('sendBtn').addEventListener('click',send);
+    input.addEventListener('keydown',e=>{ if(e.key==='Enter') send(); });
+    input.focus();
+  }
+
+  function bubbleHTML(m){
+    const time=new Date(m.ts).toLocaleTimeString('fr-CH',{hour:'2-digit',minute:'2-digit'});
+    return `<div class="bubble-msg ${m.mine?'me':'them'}">${JP.esc(m.text)}<span class="bubble-time">${time}</span></div>`;
+  }
+  function scrollBottom(el){ el.scrollTop=el.scrollHeight; }
+
+  /* ---- Modale : nouvelle conversation ---- */
+  const modal=document.getElementById('modal');
+  const memberList=document.getElementById('memberList');
+  const search=document.getElementById('search');
+  async function showMembers(q){
+    memberList.innerHTML='<p style="color:var(--ink-soft);padding:10px">Chargement…</p>';
+    let ms=await JP.friends();
+    if(q){ const t=q.toLowerCase(); ms=ms.filter(m=>(m.name||'').toLowerCase().includes(t)); }
+    if(!ms.length){ memberList.innerHTML='<p style="color:var(--ink-soft);padding:10px">'+(q?'Aucun ami à ce nom.':'Tu n\'as pas encore d\'amis. Ajoute des amis pour leur écrire !')+'</p>'; return; }
+    memberList.innerHTML=ms.map(m=>`
+      <div class="member-row" data-id="${m.id}">
+        ${JP.avatarHTML(m.name,m.avatar,'av')}
+        <div><b>${JP.esc(m.name)}</b><span>${JP.esc(m.town||'')}</span></div>
+      </div>`).join('');
+    memberList.querySelectorAll('.member-row').forEach(el=>{
+      el.addEventListener('click',async()=>{
+        modal.classList.remove('open');
+        const cid=await JP.openConversationWith(el.dataset.id);
+        if(typeof cid==='string'){ await loadConvs(); openThread(cid, el.querySelector('b').textContent, ''); }
+        // sinon openConversationWith a déjà affiché un toast (ex: pas amis)
+      });
+    });
+  }
+  document.getElementById('newConv').addEventListener('click',()=>{ modal.classList.add('open'); search.value=''; showMembers(''); search.focus(); });
+  document.getElementById('mClose').addEventListener('click',()=>modal.classList.remove('open'));
+  modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('open');});
+  let st; search.addEventListener('input',()=>{ clearTimeout(st); st=setTimeout(()=>showMembers(search.value.trim()),250); });
+
+  /* ---- Démarrage : ouvrir direct une conv si ?to=ID (depuis un profil) ---- */
+  const params=new URLSearchParams(location.search);
+  const to=params.get('to');
+  await loadConvs();
+  if(to){
+    const cid=await JP.openConversationWith(to);
+    if(typeof cid==='string') await loadConvs(cid);
+    // sinon (pas amis) le toast est déjà affiché ; on reste sur la liste
+  }
+
+  // cloche
+})();
+</script>
+<script src="/assets/pwa.js?v=18"></script>
+
+<nav class="mobile-nav">
+<a href="fil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Fil</span></a>
+<a href="recherche.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg><span>Recherche</span></a>
+<a href="amis.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"/></svg><span>Amis</span></a>
+<a href="messages.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span>Messages</span></a>
+<a href="notifications.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><span class="mn-badge" id="mnBell">0</span><span>Alertes</span></a>
+<a href="profil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M4 21v-1a6 6 0 0112 0v1"/></svg><span>Profil</span></a>
+</nav>
+</body>
+</html>

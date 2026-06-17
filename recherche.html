@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recherche — Jurapotes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=25">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#E11D2A">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jurapotes">
+</head>
+<body>
+<nav><div class="wrap nav-inner">
+  <a href="index.html" class="logo"><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <div class="nav-links">
+    <a href="fil.html">Le fil</a>
+    <a href="amis.html">Amis</a>
+    <a href="groupes.html">Groupes</a>
+    <a href="pages.html">Pages</a>
+    <a href="evenements.html">Événements</a>
+    <a href="messages.html">Messages</a>
+    <a href="profil.html">Profil</a>
+    <a href="notifications.html" class="nav-bell" id="bell" aria-label="Notifications">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="badge-count" id="bellCount">0</span>
+    </a>
+    <a href="#" id="logout" class="btn btn-ghost btn-sm">Déconnexion</a>
+  </div>
+</div></nav>
+
+<div class="page-pad"><div class="narrow">
+  <h1 style="font-size:2rem;margin-bottom:18px">Rechercher</h1>
+  <div class="field" style="margin-bottom:22px">
+    <input id="q" type="text" placeholder="Un nom, une commune, un mot-clé…" autocomplete="off" autofocus>
+  </div>
+  <div class="search-tabs">
+    <button class="active" data-tab="members">Membres</button>
+    <button data-tab="groups">Groupes</button>
+    <button data-tab="posts">Publications</button>
+  </div>
+  <div id="results"></div>
+</div></div>
+
+<script src="/assets/supabase.min.js?v=18"></script>
+<script src="assets/config.js"></script>
+<script src="assets/app.supabase.js?v=19"></script>
+<script src="assets/bell.js?v=21"></script>
+<script>
+(async function(){
+  const okAuth = await JP.requireAuth();
+  if(!okAuth) return;
+  const me=JP.user();
+  document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
+
+  const q=document.getElementById('q');
+  const results=document.getElementById('results');
+  let tab='members';
+
+  document.querySelectorAll('.search-tabs button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('.search-tabs button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active'); tab=b.dataset.tab; run();
+    });
+  });
+
+  let t;
+  q.addEventListener('input',()=>{ clearTimeout(t); t=setTimeout(run, 250); });
+
+  async function run(){
+    const term=q.value.trim();
+    if(term.length<1){ results.innerHTML='<p style="color:var(--ink-soft)">Tape quelque chose pour lancer la recherche.</p>'; return; }
+    results.innerHTML='<p style="color:var(--ink-soft)">Recherche…</p>';
+    if(tab==='members') await renderMembers(term);
+    else if(tab==='groups') await renderGroups(term);
+    else await renderPosts(term);
+  }
+
+  async function renderGroups(term){
+    const gs=await JP.listGroups(term);
+    if(!gs.length){ results.innerHTML='<div class="empty"><p>Aucun groupe trouvé pour « '+JP.esc(term)+' ».</p></div>'; return; }
+    results.innerHTML=gs.map(g=>`
+      <div class="result-member">
+        <div class="av" style="background:${JP.colorFor(g.name)}">${JP.initials(g.name)}</div>
+        <div class="ri"><b>${JP.esc(g.name)} ${g.isPrivate?'🔒':''}</b><span>📍 ${JP.esc(g.town||'Tout le Jura')} · ${g.memberCount} membre${g.memberCount>1?'s':''}</span></div>
+        <div class="ra"><a href="groupe.html?id=${g.id}" class="btn btn-primary btn-sm">${g.isMember?'Ouvrir':(g.isPending?'En attente':'Voir')}</a></div>
+      </div>`).join('');
+  }
+
+  async function renderMembers(term){
+    const ms=await JP.members(term);
+    if(!ms.length){ results.innerHTML='<div class="empty"><p>Aucun membre trouvé pour « '+JP.esc(term)+' ».</p></div>'; return; }
+    results.innerHTML=ms.map(m=>`
+      <div class="result-member">
+        <a href="membre.html?id=${m.id}" style="text-decoration:none">${JP.avatarHTML(m.name,m.avatar,'av')}</a>
+        <div class="ri"><b><a href="membre.html?id=${m.id}" style="color:inherit;text-decoration:none">${JP.esc(m.name)}</a></b><span>📍 ${JP.esc(m.town||'Jura')}</span></div>
+        <div class="ra">
+          <a href="membre.html?id=${m.id}" class="btn btn-ghost btn-sm">Voir le profil</a>
+        </div>
+      </div>`).join('');
+  }
+
+  async function renderPosts(term){
+    const ps=await JP.searchPosts(term);
+    if(!ps.length){ results.innerHTML='<div class="empty"><p>Aucune publication trouvée pour « '+JP.esc(term)+' ».</p></div>'; return; }
+    results.innerHTML=ps.map(p=>`
+      <article class="post">
+        <div class="post-head">
+          ${JP.avatarHTML(p.author,p.authorAvatar,'av')}
+          <div class="meta"><b>${JP.esc(p.author)}</b><span>${JP.esc(p.town)} · ${JP.timeAgo(p.ts)}</span></div>
+          <span class="tag">${JP.esc(p.tag)}</span>
+        </div>
+        <div class="post-body">${JP.esc(p.text)}</div>
+        ${p.image?`<div class="post-img"><img src="${p.image}" alt=""></div>`:''}
+        <div class="post-actions" style="border-top:1px solid var(--line);padding-top:11px;color:var(--ink-soft);font-size:.88rem;font-weight:600">
+          <span style="flex:1;text-align:center">❤️ ${p.likes}</span>
+          <span style="flex:1;text-align:center">💬 ${p.comments}</span>
+        </div>
+      </article>`).join('');
+  }
+
+  // pré-remplir si ?q= dans l'URL (depuis la barre de nav)
+  const params=new URLSearchParams(location.search);
+  if(params.get('q')){ q.value=params.get('q'); }
+  run();
+})();
+</script>
+<script src="/assets/pwa.js?v=18"></script>
+
+<nav class="mobile-nav">
+<a href="fil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Fil</span></a>
+<a href="recherche.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg><span>Recherche</span></a>
+<a href="amis.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"/></svg><span>Amis</span></a>
+<a href="messages.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span>Messages</span></a>
+<a href="notifications.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><span class="mn-badge" id="mnBell">0</span><span>Alertes</span></a>
+<a href="profil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M4 21v-1a6 6 0 0112 0v1"/></svg><span>Profil</span></a>
+</nav>
+</body>
+</html>

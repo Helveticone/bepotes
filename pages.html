@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pages & établissements — Jurapotes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=25">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#E11D2A">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jurapotes">
+</head>
+<body>
+<nav><div class="wrap nav-inner">
+  <a href="index.html" class="logo"><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <div class="nav-links">
+    <form class="nav-search" onsubmit="location.href='recherche.html?q='+encodeURIComponent(this.q.value);return false;">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input name="q" type="search" placeholder="Rechercher…" aria-label="Rechercher">
+    </form>
+    <a href="fil.html">Le fil</a>
+    <a href="amis.html">Amis</a>
+    <a href="groupes.html">Groupes</a>
+    <a href="pages.html" class="active">Pages</a>
+    <a href="evenements.html">Événements</a>
+    <a href="messages.html">Messages</a>
+    <a href="profil.html">Profil</a>
+    <a href="notifications.html" class="nav-bell" id="bell" aria-label="Notifications">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="badge-count" id="bellCount">0</span>
+    </a>
+    <a href="#" id="logout" class="btn btn-ghost btn-sm">Déconnexion</a>
+  </div>
+</div></nav>
+
+<div class="page-pad"><div class="wrap">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;gap:14px;flex-wrap:wrap">
+    <div>
+      <h1 style="font-size:2rem;margin-bottom:6px">Pages & établissements</h1>
+      <p style="color:var(--ink-soft)">Restaurants, clubs, associations, commerces du Jura. Crée la page de ton établissement.</p>
+    </div>
+    <button class="btn btn-primary" id="newPageBtn">+ Créer une page</button>
+  </div>
+  <div class="group-grid" id="grid"></div>
+</div></div>
+
+<div class="modal-bg" id="pModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Créer une page</h3><button class="x" id="pClose">&times;</button></div>
+    <div class="modal-body">
+      <div class="field"><label for="pName">Nom de l'établissement / club</label><input id="pName" type="text" maxlength="70" placeholder="Brooklyn Bar, FC Delémont, Resto du Coin…"></div>
+      <div class="field"><label for="pCat">Catégorie</label>
+        <select id="pCat">
+          <option>Restaurant / Bar</option><option>Commerce</option><option>Club sportif</option>
+          <option>Association</option><option>Artisan</option><option>Culture / Loisirs</option>
+          <option>Service</option><option>Autre</option>
+        </select>
+      </div>
+      <div class="field"><label for="pTown">Commune</label>
+        <select id="pTown">
+          <option>Delémont</option><option>Porrentruy</option><option>Saignelégier</option>
+          <option>Bassecourt</option><option>Courrendlin</option><option>Le Noirmont</option>
+          <option>Les Bois</option><option>Courroux</option><option>Alle</option>
+          <option>Châtenois</option><option>Vicques</option><option>Autre commune du Jura</option>
+        </select>
+      </div>
+      <div class="field"><label for="pDesc">Description</label><textarea id="pDesc" maxlength="300" placeholder="Présente ton établissement…"></textarea></div>
+      <div class="field"><label for="pAddr">Adresse (optionnel)</label><input id="pAddr" type="text" maxlength="120" placeholder="Rue, n°, localité"></div>
+      <div class="field"><label for="pPhone">Téléphone (optionnel)</label><input id="pPhone" type="text" maxlength="30" placeholder="+41 …"></div>
+      <div class="field"><label for="pWeb">Site web (optionnel)</label><input id="pWeb" type="text" maxlength="120" placeholder="https://…"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-sm" id="pCancel">Annuler</button>
+      <button class="btn btn-primary btn-sm" id="pSave">Créer la page</button>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/supabase.min.js?v=18"></script>
+<script src="assets/config.js"></script>
+<script src="assets/app.supabase.js?v=19"></script>
+<script src="assets/bell.js?v=21"></script>
+<script>
+(async function(){
+  const okAuth = await JP.requireAuth();
+  if(!okAuth) return;
+  document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
+  const grid=document.getElementById('grid');
+
+  async function render(){
+    grid.innerHTML='<p style="color:var(--ink-soft)">Chargement…</p>';
+    const gs=await JP.listGroups('', 'page');
+    if(!gs.length){ grid.innerHTML='<div class="empty"><p>Aucune page pour l\'instant. Crée la première !</p></div>'; return; }
+    grid.innerHTML=gs.map(g=>`
+      <div class="group-card">
+        <div class="gcover" ${g.cover?`style="background-image:url(${g.cover})"`:''}></div>
+        <div class="gbody">
+          <h3>${JP.esc(g.name)}</h3>
+          <div class="gtown">${g.category?JP.esc(g.category)+' · ':''}📍 ${JP.esc(g.town||'Jura')}</div>
+          <div class="gdesc">${JP.esc(g.description||'')}</div>
+          <div class="gfoot">
+            <span class="gmembers">${g.memberCount} abonné${g.memberCount>1?'s':''}</span>
+            <a href="groupe.html?id=${g.id}" class="btn ${g.isMember?'btn-ghost':'btn-primary'} btn-sm">${g.isMember?'Ouvrir':'Voir'}</a>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  const modal=document.getElementById('pModal');
+  document.getElementById('newPageBtn').addEventListener('click',()=>{ ['pName','pDesc','pAddr','pPhone','pWeb'].forEach(id=>document.getElementById(id).value=''); modal.classList.add('open'); });
+  const close=()=>modal.classList.remove('open');
+  document.getElementById('pClose').addEventListener('click',close);
+  document.getElementById('pCancel').addEventListener('click',close);
+  modal.addEventListener('click',e=>{if(e.target===modal)close();});
+  document.getElementById('pSave').addEventListener('click',async()=>{
+    const name=document.getElementById('pName').value.trim();
+    if(!name){ JP.toast('Donne un nom à la page'); return; }
+    const r=await JP.createGroup({
+      name, kind:'page',
+      category:document.getElementById('pCat').value,
+      town:document.getElementById('pTown').value,
+      description:document.getElementById('pDesc').value.trim(),
+      address:document.getElementById('pAddr').value.trim(),
+      phone:document.getElementById('pPhone').value.trim(),
+      website:document.getElementById('pWeb').value.trim(),
+      isPrivate:false
+    });
+    if(r.ok){ JP.toast('Page créée ! 🎉'); location.href='groupe.html?id='+r.id; }
+    else JP.toast(r.msg||'Échec');
+  });
+
+  await render();
+})();
+</script>
+<script src="/assets/pwa.js?v=18"></script>
+
+<nav class="mobile-nav">
+<a href="fil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Fil</span></a>
+<a href="recherche.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg><span>Recherche</span></a>
+<a href="amis.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"/></svg><span>Amis</span></a>
+<a href="messages.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span>Messages</span></a>
+<a href="notifications.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><span class="mn-badge" id="mnBell">0</span><span>Alertes</span></a>
+<a href="profil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M4 21v-1a6 6 0 0112 0v1"/></svg><span>Profil</span></a>
+</nav>
+</body>
+</html>

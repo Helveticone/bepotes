@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Le fil — Jurapotes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=25">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#E11D2A">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jurapotes">
+</head>
+<body>
+<nav><div class="wrap nav-inner">
+  <a href="index.html" class="logo"><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <div class="nav-links">
+    <form class="nav-search" onsubmit="location.href='recherche.html?q='+encodeURIComponent(this.q.value);return false;">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input name="q" type="search" placeholder="Rechercher…" aria-label="Rechercher">
+    </form>
+    
+    <a href="fil.html" class="active">Le fil</a>
+    <a href="amis.html">Amis</a>
+    <a href="groupes.html">Groupes</a>
+    <a href="pages.html">Pages</a>
+    <a href="evenements.html">Événements</a>
+    <a href="messages.html">Messages</a>
+    <a href="profil.html">Profil</a>
+    <a href="admin.html" id="adminLink" style="display:none;color:var(--rouge);font-weight:700">Modération</a>
+    <a href="notifications.html" class="nav-bell" id="bell" aria-label="Notifications" title="Notifications">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="badge-count" id="bellCount">0</span>
+    </a>
+    <a href="#" id="logout" class="btn btn-ghost btn-sm">Déconnexion</a>
+  </div>
+</div></nav>
+
+<div id="mobDiag" style="position:fixed;top:0;left:0;right:0;background:#111;color:#0f0;font:11px monospace;padding:5px;z-index:99999"></div>
+<script>setTimeout(function(){var d=document.getElementById('mobDiag');if(!d)return;var m=document.querySelector('main');var r=m?m.getBoundingClientRect():{height:0};d.textContent='larg='+window.innerWidth+' mainH='+Math.round(r.height)+' disp='+(m?getComputedStyle(m).display:'none');},1200);</script>
+
+<div class="page-pad"><div class="wrap app-grid">
+
+  <aside class="side side-l">
+    <div class="side-card">
+      <div class="profile-mini">
+        <div id="meAvBox" style="display:flex;justify-content:center;margin-bottom:10px"></div>
+        <b id="meName"></b>
+        <span id="meTown"></span>
+      </div>
+    </div>
+    <div class="side-card">
+      <nav class="side-nav">
+        <a href="fil.html" class="active"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> Accueil</a>
+        <a href="evenements.html"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Événements</a>
+        <a href="profil.html"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/></svg> Mon profil</a>
+      </nav>
+    </div>
+  </aside>
+
+  <main>
+    <div class="composer">
+      <div class="top">
+        <div id="compAvBox"></div>
+        <textarea id="compText" placeholder="Quoi de neuf dans le Jura ?" maxlength="500"></textarea>
+      </div>
+      <div class="comp-previews" id="previews"></div>
+      <div class="bar">
+        <div class="opts">
+          <button class="icon-btn" id="photoBtn">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            Photo
+          </button>
+          <select id="compTag" class="chip" style="border:none;cursor:pointer">
+            <option>Général</option><option>Sorties</option><option>Bons plans</option>
+            <option>Entraide</option><option>Vendre/Donner</option><option>Question</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-sm" id="compGo">Publier</button>
+      </div>
+    </div>
+    <div id="feed"></div>
+  </main>
+
+  <aside class="side side-r">
+    <div class="side-card">
+      <h3 style="font-family:'Plus Jakarta Sans';font-size:1rem;margin-bottom:12px">À venir près de chez toi</h3>
+      <div id="evMini"></div>
+      <a href="evenements.html" class="btn btn-ghost btn-sm btn-block" style="margin-top:6px">Tous les événements</a>
+    </div>
+    <div class="side-card" style="font-size:.82rem;color:var(--ink-soft)">
+      🌿 <b>Réseau du Jura</b> — tes publications sont partagées avec toute la communauté Jurapotes. Sois sympa, reste local !
+    </div>
+  </aside>
+
+</div></div>
+
+<input type="file" id="photoFile" accept="image/*" multiple style="display:none">
+
+<div class="lightbox" id="lightbox"><button class="lb-close">&times;</button><img id="lbImg" alt=""></div>
+
+<script src="/assets/supabase.min.js?v=18"></script>
+<script src="assets/config.js"></script>
+<script src="assets/app.supabase.js?v=19"></script>
+<script src="assets/moderation.js?v=18"></script>
+<script src="assets/bell.js?v=21"></script>
+<script>
+(async function(){
+  const okAuth = await JP.requireAuth();
+  if(!okAuth) return;
+  const me=JP.user();
+  document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
+
+  document.getElementById('meAvBox').innerHTML=JP.avatarHTML(me.name,me.avatar,'av','width:60px;height:60px;font-size:1.3rem');
+  document.getElementById('compAvBox').innerHTML=JP.avatarHTML(me.name,me.avatar,'av');
+  document.getElementById('meName').textContent=me.name;
+  document.getElementById('meTown').textContent='\u{1F4CD} '+(me.town||'');
+
+  const feed=document.getElementById('feed');
+  let pendingImages=[];   // jusqu'à 6 fichiers File
+
+  /* ---- Photos dans le composer (multi, max 6) ---- */
+  const photoFile=document.getElementById('photoFile');
+  document.getElementById('photoBtn').addEventListener('click',()=>photoFile.click());
+  photoFile.addEventListener('change',e=>{
+    const files=[...e.target.files].filter(f=>f.type.startsWith('image/'));
+    for(const f of files){ if(pendingImages.length<6) pendingImages.push(f); }
+    if([...e.target.files].length && pendingImages.length>=6) JP.toast('6 photos maximum');
+    renderPreviews();
+    photoFile.value='';
+  });
+  function renderPreviews(){
+    const box=document.getElementById('previews');
+    box.innerHTML=pendingImages.map((f,i)=>`<div class="thumb"><img src="${URL.createObjectURL(f)}"><button class="rm" data-i="${i}">&times;</button></div>`).join('');
+    box.querySelectorAll('.rm').forEach(b=>b.addEventListener('click',()=>{
+      pendingImages.splice(+b.dataset.i,1); renderPreviews();
+    }));
+  }
+
+  async function render(){
+    feed.innerHTML='<div class="empty"><p>Chargement…</p></div>';
+    const posts=await JP.posts();
+    if(!posts.length){
+      feed.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><p>Aucune publication pour l\'instant. Sois le premier à lancer la discussion !</p></div>';
+      return;
+    }
+    feed.innerHTML=posts.map(p=>postHTML(p)).join('');
+    posts.forEach(p=>bind(p));
+    wireFollowButtons();
+    wireFriendButtons();
+    feed.querySelectorAll('.gimg').forEach(img=>img.addEventListener('click',()=>{
+      document.getElementById('lbImg').src=img.src;
+      document.getElementById('lightbox').classList.add('open');
+    }));
+  }
+
+  async function wireFriendButtons(){
+    const btns=[...feed.querySelectorAll('.friend-btn')];
+    const targets=[...new Set(btns.map(b=>b.dataset.target))];
+    const states={};
+    await Promise.all(targets.map(async t=>{ states[t]=await JP.friendStatus(t); }));
+    btns.forEach(b=>{
+      const t=b.dataset.target;
+      applyFriendState(b, states[t]);
+      // Afficher le bouton message uniquement si on est amis
+      if(states[t] && states[t].status==='friends'){
+        feed.querySelectorAll(`.msg-btn[data-target="${t}"]`).forEach(m=>m.style.display='');
+      }
+      b.addEventListener('click',async()=>{
+        const st=await JP.friendStatus(t);
+        b.disabled=true;
+        if(st.status==='none'){ await JP.sendFriendRequest(t); JP.toast('Demande envoyée 👋'); }
+        else if(st.status==='pending_received'){ await JP.acceptFriend(st.id); JP.toast('Vous êtes amis ! 🎉'); }
+        else if(st.status==='pending_sent'){ await JP.removeFriend(st.id); JP.toast('Demande annulée'); }
+        else if(st.status==='friends'){ if(confirm('Retirer cet ami ?')){ await JP.removeFriend(st.id); JP.toast('Ami retiré'); } }
+        const ns=await JP.friendStatus(t);
+        feed.querySelectorAll(`.friend-btn[data-target="${t}"]`).forEach(o=>applyFriendState(o, ns));
+        b.disabled=false;
+      });
+    });
+  }
+  function applyFriendState(b, st){
+    const map={
+      none:        {txt:'+ Ami',          primary:false},
+      pending_sent:{txt:'Demande envoyée', primary:false},
+      pending_received:{txt:'Accepter',    primary:true},
+      friends:     {txt:'✓ Amis',          primary:true}
+    };
+    const s=map[st.status]||map.none;
+    b.textContent=s.txt;
+    b.classList.toggle('btn-primary', s.primary);
+    b.classList.toggle('btn-ghost', !s.primary);
+  }
+
+  async function wireFollowButtons(){
+    const btns=[...feed.querySelectorAll('.follow-btn')];
+    // dédupliquer par auteur pour limiter les requêtes
+    const targets=[...new Set(btns.map(b=>b.dataset.target))];
+    const states={};
+    await Promise.all(targets.map(async t=>{ states[t]=await JP.isFollowing(t); }));
+    btns.forEach(b=>{
+      const t=b.dataset.target;
+      setFollowBtn(b, states[t]);
+      b.addEventListener('click',async()=>{
+        const following=b.dataset.following==='1';
+        b.disabled=true;
+        if(following){ await JP.unfollow(t); setFollowBtn(b,false); JP.toast('Désabonné'); }
+        else { await JP.follow(t); setFollowBtn(b,true); JP.toast('Abonné·e ✅'); }
+        // mettre à jour tous les boutons du même auteur
+        feed.querySelectorAll(`.follow-btn[data-target="${t}"]`).forEach(o=>setFollowBtn(o, !following));
+        b.disabled=false;
+      });
+    });
+  }
+  function setFollowBtn(b, following){
+    b.dataset.following=following?'1':'0';
+    b.textContent=following?'✓ Suivi':'Suivre';
+    b.classList.toggle('btn-primary', following);
+    b.classList.toggle('btn-ghost', !following);
+  }
+
+  function galleryHTML(images){
+    const imgs=(images||[]).filter(Boolean);
+    if(!imgs.length) return '';
+    const n=Math.min(imgs.length,6);
+    return `<div class="post-gallery g${n}">`+
+      imgs.slice(0,6).map(u=>`<img src="${u}" alt="" class="gimg">`).join('')+
+      `</div>`;
+  }
+
+  function postHTML(p){
+    const mine=p.authorEmail===me.id;
+    const comments=p.comments.map(c=>`
+      <div class="comment">
+        ${JP.avatarHTML(c.author,c.avatar,'av')}
+        <div class="bubble"><b>${JP.esc(c.author)}</b><p>${JP.esc(c.text)}</p></div>
+      </div>`).join('');
+    return `<article class="post" data-id="${p.id}" data-author="${p.authorEmail}">
+      <div class="post-head">
+        <a href="membre.html?id=${p.authorEmail}" style="text-decoration:none">${JP.avatarHTML(p.author,p.authorAvatar,'av')}</a>
+        <div class="meta"><b><a href="membre.html?id=${p.authorEmail}" style="color:inherit;text-decoration:none">${JP.esc(p.author)}</a></b><span>${JP.esc(p.town)} · ${JP.timeAgo(p.ts)}</span></div>
+        ${!mine?`<a href="messages.html?to=${p.authorEmail}" class="btn btn-ghost btn-sm msg-btn" data-target="${p.authorEmail}" style="flex:0 0 auto;display:none" title="Envoyer un message">✉</a>`:''}
+        ${!mine?`<button class="btn btn-ghost btn-sm friend-btn" data-target="${p.authorEmail}">+ Ami</button>`:''}
+        ${!mine?`<button class="btn btn-ghost btn-sm follow-btn" data-target="${p.authorEmail}">Suivre</button>`:''}
+        <span class="tag">${JP.esc(p.tag)}</span>
+        ${mine?`<div class="post-menu"><button class="dots">\u22EF</button>
+          <div class="pop"><button class="del"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg> Supprimer</button></div>
+        </div>`:`<div class="post-menu"><button class="dots">\u22EF</button>
+          <div class="pop"><button class="report-post" data-pid="${p.id}">Signaler</button><button class="block-author" data-uid="${p.authorEmail}">Bloquer l'auteur</button></div>
+        </div>`}
+      </div>
+      <div class="post-body">${JP.esc(p.text)}</div>
+      ${galleryHTML(p.images)}
+      <div class="post-actions">
+        <button class="act like ${JP.isLiked(p)?'liked':''}">
+          <svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+          <span class="lc">${p.likes}</span>
+        </button>
+        <button class="act cbtn">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span class="cc">${p.comments.length}</span>
+        </button>
+        <button class="act share">
+          <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+          Partager
+        </button>
+      </div>
+      <div class="comments">
+        ${comments}
+        <div class="comment-form">
+          <input type="text" placeholder="Écris un commentaire…" maxlength="240">
+          <button class="btn btn-primary btn-sm csend">Envoyer</button>
+        </div>
+      </div>
+    </article>`;
+  }
+
+  function bind(p){
+    const pid=p.id;
+    const el=feed.querySelector(`[data-id="${pid}"]`);
+    const likeBtn=el.querySelector('.like');
+    likeBtn.addEventListener('click',async()=>{
+      const liked=likeBtn.classList.contains('liked');
+      likeBtn.classList.toggle('liked',!liked);
+      const lc=el.querySelector('.lc'); lc.textContent=Math.max(0,parseInt(lc.textContent)+(liked?-1:1));
+      await JP.toggleLike(pid);
+    });
+    el.querySelector('.cbtn').addEventListener('click',()=>el.querySelector('.comments').classList.toggle('open'));
+    el.querySelector('.share').addEventListener('click',()=>{
+      const url=location.origin+'/fil.html';
+      if(navigator.clipboard) navigator.clipboard.writeText(url).then(()=>JP.toast('Lien copié \u{1F517}'),()=>JP.toast('Lien : '+url));
+      else JP.toast('Lien : '+url);
+    });
+    const inp=el.querySelector('.comment-form input');
+    const send=async()=>{ const t=inp.value.trim(); if(!t) return;
+      inp.value=''; await JP.addComment(pid,t); await render();
+      const again=feed.querySelector(`[data-id="${pid}"] .comments`); if(again) again.classList.add('open');
+    };
+    el.querySelector('.csend').addEventListener('click',send);
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter')send();});
+    const menu=el.querySelector('.post-menu');
+    if(menu){
+      const pop=menu.querySelector('.pop');
+      menu.querySelector('.dots').addEventListener('click',e=>{e.stopPropagation();pop.classList.toggle('open');});
+      document.addEventListener('click',()=>pop.classList.remove('open'));
+      const del=menu.querySelector('.del');
+      if(del) del.addEventListener('click',async()=>{
+        if(confirm('Supprimer cette publication ?')){ await JP.deletePost(pid); JP.toast('Publication supprimée'); await render(); }
+      });
+      const rep=menu.querySelector('.report-post');
+      if(rep) rep.addEventListener('click',()=>Mod.openReport({postId:rep.dataset.pid}));
+      const blk=menu.querySelector('.block-author');
+      if(blk) blk.addEventListener('click',async()=>{ if(await Mod.blockUser(blk.dataset.uid)) await render(); });
+    }
+  }
+
+  const compGo=document.getElementById('compGo');
+  compGo.addEventListener('click',async()=>{
+    const t=document.getElementById('compText').value.trim();
+    if(!t && !pendingImages.length){JP.toast('Écris un mot ou ajoute une photo \u{1F642}');return;}
+    compGo.disabled=true; compGo.textContent='Publication…';
+    await JP.addPost({text:t, tag:document.getElementById('compTag').value, images:pendingImages});
+    compGo.disabled=false; compGo.textContent='Publier';
+    document.getElementById('compText').value='';
+    pendingImages=[];
+    renderPreviews();
+    JP.toast('Publié ! \u{1F389}'); await render();
+  });
+
+  /* Mini événements */
+  const evs=await JP.events();
+  document.getElementById('evMini').innerHTML=evs.slice(0,3).map(e=>`
+    <div style="display:flex;gap:11px;align-items:center;margin-bottom:12px">
+      <div style="background:var(--rouge-soft);color:var(--rouge-dark);border-radius:11px;padding:6px 10px;text-align:center;min-width:46px">
+        <div style="font-family:'Fraunces',serif;font-weight:700;font-size:1.1rem;line-height:1">${e.day}</div>
+        <div style="font-size:.68rem;text-transform:uppercase">${e.month}</div>
+      </div>
+      <div><b style="font-size:.88rem;display:block">${JP.esc(e.title)}</b><span style="font-size:.78rem;color:var(--ink-soft)">${JP.esc(e.town)}</span></div>
+    </div>`).join('') || '<div style="font-size:.85rem;color:var(--ink-soft)">Aucun événement pour l\'instant.</div>';
+
+  await render();
+  const lb=document.getElementById('lightbox');
+  lb.querySelector('.lb-close').addEventListener('click',()=>lb.classList.remove('open'));
+  lb.addEventListener('click',e=>{ if(e.target===lb) lb.classList.remove('open'); });
+})();
+</script>
+<script src="/assets/pwa.js?v=18"></script>
+
+<nav class="mobile-nav">
+<a href="fil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Fil</span></a>
+<a href="recherche.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg><span>Recherche</span></a>
+<a href="amis.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"/></svg><span>Amis</span></a>
+<a href="messages.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span>Messages</span></a>
+<a href="notifications.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><span class="mn-badge" id="mnBell">0</span><span>Alertes</span></a>
+<a href="profil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M4 21v-1a6 6 0 0112 0v1"/></svg><span>Profil</span></a>
+</nav>
+</body>
+</html>

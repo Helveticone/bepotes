@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profil — Jurapotes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=25">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#E11D2A">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jurapotes">
+</head>
+<body>
+<nav><div class="wrap nav-inner">
+  <a href="index.html" class="logo"><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <div class="nav-links">
+    <form class="nav-search" onsubmit="location.href='recherche.html?q='+encodeURIComponent(this.q.value);return false;">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input name="q" type="search" placeholder="Rechercher…" aria-label="Rechercher">
+    </form>
+    <a href="fil.html">Le fil</a>
+    <a href="amis.html">Amis</a>
+    <a href="groupes.html">Groupes</a>
+    <a href="pages.html">Pages</a>
+    <a href="evenements.html">Événements</a>
+    <a href="messages.html">Messages</a>
+    <a href="profil.html">Profil</a>
+    <a href="notifications.html" class="nav-bell" id="bell" aria-label="Notifications">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="badge-count" id="bellCount">0</span>
+    </a>
+    <a href="#" id="logout" class="btn btn-ghost btn-sm">Déconnexion</a>
+  </div>
+</div></nav>
+
+<div class="page-pad"><div class="narrow">
+  <div id="header"></div>
+  <div class="profile-tabs">
+    <button class="active" data-tab="posts">Publications</button>
+    <button data-tab="photos">Photos</button>
+  </div>
+  <div id="posts"></div>
+  <div id="photos" style="display:none"></div>
+</div></div>
+
+<div class="lightbox" id="lightbox"><button class="lb-close">&times;</button><img id="lbImg" alt=""></div>
+
+<script src="/assets/supabase.min.js?v=18"></script>
+<script src="assets/config.js"></script>
+<script src="assets/app.supabase.js?v=19"></script>
+<script src="assets/moderation.js?v=18"></script>
+<script src="assets/bell.js?v=21"></script>
+<script>
+(async function(){
+  const okAuth = await JP.requireAuth();
+  if(!okAuth) return;
+  const me=JP.user();
+  document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
+
+  const userId=new URLSearchParams(location.search).get('id');
+  if(!userId){ location.href='fil.html'; return; }
+  // Si c'est moi, rediriger vers ma page profil éditable
+  if(userId===me.id){ location.href='profil.html'; return; }
+
+  const prof=await JP.publicProfile(userId);
+  if(!prof){ document.getElementById('header').innerHTML='<div class="empty"><p>Membre introuvable.</p></div>'; return; }
+
+  async function renderHeader(){
+    const fc=await JP.followCounts(userId);
+    const friendN=await JP.friendCount(userId);
+    const fst=await JP.friendStatus(userId);
+    const following=await JP.isFollowing(userId);
+    const cover = prof.cover ? `style="background-image:url(${prof.cover});background-size:cover;background-position:center"` : '';
+
+    let friendBtn='';
+    if(fst.status==='friends') friendBtn='<button class="btn btn-primary btn-sm" id="friendBtn" data-st="friends">✓ Amis</button>';
+    else if(fst.status==='pending_sent') friendBtn='<button class="btn btn-ghost btn-sm" id="friendBtn" data-st="pending_sent">Demande envoyée</button>';
+    else if(fst.status==='pending_received') friendBtn='<button class="btn btn-primary btn-sm" id="friendBtn" data-st="pending_received">Accepter la demande</button>';
+    else friendBtn='<button class="btn btn-primary btn-sm" id="friendBtn" data-st="none">+ Ajouter en ami</button>';
+
+    const msgBtn = fst.status==='friends' ? `<a href="messages.html?to=${userId}" class="btn btn-ghost btn-sm">✉ Message</a>` : '';
+
+    document.getElementById('header').innerHTML=`
+      <div class="prof-head">
+        <div class="prof-cover" ${cover}></div>
+        <div class="prof-body">
+          <div class="prof-av-wrap">${JP.avatarHTML(prof.name,prof.avatar,'av')}</div>
+          <div class="prof-row">
+            <div class="pinfo">
+              <h1>${JP.esc(prof.name)} ${prof.is_pro?'<span style="font-size:.7em;background:var(--rouge-soft);color:var(--rouge-dark);padding:3px 10px;border-radius:999px;vertical-align:middle">Pro</span>':''}</h1>
+              <div class="loc">📍 ${JP.esc(prof.town||'Jura')} · Membre depuis ${prof.joined?new Date(prof.joined).toLocaleDateString('fr-CH',{month:'long',year:'numeric'}):'récemment'}</div>
+              <div class="bio ${prof.bio?'':'empty-bio'}">${prof.bio?JP.esc(prof.bio):'Pas de bio.'}</div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              ${friendBtn}
+              <button class="btn btn-ghost btn-sm" id="followBtn">${following?'✓ Suivi':'Suivre'}</button>
+              ${msgBtn}
+              <div class="post-menu" style="position:relative">
+                <button class="dots" id="moreBtn" style="font-size:1.2rem;padding:4px 10px">⋯</button>
+                <div class="pop" id="morePop">
+                  <button id="reportUser">Signaler</button>
+                  <button id="blockUser" class="del">Bloquer</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="stat-row">
+            <div><b id="sPosts">0</b><span>publications</span></div>
+            <div><b>${friendN}</b><span>amis</span></div>
+            <div><b>${fc.followers}</b><span>abonnés</span></div>
+            <div><b>${fc.following}</b><span>abonnements</span></div>
+          </div>
+        </div>
+      </div>`;
+
+    document.getElementById('sPosts').textContent=window._postCount||0;
+
+    document.getElementById('friendBtn').addEventListener('click',async()=>{
+      const st=await JP.friendStatus(userId);
+      if(st.status==='none'){ await JP.sendFriendRequest(userId); JP.toast('Demande envoyée 👋'); }
+      else if(st.status==='pending_received'){ await JP.acceptFriend(st.id); JP.toast('Vous êtes amis ! 🎉'); }
+      else if(st.status==='pending_sent'){ await JP.removeFriend(st.id); JP.toast('Demande annulée'); }
+      else if(st.status==='friends'){ if(confirm('Retirer cet ami ?')){ await JP.removeFriend(st.id); JP.toast('Ami retiré'); } }
+      await renderHeader();
+    });
+    document.getElementById('followBtn').addEventListener('click',async()=>{
+      if(await JP.isFollowing(userId)){ await JP.unfollow(userId); JP.toast('Désabonné'); }
+      else { await JP.follow(userId); JP.toast('Abonné·e ✅'); }
+      await renderHeader();
+    });
+
+    // Menu ⋯ : signaler / bloquer
+    const moreBtn=document.getElementById('moreBtn');
+    const morePop=document.getElementById('morePop');
+    moreBtn.addEventListener('click',e=>{ e.stopPropagation(); morePop.classList.toggle('open'); });
+    document.addEventListener('click',()=>morePop.classList.remove('open'));
+    document.getElementById('reportUser').addEventListener('click',()=>Mod.openReport({userId}));
+    document.getElementById('blockUser').addEventListener('click',async()=>{
+      if(await Mod.blockUser(userId, prof.name)) location.href='fil.html';
+    });
+  }
+
+  function galleryHTML(images){
+    const imgs=(images||[]).filter(Boolean);
+    if(!imgs.length) return '';
+    const n=Math.min(imgs.length,6);
+    return `<div class="post-gallery g${n}">`+imgs.slice(0,6).map(u=>`<img src="${u}" alt="" class="gimg">`).join('')+`</div>`;
+  }
+
+  async function renderPosts(){
+    const ps=await JP.userPosts(userId);
+    window._postCount=ps.length;
+    const el=document.getElementById('sPosts'); if(el) el.textContent=ps.length;
+    const wrap=document.getElementById('posts');
+    if(!ps.length){ wrap.innerHTML='<div class="empty"><p>Aucune publication.</p></div>'; return; }
+    wrap.innerHTML=ps.map(p=>`
+      <article class="post">
+        <div class="post-head">
+          ${JP.avatarHTML(p.author,p.authorAvatar,'av')}
+          <div class="meta"><b>${JP.esc(p.author)}</b><span>${JP.esc(p.town)} · ${JP.timeAgo(p.ts)}</span></div>
+          <span class="tag">${JP.esc(p.tag)}</span>
+        </div>
+        <div class="post-body">${JP.esc(p.text)}</div>
+        ${galleryHTML(p.images)}
+        <div class="post-actions" style="border-top:1px solid var(--line);padding-top:11px;color:var(--ink-soft);font-size:.88rem;font-weight:600">
+          <span style="flex:1;text-align:center">❤️ ${p.likes}</span>
+          <span style="flex:1;text-align:center">💬 ${p.comments.length}</span>
+        </div>
+      </article>`).join('');
+    wrap.querySelectorAll('.gimg').forEach(img=>img.addEventListener('click',()=>{
+      document.getElementById('lbImg').src=img.src; document.getElementById('lightbox').classList.add('open');
+    }));
+  }
+
+  await renderPosts();
+  await renderHeader();
+
+  // Onglets Publications / Photos
+  let photosLoaded=false;
+  async function renderPhotos(){
+    const wrap=document.getElementById('photos');
+    wrap.innerHTML='<p style="color:var(--ink-soft)">Chargement…</p>';
+    const ph=await JP.userPhotos(userId);
+    if(!ph.length){ wrap.innerHTML='<div class="empty"><p>Aucune photo.</p></div>'; return; }
+    wrap.innerHTML='<div class="photo-grid">'+ph.map(u=>`<div class="ph"><img src="${u}" alt="" loading="lazy"></div>`).join('')+'</div>';
+    wrap.querySelectorAll('.ph img').forEach(img=>img.addEventListener('click',()=>{
+      document.getElementById('lbImg').src=img.src; document.getElementById('lightbox').classList.add('open');
+    }));
+  }
+  document.querySelectorAll('.profile-tabs button').forEach(b=>b.addEventListener('click',async()=>{
+    document.querySelectorAll('.profile-tabs button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    const tab=b.dataset.tab;
+    document.getElementById('posts').style.display = tab==='posts'?'':'none';
+    document.getElementById('photos').style.display = tab==='photos'?'':'none';
+    if(tab==='photos' && !photosLoaded){ photosLoaded=true; await renderPhotos(); }
+  }));
+
+  const lb=document.getElementById('lightbox');
+  lb.querySelector('.lb-close').addEventListener('click',()=>lb.classList.remove('open'));
+  lb.addEventListener('click',e=>{ if(e.target===lb) lb.classList.remove('open'); });
+})();
+</script>
+<script src="/assets/pwa.js?v=18"></script>
+
+<nav class="mobile-nav">
+<a href="fil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Fil</span></a>
+<a href="recherche.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg><span>Recherche</span></a>
+<a href="amis.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"/></svg><span>Amis</span></a>
+<a href="messages.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span>Messages</span></a>
+<a href="notifications.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><span class="mn-badge" id="mnBell">0</span><span>Alertes</span></a>
+<a href="profil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M4 21v-1a6 6 0 0112 0v1"/></svg><span>Profil</span></a>
+</nav>
+</body>
+</html>

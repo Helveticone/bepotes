@@ -1,0 +1,226 @@
+-- ============================================================
+--  JURAPOTES — TOUT LE SQL À JOUR (à coller d'un bloc)
+--  ------------------------------------------------------------
+--  Ce fichier regroupe, dans le bon ordre, toutes les évolutions
+--  depuis le schéma de base. Il est SÛR à ré-exécuter : tout est
+--  en "if exists / if not exists", donc relancer ne casse rien,
+--  même si tu as déjà passé certains morceaux.
+--
+--  À lancer dans : Supabase > SQL Editor > New query > Run
+--  (NE PAS rejouer schema.sql : il est déjà en place.)
+-- ============================================================
+
+
+-- ============================================================
+--  1. AMITIÉS (table + sécurité + notifications)
+-- ============================================================
+create table if not exists public.friendships (
+  id           uuid primary key default gen_random_uuid(),
+  requester_id uuid references public.profiles(id) on delete cascade not null,
+  addressee_id uuid references public.profiles(id) on delete cascade not null,
+  status       text default 'pending',
+  created_at   timestamptz default now(),
+  unique (requester_id, addressee_id),
+  check (requester_id <> addressee_id)
+);
+
+create index if not exists friendships_addressee_idx on public.friendships(addressee_id, status);
+create index if not exists friendships_requester_idx on public.friendships(requester_id, status);
+
+alter table public.friendships enable row level security;
+
+drop policy if exists "voir mes amitiés" on public.friendships;
+create policy "voir mes amitiés" on public.friendships for select
+  using ( auth.uid() = requester_id or auth.uid() = addressee_id );
+
+drop policy if exists "envoyer une demande d'ami" on public.friendships;
+drop policy if exists "envoyer une demande" on public.friendships;
+create policy "envoyer une demande" on public.friendships for insert
+  with check ( auth.uid() = requester_id );
+
+drop policy if exists "répondre à une demande d'ami" on public.friendships;
+drop policy if exists "répondre à une demande" on public.friendships;
+create policy "répondre à une demande" on public.friendships for update
+  using ( auth.uid() = addressee_id or auth.uid() = requester_id );
+
+drop policy if exists "supprimer une amitié" on public.friendships;
+create policy "supprimer une amitié" on public.friendships for delete
+  using ( auth.uid() = requester_id or auth.uid() = addressee_id );
+
+create or replace function public.notify_on_friendship()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if (TG_OP = 'INSERT') then
+    insert into public.notifications (user_id, actor_id, type)
+    values (new.addressee_id, new.requester_id, 'friend_request');
+  elsif (TG_OP = 'UPDATE' and new.status = 'accepted' and old.status = 'pending') then
+    insert into public.notifications (user_id, actor_id, type)
+    values (new.requester_id, new.addressee_id, 'friend_accept');
+  end if;
+  return new;
+end; $$;
+
+drop trigger if exists trg_notify_friendship on public.friendships;
+create trigger trg_notify_friendship
+  after insert or update on public.friendships
+  for each row execute function public.notify_on_friendship();
+
+
+-- ============================================================
+--  2. MESSAGERIE : politiques fiables (sans "to authenticated")
+--     + réservée aux AMIS
+-- ============================================================
+-- Conversations
+drop policy if exists "créer une conversation" on public.conversations;
+drop policy if exists "voir ses conversations" on public.conversations;
+drop policy if exists "conv_insert" on public.conversations;
+drop policy if exists "conv_select" on public.conversations;
+create policy "conv_insert" on public.conversations for insert
+  with check ( auth.uid() is not null );
+create policy "conv_select" on public.conversations for select
+  using ( public.is_conversation_member(id) );
+
+-- Messages
+drop policy if exists "lire les messages de ses conversations" on public.messages;
+drop policy if exists "envoyer un message" on public.messages;
+drop policy if exists "msg_insert" on public.messages;
+drop policy if exists "msg_select" on public.messages;
+create policy "msg_insert" on public.messages for insert
+  with check ( auth.uid() = sender_id and public.is_conversation_member(conversation_id) );
+create policy "msg_select" on public.messages for select
+  using ( public.is_conversation_member(conversation_id) );
+
+-- Fonction : suis-je ami avec `other` ?
+create or replace function public.are_friends(other uuid)
+returns boolean language sql security definer set search_path = public as $$
+  select exists (
+    select 1 from public.friendships
+    where status = 'accepted'
+      and ( (requester_id = auth.uid() and addressee_id = other)
+         or (requester_id = other and addressee_id = auth.uid()) )
+  );
+$$;
+
+-- Ajout de membres : moi-même OU un ami OU déjà membre (groupes plus tard)
+drop policy if exists "s'ajouter / ajouter à une conversation" on public.conversation_members;
+drop policy if exists "ajouter des participants" on public.conversation_members;
+drop policy if exists "cm_insert" on public.conversation_members;
+drop policy if exists "voir les membres de ses conversations" on public.conversation_members;
+drop policy if exists "cm_select" on public.conversation_members;
+create policy "cm_insert" on public.conversation_members for insert
+  with check (
+    auth.uid() = user_id
+    or public.are_friends(user_id)
+    or public.is_conversation_member(conversation_id)
+  );
+create policy "cm_select" on public.conversation_members for select
+  using ( public.is_conversation_member(conversation_id) );
+
+
+-- ============================================================
+--  3. PHOTOS MULTIPLES + GROUPES (ouverts/validation, adhésions)
+-- ============================================================
+-- Photos multiples sur les publications
+alter table public.posts
+  add column if not exists images text[] default '{}';
+
+-- Type de groupe : ouvert (false) ou sur validation (true)
+alter table public.groups
+  add column if not exists is_private boolean default false;
+
+-- L'owner peut accepter (update) / retirer (delete) des membres
+drop policy if exists "owner gère les membres" on public.group_members;
+create policy "owner gère les membres" on public.group_members for update
+  using ( exists (select 1 from public.groups g
+                  where g.id = group_id and g.owner_id = auth.uid()) );
+
+drop policy if exists "owner retire un membre" on public.group_members;
+create policy "owner retire un membre" on public.group_members for delete
+  using ( auth.uid() = user_id
+          or exists (select 1 from public.groups g
+                     where g.id = group_id and g.owner_id = auth.uid()) );
+
+-- Pages d'établissement / club (réutilisent la table groups)
+alter table public.groups add column if not exists kind text default 'group';
+alter table public.groups add column if not exists category text;
+alter table public.groups add column if not exists address text;
+alter table public.groups add column if not exists phone text;
+alter table public.groups add column if not exists website text;
+
+
+-- ============================================================
+--  4. TEMPS RÉEL (messagerie + notifications instantanées)
+--     Ignorer l'erreur si la table est déjà dans la publication.
+-- ============================================================
+do $$
+begin
+  begin
+    alter publication supabase_realtime add table public.messages;
+  exception when duplicate_object then null; end;
+  begin
+    alter publication supabase_realtime add table public.notifications;
+  exception when duplicate_object then null; end;
+end $$;
+
+
+-- ============================================================
+--  5. (OPTIONNEL) Fiabiliser les lectures si un 403 apparaît
+--     Décommente ce bloc SEULEMENT si le fil ou les groupes
+--     refusent de charger avec une erreur de permission.
+-- ============================================================
+-- drop policy if exists "profils visibles par les membres" on public.profiles;
+-- create policy "profiles_select" on public.profiles for select using ( auth.uid() is not null );
+-- drop policy if exists "publications visibles par les membres" on public.posts;
+-- create policy "posts_select" on public.posts for select using ( auth.uid() is not null );
+-- drop policy if exists "groupes visibles" on public.groups;
+-- create policy "groups_select" on public.groups for select using ( auth.uid() is not null );
+-- drop policy if exists "membres visibles" on public.group_members;
+-- create policy "group_members_select" on public.group_members for select using ( auth.uid() is not null );
+
+-- ============================================================
+--  6. MODÉRATION & BLOCAGE
+-- ============================================================
+-- Blocage d'utilisateurs
+create table if not exists public.blocks (
+  blocker_id uuid references public.profiles(id) on delete cascade not null,
+  blocked_id uuid references public.profiles(id) on delete cascade not null,
+  created_at timestamptz default now(),
+  primary key (blocker_id, blocked_id),
+  check (blocker_id <> blocked_id)
+);
+alter table public.blocks enable row level security;
+drop policy if exists "voir mes blocages" on public.blocks;
+create policy "voir mes blocages" on public.blocks for select using ( auth.uid() = blocker_id );
+drop policy if exists "bloquer" on public.blocks;
+create policy "bloquer" on public.blocks for insert with check ( auth.uid() = blocker_id );
+drop policy if exists "débloquer" on public.blocks;
+create policy "débloquer" on public.blocks for delete using ( auth.uid() = blocker_id );
+
+-- Signalements : colonnes complémentaires
+alter table public.reports add column if not exists target_type text;
+alter table public.reports add column if not exists details text;
+
+-- Admin
+alter table public.profiles add column if not exists is_admin boolean default false;
+alter table public.profiles add column if not exists is_banned boolean default false;
+create or replace function public.is_admin()
+returns boolean language sql security definer set search_path = public as $$
+  select coalesce((select is_admin from public.profiles where id = auth.uid()), false);
+$$;
+drop policy if exists "admin voit les signalements" on public.reports;
+create policy "admin voit les signalements" on public.reports for select using ( public.is_admin() );
+drop policy if exists "admin met à jour les signalements" on public.reports;
+create policy "admin met à jour les signalements" on public.reports for update using ( public.is_admin() );
+drop policy if exists "admin supprime un post" on public.posts;
+create policy "admin supprime un post" on public.posts for delete using ( auth.uid() = author_id or public.is_admin() );
+drop policy if exists "admin gère les profils" on public.profiles;
+create policy "admin gère les profils" on public.profiles for update using ( auth.uid() = id or public.is_admin() );
+
+-- >>> POUR TE DÉSIGNER ADMIN (remplace par TON email) :
+--     update public.profiles set is_admin = true
+--     where id = (select id from auth.users where email = 'TON-EMAIL@exemple.ch');
+
+
+-- ============================================================
+--  FIN. Tout est à jour.
+-- ============================================================

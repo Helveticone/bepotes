@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modération — Jurapotes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=25">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#E11D2A">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jurapotes">
+</head>
+<body>
+<nav><div class="wrap nav-inner">
+  <a href="index.html" class="logo"><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <div class="nav-links">
+    <a href="fil.html">Le fil</a>
+    <a href="admin.html" class="active">Modération</a>
+    <a href="profil.html">Profil</a>
+    <a href="#" id="logout" class="btn btn-ghost btn-sm">Déconnexion</a>
+  </div>
+</div></nav>
+
+<div class="page-pad"><div class="narrow">
+  <h1 style="font-size:2rem;margin-bottom:6px">Modération <span class="admin-badge">ADMIN</span></h1>
+  <p style="color:var(--ink-soft);margin-bottom:24px">Signalements reçus des membres. Examine, supprime le contenu ou bannis si nécessaire.</p>
+
+  <div class="search-tabs" id="tabs">
+    <button class="active" data-f="open">À traiter</button>
+    <button data-f="all">Tous</button>
+  </div>
+
+  <div id="reports"></div>
+</div></div>
+
+<script src="/assets/supabase.min.js?v=18"></script>
+<script src="assets/config.js"></script>
+<script src="assets/app.supabase.js?v=19"></script>
+<script src="assets/bell.js?v=21"></script>
+<script>
+(async function(){
+  const okAuth = await JP.requireAuth();
+  if(!okAuth) return;
+  document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
+
+  // Garde-fou : réservé aux admins
+  if(!JP.isAdmin()){
+    document.querySelector('.narrow').innerHTML='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><p>Accès réservé aux administrateurs.</p><a href="fil.html" class="btn btn-primary btn-sm" style="margin-top:14px">Retour au fil</a></div>';
+    return;
+  }
+
+  let filter='open';
+  const REASONS={spam:'Spam',harcelement:'Harcèlement',faux:'Faux compte',illegal:'Contenu illégal',inapproprie:'Inapproprié'};
+
+  document.querySelectorAll('#tabs button').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('#tabs button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); filter=b.dataset.f; render();
+  }));
+
+  async function render(){
+    const box=document.getElementById('reports');
+    box.innerHTML='<p style="color:var(--ink-soft)">Chargement…</p>';
+    let reps=await JP.listReports();
+    if(filter==='open') reps=reps.filter(r=>r.status==='open');
+    if(!reps.length){ box.innerHTML='<div class="empty"><p>'+(filter==='open'?'Aucun signalement à traiter. 🎉':'Aucun signalement.')+'</p></div>'; return; }
+    box.innerHTML=reps.map(r=>`
+      <div class="report-card" data-id="${r.id}">
+        <div class="rc-top">
+          <div>
+            <span class="rc-reason">${REASONS[r.reason]||JP.esc(r.reason||'Autre')}</span>
+            <span style="font-size:.82rem;color:var(--ink-soft);margin-left:8px">${r.targetType==='user'?'Membre signalé':'Publication signalée'} · ${JP.timeAgo(r.ts)}</span>
+          </div>
+          <span class="rc-status ${r.status}">${r.status==='open'?'À traiter':r.status==='reviewed'?'Traité':'Rejeté'}</span>
+        </div>
+        <div style="font-size:.85rem;color:var(--ink-soft)">Signalé par ${JP.esc(r.reporterName)}${r.reportedName?' · concerne '+JP.esc(r.reportedName):''}</div>
+        ${r.postText?`<div class="rc-content">« ${JP.esc(r.postText.slice(0,200))}${r.postText.length>200?'…':''} »</div>`:''}
+        ${r.details?`<div style="font-size:.85rem;margin-top:6px"><b>Détails :</b> ${JP.esc(r.details)}</div>`:''}
+        <div class="rc-actions">
+          ${r.postId?`<button class="btn btn-ghost btn-sm delPost" data-pid="${r.postId}">🗑 Supprimer la publication</button>`:''}
+          ${r.reportedId?`<button class="btn btn-ghost btn-sm banUser" data-uid="${r.reportedId}">🚫 Bannir le membre</button>`:''}
+          ${r.status==='open'?`<button class="btn btn-primary btn-sm resolve" data-id="${r.id}">✓ Marquer traité</button>
+          <button class="btn btn-ghost btn-sm dismiss" data-id="${r.id}">Rejeter</button>`:''}
+        </div>
+      </div>`).join('');
+
+    box.querySelectorAll('.delPost').forEach(b=>b.addEventListener('click',async()=>{
+      if(confirm('Supprimer définitivement cette publication ?')){ await JP.adminDeletePost(b.dataset.pid); JP.toast('Publication supprimée'); }
+    }));
+    box.querySelectorAll('.banUser').forEach(b=>b.addEventListener('click',async()=>{
+      if(confirm('Bannir ce membre ? Il ne pourra plus utiliser le réseau.')){ await JP.banUser(b.dataset.uid); JP.toast('Membre banni'); }
+    }));
+    box.querySelectorAll('.resolve').forEach(b=>b.addEventListener('click',async()=>{
+      await JP.resolveReport(b.dataset.id,'reviewed'); JP.toast('Marqué comme traité'); await render();
+    }));
+    box.querySelectorAll('.dismiss').forEach(b=>b.addEventListener('click',async()=>{
+      await JP.resolveReport(b.dataset.id,'dismissed'); JP.toast('Signalement rejeté'); await render();
+    }));
+  }
+
+  await render();
+})();
+</script>
+<script src="/assets/pwa.js?v=18"></script>
+
+<nav class="mobile-nav">
+<a href="fil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Fil</span></a>
+<a href="recherche.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg><span>Recherche</span></a>
+<a href="amis.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"/></svg><span>Amis</span></a>
+<a href="messages.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span>Messages</span></a>
+<a href="notifications.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><span class="mn-badge" id="mnBell">0</span><span>Alertes</span></a>
+<a href="profil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M4 21v-1a6 6 0 0112 0v1"/></svg><span>Profil</span></a>
+</nav>
+</body>
+</html>
