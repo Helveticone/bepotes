@@ -163,28 +163,45 @@
       document.getElementById('lbImg').src=img.src;
       document.getElementById('lightbox').classList.add('open');
     }));
-    insertFeedAd();
+    insertFeedAds();
   }
 
-  /* ---- Publicité dans le fil (carte « Sponsorisé », façon FB) ---- */
-  async function insertFeedAd(){
+  /* ---- Publicités dans le fil (cartes « Sponsorisé » espacées, façon FB) ----
+     Plusieurs encarts répartis (1ère après la 3e publi, puis toutes les ~5),
+     ordre mélangé à chaque chargement (pas toujours la même en tête), chaque
+     annonce affichée au plus une fois par chargement. */
+  function buildAdCard(ad){
+    const isExt=/^https?:\/\//i.test(ad.link||'');
+    const linkAttr = ad.link ? `href="${JP.esc(ad.link)}" ${isExt?'target="_blank" rel="noopener nofollow sponsored"':''}` : '';
+    const card=document.createElement('article');
+    card.className='post ad-post';
+    card.innerHTML=`<div class="ad-head"><span class="ad-label">Sponsorisé</span>${ad.title?`<b class="ad-title">${JP.esc(ad.title)}</b>`:''}</div>
+      ${ad.body?`<div class="ad-body">${JP.esc(ad.body).replace(/\n/g,'<br>')}</div>`:''}
+      <a class="ad-media" ${linkAttr}>
+        <img src="${ad.image}" alt="${JP.esc(ad.title||'Publicité')}" loading="lazy">
+      </a>`;
+    const media=card.querySelector('.ad-media');
+    if(media && ad.link) media.addEventListener('click',()=>{ JP.adClick(ad.id); });
+    return card;
+  }
+  async function insertFeedAds(){
     try{
-      const ad=await JP.pickAd();
-      if(!ad || !ad.image) return;
-      const isExt=/^https?:\/\//i.test(ad.link||'');
-      const linkAttr = ad.link ? `href="${JP.esc(ad.link)}" ${isExt?'target="_blank" rel="noopener nofollow sponsored"':''}` : '';
-      const card=document.createElement('article');
-      card.className='post ad-post';
-      card.innerHTML=`<div class="ad-head"><span class="ad-label">Sponsorisé</span>${ad.title?`<b class="ad-title">${JP.esc(ad.title)}</b>`:''}</div>
-        ${ad.body?`<div class="ad-body">${JP.esc(ad.body).replace(/\n/g,'<br>')}</div>`:''}
-        <a class="ad-media" ${linkAttr}>
-          <img src="${ad.image}" alt="${JP.esc(ad.title||'Publicité')}" loading="lazy">
-        </a>`;
-      const media=card.querySelector('.ad-media');
-      if(media && ad.link) media.addEventListener('click',()=>{ JP.adClick(ad.id); });
-      const posts=feed.querySelectorAll('.post:not(.ad-post)');
-      if(posts.length>3) feed.insertBefore(card, posts[3]);
-      else feed.appendChild(card);
+      const ads=(await JP.activeAds()).filter(a=>a && a.image);
+      if(!ads.length) return;
+      const shuffled=ads.slice().sort(()=>Math.random()-0.5);   // variété d'affichage
+      const posts=[...feed.querySelectorAll('.post:not(.ad-post)')];
+      if(!posts.length) return;
+      const FIRST=3, GAP=5;
+      const slots=[];
+      for(let pos=FIRST; pos<=posts.length; pos+=GAP) slots.push(pos);
+      const n=Math.min(slots.length, shuffled.length);  // chaque annonce au plus 1×
+      for(let i=0;i<n;i++){
+        const ad=shuffled[i], pos=slots[i];
+        const card=buildAdCard(ad);
+        const anchor=posts[pos]||null;
+        if(anchor) feed.insertBefore(card, anchor); else feed.appendChild(card);
+        JP.adImpression(ad.id);   // compte l'affichage (sans bloquer)
+      }
     }catch(e){ /* pas de pub : silencieux */ }
   }
 
