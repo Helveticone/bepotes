@@ -647,5 +647,13 @@ alter table public.profiles
 
 
 -- ============================================================
+--  24. VIDÉOS dans les publications
+--      Vidéo stockée dans le bucket Storage « posts », lue inline.
+--      (Pense à relever la limite de taille du bucket si besoin.)
+-- ============================================================
+alter table public.posts add column if not exists video_url text;
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================

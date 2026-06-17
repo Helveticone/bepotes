@@ -273,6 +273,17 @@ window.JP = (() => {
     return data.publicUrl;
   }
 
+  /* Upload d'une vidéo (telle quelle, pas de transcodage) -> URL publique */
+  async function uploadVideo(file){
+    if(!file || !_me) throw 'invalide';
+    const ext=(file.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'') || 'mp4';
+    const path=`${_me.id}/${Date.now()}.${ext}`;
+    const { error } = await sb.storage.from('posts').upload(path, file, {contentType:file.type||'video/mp4', upsert:true});
+    if(error) throw error;
+    const { data } = sb.storage.from('posts').getPublicUrl(path);
+    return data.publicUrl;
+  }
+
   /* ------------------------------------------------------------
      Recadrage interactif (façon Facebook) : ouvre une modale où
      l'utilisateur déplace / zoome l'image, puis renvoie un Blob JPEG
@@ -371,7 +382,7 @@ window.JP = (() => {
       .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
                shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
-               likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
+               video_url, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .is('group_id', null);
     if(before) q = q.lt('created_at', before);
@@ -415,7 +426,7 @@ window.JP = (() => {
       };
     }
     return {
-      id:p.id, text:p.text, tag:p.tag, image:imgs[0]||null, images:imgs, ts:p.created_at, poll,
+      id:p.id, text:p.text, tag:p.tag, image:imgs[0]||null, images:imgs, video:p.video_url||null, ts:p.created_at, poll,
       authorEmail:p.author_id,
       author:p.author?.name||'Membre', town:p.author?.town||'', authorAvatar:p.author?.avatar_url||null,
       likes:likedBy.length, likedBy, myReaction, reactionCounts,
@@ -446,15 +457,17 @@ window.JP = (() => {
     return urls;
   }
 
-  async function addPost({text, tag, image, images, sharedPostId, pollOptions}){
+  async function addPost({text, tag, image, images, sharedPostId, pollOptions, video}){
     if(!_me) return;
     let urls=[];
     if(images && images.length) urls=await uploadImages('posts', images, 1280, 0.82);
     else if(image){ try{ urls=[await uploadImage('posts', image, 1280, 0.82)]; }catch(e){ toast('Photo trop lourde'); } }
+    let videoUrl=null;
+    if(video){ try{ videoUrl=await uploadVideo(video); }catch(e){ console.error(e); toast('Vidéo refusée (trop lourde ?)'); } }
     const poll = (pollOptions && pollOptions.length>=2) ? pollOptions.slice(0,6) : null;
     const { error } = await sb.from('posts').insert({
       author_id:_me.id, text, tag:tag||'Général',
-      image_url:urls[0]||null, images:urls,
+      image_url:urls[0]||null, images:urls, video_url:videoUrl,
       shared_post_id: sharedPostId||null,
       poll_options: poll
     });
@@ -485,7 +498,7 @@ window.JP = (() => {
       .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
                shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
-               likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
+               video_url, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .eq('id', pid).single();
     if(error){ console.error(error); return null; }
@@ -859,7 +872,7 @@ window.JP = (() => {
       .from('posts')
       .select(`id, text, tag, image_url, images, created_at, author_id,
                author:profiles!author_id ( name, town, avatar_url ),
-               likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
+               video_url, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( id )`)
       .is('group_id', null)
       .ilike('text', `%${q}%`)
@@ -1107,7 +1120,7 @@ window.JP = (() => {
     const { data } = await sb.from('posts')
       .select(`id, text, tag, image_url, images, created_at, author_id,
                author:profiles!author_id ( name, town, avatar_url ),
-               likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
+               video_url, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .eq('group_id', groupId)
       .order('created_at', {ascending:false})
@@ -1145,7 +1158,7 @@ window.JP = (() => {
       .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
                shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
-               likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
+               video_url, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .eq('author_id', userId).is('group_id', null)
       .order('created_at', {ascending:false}).limit(100);
@@ -1443,7 +1456,7 @@ window.JP = (() => {
      ============================================================ */
   return {
     sb, loadMe, requireAuth, user, toast, avatarHTML,
-    colorFor, initials, esc, timeAgo, uploadImage, uploadBlob, cropImage, fileToBlob,
+    colorFor, initials, esc, timeAgo, uploadImage, uploadBlob, uploadVideo, cropImage, fileToBlob,
     mentionHTML, attachMentions, tokenizeMentions, COMMUNES, fillCommuneSelect,
     register, login, logout, updateProfile, updateEmail, updatePassword, deleteAccount, setEmailNotifications,
     posts, getPost, addPost, sharePost, deletePost, editPost, editComment, toggleLike, isLiked, reactPost, REACTIONS, reactionMeta, addComment, toggleCommentLike,

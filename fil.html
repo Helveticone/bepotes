@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=43">
+<link rel="stylesheet" href="assets/style.css?v=44">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -67,12 +67,17 @@
         <textarea id="compText" placeholder="Quoi de neuf dans le Jura ?" maxlength="500"></textarea>
       </div>
       <div class="comp-previews" id="previews"></div>
+      <div class="comp-video" id="videoPrev" style="display:none"></div>
       <div class="poll-editor" id="pollEditor" style="display:none"></div>
       <div class="bar">
         <div class="opts">
           <button class="icon-btn" id="photoBtn">
             <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
             Photo
+          </button>
+          <button class="icon-btn" id="videoBtn">
+            <svg viewBox="0 0 24 24"><rect x="2" y="5" width="14" height="14" rx="2"/><path d="M16 9l6-3v12l-6-3"/></svg>
+            Vidéo
           </button>
           <button class="icon-btn" id="pollBtn">
             <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M20 20H2"/></svg>
@@ -110,12 +115,13 @@
 </div></div>
 
 <input type="file" id="photoFile" accept="image/*" multiple style="display:none">
+<input type="file" id="videoFile" accept="video/*" style="display:none">
 
 <div class="lightbox" id="lightbox"><button class="lb-close">&times;</button><img id="lbImg" alt=""></div>
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=40"></script>
+<script src="assets/app.supabase.js?v=41"></script>
 <script src="assets/nav.js?v=4"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=22"></script>
@@ -176,6 +182,25 @@
     box.querySelectorAll('.rm').forEach(b=>b.addEventListener('click',()=>{
       pendingImages.splice(+b.dataset.i,1); renderPreviews();
     }));
+  }
+
+  /* ---- Vidéo dans le composer (1 max) ---- */
+  let pendingVideo=null;
+  const videoFile=document.getElementById('videoFile');
+  const videoPrev=document.getElementById('videoPrev');
+  document.getElementById('videoBtn').addEventListener('click',()=>videoFile.click());
+  videoFile.addEventListener('change',e=>{
+    const f=e.target.files[0]; videoFile.value='';
+    if(!f) return;
+    if(!f.type.startsWith('video/')){ JP.toast('Choisis un fichier vidéo'); return; }
+    if(f.size>50*1024*1024){ JP.toast('Vidéo trop lourde (50 Mo max)'); return; }
+    pendingVideo=f; renderVideoPrev();
+  });
+  function renderVideoPrev(){
+    if(!pendingVideo){ videoPrev.style.display='none'; videoPrev.innerHTML=''; return; }
+    videoPrev.style.display='';
+    videoPrev.innerHTML=`<video src="${URL.createObjectURL(pendingVideo)}" controls preload="metadata" playsinline></video><button class="rm" type="button" aria-label="Retirer la vidéo">&times;</button>`;
+    videoPrev.querySelector('.rm').addEventListener('click',()=>{ pendingVideo=null; renderVideoPrev(); });
   }
 
   /* ---- Fil paginé + scroll infini ---- */
@@ -384,6 +409,7 @@
       </div>
       <div class="post-body">${JP.mentionHTML(p.text)}</div>
       ${pollHTML(p.poll)}
+      ${p.video?`<video class="post-video" src="${p.video}" controls preload="metadata" playsinline></video>`:''}
       ${galleryHTML(p.images)}
       ${p.shared?sharedCardHTML(p.shared):''}
       <div class="post-actions">
@@ -615,14 +641,14 @@
       pollOptions=[...pollEditor.querySelectorAll('#pollRows input')].map(i=>i.value.trim()).filter(Boolean);
       if(pollOptions.length<2){ JP.toast('Ajoute au moins 2 options au sondage'); return; }
     }
-    if(!raw && !pendingImages.length && !pollOptions){JP.toast('Écris un mot, ajoute une photo ou un sondage \u{1F642}');return;}
+    if(!raw && !pendingImages.length && !pollOptions && !pendingVideo){JP.toast('Écris un mot, ajoute une photo, une vidéo ou un sondage \u{1F642}');return;}
     if(pollOptions && !raw){ JP.toast('Écris la question du sondage dans le texte'); return; }
     const t=JP.tokenizeMentions(raw, compText._mentions);
     compGo.disabled=true; compGo.textContent='Publication…';
-    await JP.addPost({text:t, tag:document.getElementById('compTag').value, images:pendingImages, pollOptions});
+    await JP.addPost({text:t, tag:document.getElementById('compTag').value, images:pendingImages, pollOptions, video:pendingVideo});
     compGo.disabled=false; compGo.textContent='Publier';
     compText.value=''; compText._mentions=[];
-    pendingImages=[];
+    pendingImages=[]; pendingVideo=null; renderVideoPrev();
     pollOn=false; pollEditor.style.display='none'; pollEditor.innerHTML='';
     renderPreviews();
     JP.toast('Publié ! \u{1F389}'); await render();

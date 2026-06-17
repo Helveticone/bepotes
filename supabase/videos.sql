@@ -1,0 +1,12 @@
+-- ============================================================
+--  JURAPOTES — Vidéos dans les publications
+--  À exécuter dans Supabase > SQL Editor. Idempotent.
+--  ------------------------------------------------------------
+--  Une publication peut porter une vidéo (stockée dans le bucket
+--  Storage « posts », lue en <video> inline). Pas de transcodage.
+--
+--  ⚠️ Storage : vérifie la limite de taille du bucket « posts »
+--     (Dashboard > Storage > posts > Configuration). Augmente-la si
+--     besoin (ex. 52428800 = 50 Mo) pour autoriser les vidéos courtes.
+-- ============================================================
+alter table public.posts add column if not exists video_url text;
