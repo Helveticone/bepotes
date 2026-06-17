@@ -582,3 +582,23 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
   .post-actions .act{white-space:nowrap}
 }
 
+
+/* ============================================================
+   PUBLICITÉ — carte « Sponsorisé » dans le fil
+   ============================================================ */
+.ad-post{padding:0;overflow:hidden}
+.ad-head{display:flex;align-items:center;gap:8px;padding:12px 16px 10px}
+.ad-label{font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft)}
+.ad-title{font-size:.92rem;font-weight:700}
+.ad-media{display:block;line-height:0}
+.ad-media img{width:100%;height:auto;display:block}
+.ad-post .ad-media:hover{opacity:.97}
+
+/* ============================================================
+   BANDEAU D'INFORMATION (règles pages / événements)
+   ============================================================ */
+.notice{display:flex;gap:10px;align-items:flex-start;background:var(--rouge-soft,#fdeceb);
+  border:1px solid #f3d2cf;border-radius:13px;padding:12px 15px;margin-bottom:18px;
+  font-size:.86rem;line-height:1.5;color:var(--ink)}
+.notice svg{flex:0 0 auto;width:20px;height:20px;stroke:var(--rouge);fill:none;margin-top:1px}
+.notice b{color:var(--rouge-dark)}

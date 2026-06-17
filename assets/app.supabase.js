@@ -1337,6 +1337,66 @@ window.JP = (() => {
   }
 
   /* ============================================================
+     PUBLICITÉS (régie — affichage dans le fil, gestion admin)
+     ============================================================ */
+  /* Quelle pub afficher (membre) : rotation aléatoire parmi les
+     pubs actives, dans leurs dates, sous le plafond mensuel.
+     device = 'pc' | 'mobile' (sert l'image du bon format). */
+  function adDevice(){
+    return (window.matchMedia && window.matchMedia('(max-width:900px)').matches) ? 'mobile' : 'pc';
+  }
+  async function activeAds(device){
+    const { data, error } = await sb.rpc('active_ads', { device: device || adDevice() });
+    if(error){ console.error(error); return []; }
+    return data || [];
+  }
+  /* Tire une pub au hasard pour l'écran courant et compte l'affichage. */
+  async function pickAd(device){
+    const dev = device || adDevice();
+    const list = await activeAds(dev);
+    if(!list.length) return null;
+    const ad = list[Math.floor(Math.random()*list.length)];
+    adImpression(ad.id);   // compte sans bloquer l'affichage
+    return ad;
+  }
+  async function adImpression(id){
+    try{ await sb.rpc('ad_impression', { ad_id: id }); }catch(e){ /* silencieux */ }
+  }
+
+  /* --- Régie (admin) --- */
+  async function listAds(){
+    const { data, error } = await sb.from('ads').select('*')
+      .order('sort_order', {ascending:true}).order('created_at', {ascending:true});
+    if(error){ console.error(error); return []; }
+    return (data||[]).map(a=>{
+      const mk = a.month_key;
+      // affichages du mois en cours (0 si le compteur date d'un autre mois)
+      const now = new Date();
+      const curKey = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+      return { ...a, shownThisMonth: (mk===curKey ? (a.impressions||0) : 0) };
+    });
+  }
+  async function createAd(fields){
+    const { data, error } = await sb.from('ads').insert(fields).select().single();
+    return error ? {ok:false, msg:error.message} : {ok:true, id:data.id};
+  }
+  async function updateAd(id, fields){
+    const { error } = await sb.from('ads').update(fields).eq('id', id);
+    return error ? {ok:false, msg:error.message} : {ok:true};
+  }
+  async function deleteAd(id){
+    const { error } = await sb.from('ads').delete().eq('id', id);
+    return error ? {ok:false, msg:error.message} : {ok:true};
+  }
+  /* Réordonne d'après un tableau d'ids (drag & drop) : sort_order = index. */
+  async function reorderAds(ids){
+    for(let i=0;i<ids.length;i++){
+      await sb.from('ads').update({sort_order:i}).eq('id', ids[i]);
+    }
+    return {ok:true};
+  }
+
+  /* ============================================================
      API publique
      ============================================================ */
   return {
@@ -1357,6 +1417,7 @@ window.JP = (() => {
     publicProfile, userPosts, userPhotos,
     listListings, getListing, createListing, markListingSold, deleteListing,
     pageReviews, saveReview, deleteMyReview,
+    activeAds, pickAd, adImpression, listAds, createAd, updateAd, deleteAd, reorderAds,
     report, block, unblock, isBlocked, blockedList, loadBlocked, blockedIds,
     isAdmin, listReports, resolveReport, adminDeletePost, banUser, unbanUser
   };
