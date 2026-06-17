@@ -361,7 +361,7 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 .group-card .gmembers{font-size:.82rem;color:var(--ink-soft);font-weight:600}
 
 .group-header{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:24px}
-.group-header .gh-cover{height:160px;background:linear-gradient(120deg,var(--rouge),#F2723B);background-size:cover;background-position:center}
+.group-header .gh-cover{position:relative;height:160px;background:linear-gradient(120deg,var(--rouge),#F2723B);background-size:cover;background-position:center}
 .group-header .gh-body{padding:20px 24px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
 .group-header h1{font-size:1.7rem;margin-bottom:4px}
 .group-header .gh-meta{color:var(--ink-soft);font-size:.92rem}
