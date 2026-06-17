@@ -361,7 +361,7 @@ window.JP = (() => {
       .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
                shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
-               likes ( user_id, type ),
+               likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .is('group_id', null)
       .order('created_at', {ascending:false})
@@ -392,8 +392,19 @@ window.JP = (() => {
     rx.forEach(l=>{ const t=l.type||'like'; reactionCounts[t]=(reactionCounts[t]||0)+1; });
     let imgs = Array.isArray(p.images) ? p.images.filter(Boolean) : [];
     if(!imgs.length && p.image_url) imgs=[p.image_url];   // compat ancien format
+    let poll=null;
+    if(Array.isArray(p.poll_options) && p.poll_options.length>=2){
+      const opts=p.poll_options;
+      const counts=opts.map(()=>0);
+      (p.poll_votes||[]).forEach(v=>{ if(v.choice>=0 && v.choice<counts.length) counts[v.choice]++; });
+      poll={
+        options:opts, counts,
+        total:(p.poll_votes||[]).length,
+        myChoice:(p.poll_votes||[]).find(v=>v.user_id===_me?.id)?.choice ?? null
+      };
+    }
     return {
-      id:p.id, text:p.text, tag:p.tag, image:imgs[0]||null, images:imgs, ts:p.created_at,
+      id:p.id, text:p.text, tag:p.tag, image:imgs[0]||null, images:imgs, ts:p.created_at, poll,
       authorEmail:p.author_id,
       author:p.author?.name||'Membre', town:p.author?.town||'', authorAvatar:p.author?.avatar_url||null,
       likes:likedBy.length, likedBy, myReaction, reactionCounts,
@@ -424,17 +435,31 @@ window.JP = (() => {
     return urls;
   }
 
-  async function addPost({text, tag, image, images, sharedPostId}){
+  async function addPost({text, tag, image, images, sharedPostId, pollOptions}){
     if(!_me) return;
     let urls=[];
     if(images && images.length) urls=await uploadImages('posts', images, 1280, 0.82);
     else if(image){ try{ urls=[await uploadImage('posts', image, 1280, 0.82)]; }catch(e){ toast('Photo trop lourde'); } }
+    const poll = (pollOptions && pollOptions.length>=2) ? pollOptions.slice(0,6) : null;
     const { error } = await sb.from('posts').insert({
       author_id:_me.id, text, tag:tag||'Général',
       image_url:urls[0]||null, images:urls,
-      shared_post_id: sharedPostId||null
+      shared_post_id: sharedPostId||null,
+      poll_options: poll
     });
     if(error) toast(error.message);
+  }
+
+  /* Voter / changer son vote à un sondage (choice = index de l'option) */
+  async function votePoll(postId, choice){
+    if(!_me) return {ok:false};
+    const { error } = await sb.from('poll_votes')
+      .upsert({post_id:postId, user_id:_me.id, choice}, {onConflict:'post_id,user_id'});
+    return error ? {ok:false, msg:error.message} : {ok:true};
+  }
+  async function removePollVote(postId){
+    if(!_me) return;
+    await sb.from('poll_votes').delete().eq('post_id',postId).eq('user_id',_me.id);
   }
 
   /* Repartager une publication dans son fil (avec un mot optionnel) */
@@ -449,7 +474,7 @@ window.JP = (() => {
       .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
                shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
-               likes ( user_id, type ),
+               likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .eq('id', pid).single();
     if(error){ console.error(error); return null; }
@@ -823,7 +848,7 @@ window.JP = (() => {
       .from('posts')
       .select(`id, text, tag, image_url, images, created_at, author_id,
                author:profiles!author_id ( name, town, avatar_url ),
-               likes ( user_id, type ),
+               likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( id )`)
       .is('group_id', null)
       .ilike('text', `%${q}%`)
@@ -1071,7 +1096,7 @@ window.JP = (() => {
     const { data } = await sb.from('posts')
       .select(`id, text, tag, image_url, images, created_at, author_id,
                author:profiles!author_id ( name, town, avatar_url ),
-               likes ( user_id, type ),
+               likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .eq('group_id', groupId)
       .order('created_at', {ascending:false})
@@ -1109,7 +1134,7 @@ window.JP = (() => {
       .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
                shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
-               likes ( user_id, type ),
+               likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .eq('author_id', userId).is('group_id', null)
       .order('created_at', {ascending:false}).limit(100);
@@ -1411,6 +1436,7 @@ window.JP = (() => {
     mentionHTML, attachMentions, tokenizeMentions, COMMUNES, fillCommuneSelect,
     register, login, logout, updateProfile, updateEmail, updatePassword, deleteAccount,
     posts, getPost, addPost, sharePost, deletePost, editPost, editComment, toggleLike, isLiked, reactPost, REACTIONS, reactionMeta, addComment, toggleCommentLike,
+    votePoll, removePollVote,
     events, getEvent, toggleGoing, isGoing, setEventRsvp, eventComments, addEventComment, deleteEventComment, createEvent, updateEvent, updateEventCover, deleteEvent,
     notifications, unreadCount, markAllRead, notifText, subscribeNotifications,
     follow, unfollow, isFollowing, followCounts,

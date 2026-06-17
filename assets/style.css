@@ -631,3 +631,24 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 .drawer-theme{display:flex;align-items:center;gap:13px;padding:12px;border-radius:11px;background:none;border:none;cursor:pointer;color:var(--ink);font-weight:600;font-size:1rem;font-family:inherit;width:100%;text-align:left;margin-top:4px}
 .drawer-theme:hover{background:var(--rouge-soft);color:var(--rouge)}
 .drawer-theme svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;flex-shrink:0}
+
+/* ============================================================
+   SONDAGES 📊
+   ============================================================ */
+.poll{margin:2px 0 14px;display:flex;flex-direction:column;gap:8px}
+.poll-opt{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;border:1.5px solid var(--line);border-radius:11px;padding:10px 14px;cursor:pointer;overflow:hidden;background:var(--white);font-family:inherit;width:100%;text-align:left}
+.poll-opt .fill{position:absolute;left:0;top:0;bottom:0;background:var(--rouge-soft);width:0;transition:width .45s ease;z-index:0}
+.poll-opt.mine{border-color:var(--rouge)}
+.poll-opt .lbl,.poll-opt .pct{position:relative;z-index:1}
+.poll-opt .lbl{font-weight:600;font-size:.92rem;color:var(--ink)}
+.poll-opt .pct{font-weight:700;color:var(--rouge-dark);font-size:.84rem;white-space:nowrap}
+.poll-opt:hover{border-color:var(--rouge)}
+.poll-meta{font-size:.78rem;color:var(--ink-soft);display:flex;gap:12px;align-items:center}
+.poll-meta button{background:none;border:none;color:var(--rouge);cursor:pointer;font-size:.78rem;font-weight:600;font-family:inherit;padding:0}
+/* éditeur dans le composer */
+.poll-editor{border:1.5px dashed var(--line);border-radius:12px;padding:12px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px}
+.poll-editor .pe-head{display:flex;justify-content:space-between;align-items:center;font-size:.82rem;font-weight:700;color:var(--ink-soft)}
+.poll-editor .pe-head button{background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--ink-soft);line-height:1}
+.poll-editor .pe-row{display:flex;gap:8px;align-items:center}
+.poll-editor input{flex:1;min-width:0;padding:9px 12px;border:1.5px solid var(--line);border-radius:9px;font-family:inherit;font-size:.9rem;background:var(--white);color:var(--ink)}
+.poll-editor .pe-rm{flex:0 0 auto;width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--white);cursor:pointer;color:var(--ink-soft)}
