@@ -13,11 +13,12 @@
 create table if not exists public.ads (
   id              uuid primary key default gen_random_uuid(),
   title           text,
+  body            text,                 -- texte affiché au-dessus de l'image (façon FB)
   advertiser      text,                 -- nom de l'annonceur
   contact         text,                 -- e-mail / téléphone (privé, admin only)
   image_pc        text,                 -- URL image format PC
   image_mobile    text,                 -- URL image format mobile
-  link_url        text,                 -- lien cible
+  link_url        text,                 -- lien cible (interne « groupe.html?id=… » ou externe « https://… »)
   active          boolean default true,
   sort_order      int default 0,        -- ordre (drag & drop)
   impressions_cap int default 3000,     -- plafond mensuel d'affichages
@@ -28,6 +29,8 @@ create table if not exists public.ads (
   ends_on         date,
   created_at      timestamptz default now()
 );
+-- Colonne ajoutée après coup (si la table existait déjà) :
+alter table public.ads add column if not exists body text;
 create index if not exists ads_order_idx on public.ads(sort_order, created_at);
 
 alter table public.ads enable row level security;
@@ -37,13 +40,15 @@ create policy "ads admin" on public.ads for all
   using ( public.is_admin() ) with check ( public.is_admin() );
 
 -- Affichage public (membres) via fonction : ne renvoie que l'essentiel.
+-- (drop d'abord : le type de retour change avec l'ajout de "body")
+drop function if exists public.active_ads(text);
 create or replace function public.active_ads(device text)
-returns table(id uuid, image text, link text, title text)
+returns table(id uuid, image text, link text, title text, body text)
 language sql security definer set search_path = public as $$
   select a.id,
          case when device='mobile' then coalesce(a.image_mobile, a.image_pc)
               else coalesce(a.image_pc, a.image_mobile) end as image,
-         a.link_url as link, a.title
+         a.link_url as link, a.title, a.body
   from public.ads a
   where a.active = true
     and (a.starts_on is null or a.starts_on <= current_date)

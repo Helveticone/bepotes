@@ -542,6 +542,7 @@ grant execute on function public.delete_my_account() to authenticated;
 create table if not exists public.ads (
   id              uuid primary key default gen_random_uuid(),
   title           text,
+  body            text,
   advertiser      text,
   contact         text,
   image_pc        text,
@@ -557,6 +558,7 @@ create table if not exists public.ads (
   ends_on         date,
   created_at      timestamptz default now()
 );
+alter table public.ads add column if not exists body text;
 create index if not exists ads_order_idx on public.ads(sort_order, created_at);
 
 alter table public.ads enable row level security;
@@ -564,13 +566,14 @@ drop policy if exists "ads admin" on public.ads;
 create policy "ads admin" on public.ads for all
   using ( public.is_admin() ) with check ( public.is_admin() );
 
+drop function if exists public.active_ads(text);
 create or replace function public.active_ads(device text)
-returns table(id uuid, image text, link text, title text)
+returns table(id uuid, image text, link text, title text, body text)
 language sql security definer set search_path = public as $$
   select a.id,
          case when device='mobile' then coalesce(a.image_mobile, a.image_pc)
               else coalesce(a.image_pc, a.image_mobile) end as image,
-         a.link_url as link, a.title
+         a.link_url as link, a.title, a.body
   from public.ads a
   where a.active = true
     and (a.starts_on is null or a.starts_on <= current_date)

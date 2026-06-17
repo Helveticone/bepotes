@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=40">
+<link rel="stylesheet" href="assets/style.css?v=41">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -72,10 +72,20 @@
         <div class="field"><label>Titre interne</label><input id="fTitle" type="text" placeholder="Ex. Garage Cattin"></div>
         <div class="field"><label>Annonceur</label><input id="fAdv" type="text" placeholder="Nom de l'annonceur"></div>
       </div>
-      <div class="grid2">
-        <div class="field"><label>Contact (privé)</label><input id="fContact" type="text" placeholder="e-mail / téléphone"></div>
-        <div class="field"><label>Lien cible</label><input id="fLink" type="url" placeholder="https://…"></div>
+      <div class="field"><label>Contact annonceur (privé)</label><input id="fContact" type="text" placeholder="e-mail / téléphone"></div>
+
+      <div class="field"><label>Texte de la pub (optionnel, façon FB)</label><textarea id="fBody" maxlength="300" placeholder="Quelques mots d'accroche au-dessus de l'image…"></textarea></div>
+
+      <div class="field"><label>Destination au clic</label>
+        <select id="fLinkType">
+          <option value="ext">URL externe (site de l'annonceur)</option>
+          <option value="page">Une page Jurapotes</option>
+          <option value="event">Un événement Jurapotes</option>
+        </select>
       </div>
+      <div class="field" id="extWrap"><label>Adresse du site</label><input id="fLink" type="url" placeholder="https://…"></div>
+      <div class="field" id="pageWrap" style="display:none"><label>Page Jurapotes</label><select id="fPageSel"><option value="">Choisis une page…</option></select></div>
+      <div class="field" id="eventWrap" style="display:none"><label>Événement Jurapotes</label><select id="fEventSel"><option value="">Choisis un événement…</option></select></div>
       <div class="grid2">
         <div class="field"><label>Forfait</label><select id="fPlan"><option value="mois">Mensuel (30.-)</option><option value="annee">Annuel (250.-)</option></select></div>
         <div class="field"><label>Plafond d'affichages / mois</label><input id="fCap" type="number" min="0" step="100" value="3000"></div>
@@ -151,6 +161,48 @@
     el.innerHTML = url ? `<img src="${url}" alt="">` : `<span class="ph">${id==='prevPc'?'PC':'Mobile'}</span>`;
   }
 
+  /* ---- Destination du lien : externe / page Jurapotes / événement Jurapotes ---- */
+  const linkType=document.getElementById('fLinkType');
+  const pageSel=document.getElementById('fPageSel');
+  const eventSel=document.getElementById('fEventSel');
+  // Pré-remplit les listes de pages et d'événements pour les liens internes
+  (async function loadInternalTargets(){
+    try{
+      const pages=await JP.listGroups('', 'page');
+      pageSel.innerHTML='<option value="">Choisis une page…</option>'+
+        pages.map(p=>`<option value="${p.id}">${JP.esc(p.name)}</option>`).join('');
+    }catch(e){}
+    try{
+      const evs=await JP.events();
+      eventSel.innerHTML='<option value="">Choisis un événement…</option>'+
+        evs.map(e=>`<option value="${e.id}">${JP.esc(e.title)} — ${JP.esc(e.town||'')}</option>`).join('');
+    }catch(e){}
+  })();
+  function showLinkWrap(){
+    const t=linkType.value;
+    document.getElementById('extWrap').style.display   = t==='ext'   ? '' : 'none';
+    document.getElementById('pageWrap').style.display  = t==='page'  ? '' : 'none';
+    document.getElementById('eventWrap').style.display = t==='event' ? '' : 'none';
+  }
+  linkType.addEventListener('change', showLinkWrap);
+  function buildLink(){
+    const t=linkType.value;
+    if(t==='page'){  return pageSel.value ? 'groupe.html?id='+pageSel.value : ''; }
+    if(t==='event'){ return eventSel.value ? 'evenement.html?id='+eventSel.value : ''; }
+    let u=document.getElementById('fLink').value.trim();
+    if(u && !/^https?:\/\//i.test(u)) u='https://'+u;   // tolère « exemple.ch »
+    return u;
+  }
+  // Devine le type de lien à partir d'une URL stockée (pour l'édition)
+  function setLinkFromUrl(url){
+    url=url||'';
+    let m;
+    if((m=url.match(/groupe\.html\?id=(.+)$/))){ linkType.value='page'; pageSel.value=m[1]; document.getElementById('fLink').value=''; }
+    else if((m=url.match(/evenement\.html\?id=(.+)$/))){ linkType.value='event'; eventSel.value=m[1]; document.getElementById('fLink').value=''; }
+    else { linkType.value='ext'; document.getElementById('fLink').value=url; pageSel.value=''; eventSel.value=''; }
+    showLinkWrap();
+  }
+
   function openForm(ad){
     editingId = ad ? ad.id : null;
     draft = { image_pc: ad?.image_pc||null, image_mobile: ad?.image_mobile||null };
@@ -158,7 +210,8 @@
     document.getElementById('fTitle').value = ad?.title||'';
     document.getElementById('fAdv').value = ad?.advertiser||'';
     document.getElementById('fContact').value = ad?.contact||'';
-    document.getElementById('fLink').value = ad?.link_url||'';
+    document.getElementById('fBody').value = ad?.body||'';
+    setLinkFromUrl(ad?.link_url||'');
     document.getElementById('fPlan').value = ad?.plan||'mois';
     document.getElementById('fCap').value = (ad?.impressions_cap ?? 3000);
     document.getElementById('fStart').value = ad?.starts_on||'';
@@ -176,9 +229,10 @@
   document.getElementById('saveBtn').addEventListener('click',async()=>{
     const fields={
       title: document.getElementById('fTitle').value.trim() || null,
+      body: document.getElementById('fBody').value.trim() || null,
       advertiser: document.getElementById('fAdv').value.trim() || null,
       contact: document.getElementById('fContact').value.trim() || null,
-      link_url: document.getElementById('fLink').value.trim() || null,
+      link_url: buildLink() || null,
       plan: document.getElementById('fPlan').value,
       impressions_cap: parseInt(document.getElementById('fCap').value)||3000,
       starts_on: document.getElementById('fStart').value || null,
@@ -188,7 +242,7 @@
       image_mobile: draft.image_mobile
     };
     if(!fields.image_pc && !fields.image_mobile){ JP.toast('Ajoute au moins une image'); return; }
-    if(!fields.link_url){ JP.toast('Ajoute un lien cible'); return; }
+    if(!fields.link_url){ JP.toast('Choisis une destination au clic (URL, page ou événement)'); return; }
     const btn=document.getElementById('saveBtn'); btn.disabled=true;
     const r = editingId ? await JP.updateAd(editingId, fields) : await JP.createAd(fields);
     btn.disabled=false;
