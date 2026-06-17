@@ -164,18 +164,37 @@ end $$;
 
 
 -- ============================================================
---  5. (OPTIONNEL) Fiabiliser les lectures si un 403 apparaît
---     Décommente ce bloc SEULEMENT si le fil ou les groupes
---     refusent de charger avec une erreur de permission.
+--  5. LECTURES FIABLES : remplace les "auth.role() = 'authenticated'"
+--     (fragiles avec les nouvelles clés JWT) par "auth.uid() is not null".
+--     Couvre les 9 tables à lecture ouverte aux membres connectés.
+--     Idempotent : sûr à ré-exécuter.
 -- ============================================================
--- drop policy if exists "profils visibles par les membres" on public.profiles;
--- create policy "profiles_select" on public.profiles for select using ( auth.uid() is not null );
--- drop policy if exists "publications visibles par les membres" on public.posts;
--- create policy "posts_select" on public.posts for select using ( auth.uid() is not null );
--- drop policy if exists "groupes visibles" on public.groups;
--- create policy "groups_select" on public.groups for select using ( auth.uid() is not null );
--- drop policy if exists "membres visibles" on public.group_members;
--- create policy "group_members_select" on public.group_members for select using ( auth.uid() is not null );
+drop policy if exists "profils visibles par les membres" on public.profiles;
+create policy "profiles_select" on public.profiles for select using ( auth.uid() is not null );
+
+drop policy if exists "abonnements visibles" on public.follows;
+create policy "follows_select" on public.follows for select using ( auth.uid() is not null );
+
+drop policy if exists "publications visibles par les membres" on public.posts;
+create policy "posts_select" on public.posts for select using ( auth.uid() is not null );
+
+drop policy if exists "commentaires visibles" on public.comments;
+create policy "comments_select" on public.comments for select using ( auth.uid() is not null );
+
+drop policy if exists "likes visibles" on public.likes;
+create policy "likes_select" on public.likes for select using ( auth.uid() is not null );
+
+drop policy if exists "événements visibles" on public.events;
+create policy "events_select" on public.events for select using ( auth.uid() is not null );
+
+drop policy if exists "participations visibles" on public.event_attendees;
+create policy "event_attendees_select" on public.event_attendees for select using ( auth.uid() is not null );
+
+drop policy if exists "groupes visibles" on public.groups;
+create policy "groups_select" on public.groups for select using ( auth.uid() is not null );
+
+drop policy if exists "membres visibles" on public.group_members;
+create policy "group_members_select" on public.group_members for select using ( auth.uid() is not null );
 
 -- ============================================================
 --  6. MODÉRATION & BLOCAGE
