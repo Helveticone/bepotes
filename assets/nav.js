@@ -1,0 +1,74 @@
+/* ============================================================
+   Jurapotes — Menu mobile (tiroir latéral gauche, façon Facebook)
+   Centralise la navigation mobile : un bouton ☰ dans la barre du
+   haut ouvre un tiroir avec TOUTES les sections. La barre d'onglets
+   du bas reste pour l'accès rapide.
+   À inclure (après app.supabase.js) sur les pages connectées.
+   ============================================================ */
+(function () {
+  function init() {
+    const navLinks = document.querySelector('nav .nav-links');
+    if (!navLinks || document.querySelector('.nav-burger')) return;
+
+    // Bouton hamburger (visible en mobile uniquement, via CSS)
+    const burger = document.createElement('button');
+    burger.className = 'nav-burger';
+    burger.type = 'button';
+    burger.setAttribute('aria-label', 'Menu');
+    burger.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>';
+    navLinks.insertBefore(burger, navLinks.firstChild);
+
+    const I = {
+      fil: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+      amis: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>',
+      groupes: '<path d="M17 21v-2a4 4 0 0 0-3-3.87M9 21v-2a4 4 0 0 1 3-3.87"/><circle cx="9" cy="7" r="3"/><circle cx="17" cy="9" r="3"/>',
+      pages: '<path d="M3 9l1-5h16l1 5M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/>',
+      marche: '<path d="M3 9l1-5h16l1 5M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9M9 13h6"/>',
+      events: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+      messages: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+      notif: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
+      profil: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/>',
+      search: '<circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>'
+    };
+    const link = (href, label, path) =>
+      `<a href="${href}"><svg viewBox="0 0 24 24">${path}</svg><span>${label}</span></a>`;
+
+    const bg = document.createElement('div');
+    bg.className = 'drawer-bg';
+    bg.innerHTML =
+      '<aside class="drawer" role="dialog" aria-label="Menu">' +
+        '<div class="drawer-head"><span class="wordmark">jura<span class="wm-red">potes</span></span>' +
+        '<button class="drawer-x" type="button" aria-label="Fermer">&times;</button></div>' +
+        '<nav class="drawer-links">' +
+          link('fil.html', 'Le fil', I.fil) +
+          link('recherche.html', 'Recherche', I.search) +
+          link('amis.html', 'Amis', I.amis) +
+          link('groupes.html', 'Groupes', I.groupes) +
+          link('pages.html', 'Pages', I.pages) +
+          link('marketplace.html', 'Marché', I.marche) +
+          link('evenements.html', 'Événements', I.events) +
+          link('messages.html', 'Messages', I.messages) +
+          link('notifications.html', 'Notifications', I.notif) +
+          link('profil.html', 'Profil', I.profil) +
+          '<a href="#" class="drawer-logout" id="drawerLogout">Déconnexion</a>' +
+        '</nav>' +
+      '</aside>';
+    document.body.appendChild(bg);
+
+    // Marquer le lien de la page courante
+    const here = (location.pathname.split('/').pop() || 'index.html');
+    bg.querySelectorAll('.drawer-links a').forEach(a => {
+      if (a.getAttribute('href') === here) a.classList.add('active');
+    });
+
+    const open = () => bg.classList.add('open');
+    const close = () => bg.classList.remove('open');
+    burger.addEventListener('click', open);
+    bg.addEventListener('click', e => { if (e.target === bg) close(); });
+    bg.querySelector('.drawer-x').addEventListener('click', close);
+    const lo = bg.querySelector('#drawerLogout');
+    lo.addEventListener('click', e => { e.preventDefault(); if (window.JP && JP.logout) JP.logout(); });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
