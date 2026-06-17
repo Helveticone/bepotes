@@ -432,6 +432,20 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 .star-pick .star.on{color:#F5A623}
 .star-pick .star:hover{color:#F5A623}
 
+/* ============ SUGGESTIONS D'AMIS (v37) ============ */
+.sugg-stripwrap{margin-bottom:20px}
+.sugg-strip{display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.sugg-card{flex:0 0 150px;border:1px solid var(--line);border-radius:14px;padding:14px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.sugg-card .av{margin:0 auto}
+.sugg-card .sugg-mut{font-size:.76rem;color:var(--ink-soft);line-height:1.2;min-height:2.1em;display:flex;align-items:center;justify-content:center}
+.sugg-card .btn{width:100%}
+.sugg-row{display:flex;align-items:center;gap:11px;margin-bottom:12px}
+.sugg-row .av{width:44px;height:44px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;color:#fff;font-weight:700}
+.sugg-row .si{flex:1;min-width:0}
+.sugg-row .si b{font-size:.92rem;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sugg-row .si span{font-size:.78rem;color:var(--ink-soft);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sugg-row .sugg-add{flex:0 0 auto}
+
 .group-header{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:24px}
 .group-header .gh-cover{position:relative;height:160px;background:linear-gradient(120deg,var(--rouge),#F2723B);background-size:cover;background-position:center}
 .group-header .gh-body{padding:20px 24px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}

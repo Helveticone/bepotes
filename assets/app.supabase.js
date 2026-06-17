@@ -1045,6 +1045,47 @@ window.JP = (() => {
   }
 
   /* ============================================================
+     SUGGESTIONS D'AMIS (amis communs prioritaires, façon FB)
+     ============================================================ */
+  async function friendSuggestions(limit=8){
+    if(!_me) return [];
+    // Relations existantes (amis + en attente) pour exclure
+    const { data:rel } = await sb.from('friendships')
+      .select('requester_id, addressee_id')
+      .or(`requester_id.eq.${_me.id},addressee_id.eq.${_me.id}`);
+    const related = new Set([_me.id]);
+    (rel||[]).forEach(f=>{ related.add(f.requester_id); related.add(f.addressee_id); });
+    await loadBlocked(); const blocked=new Set(blockedIds());
+
+    let out=[];
+    // 1) Amis communs (fonction SQL)
+    try{
+      const { data } = await sb.rpc('friend_suggestions', { lim: limit });
+      const mutualMap={}; (data||[]).forEach(r=>{ mutualMap[r.user_id]=r.mutual; });
+      const ids=(data||[]).map(r=>r.user_id).filter(id=>!related.has(id) && !blocked.has(id));
+      if(ids.length){
+        const { data:profs } = await sb.from('profiles').select('id,name,town,avatar_url').in('id', ids);
+        out=(profs||[]).map(p=>({id:p.id, name:p.name, town:p.town||'', avatar:p.avatar_url||null, mutual:mutualMap[p.id]||0}))
+              .sort((a,b)=>b.mutual-a.mutual);
+      }
+    }catch(e){ /* fonction absente -> on passe au repli */ }
+
+    // 2) Repli : membres récents si pas assez de suggestions
+    if(out.length<limit){
+      const have=new Set(out.map(o=>o.id));
+      const { data:recent } = await sb.from('profiles')
+        .select('id,name,town,avatar_url').order('created_at',{ascending:false}).limit(50);
+      for(const p of (recent||[])){
+        if(out.length>=limit) break;
+        if(related.has(p.id)||blocked.has(p.id)||have.has(p.id)) continue;
+        out.push({id:p.id, name:p.name, town:p.town||'', avatar:p.avatar_url||null, mutual:0});
+        have.add(p.id);
+      }
+    }
+    return out.slice(0, limit);
+  }
+
+  /* ============================================================
      MARKETPLACE / PETITES ANNONCES
      ============================================================ */
   function mapListing(l){
@@ -1138,7 +1179,7 @@ window.JP = (() => {
     follow, unfollow, isFollowing, followCounts,
     members, openConversationWith, contactSeller, conversations, messagesOf, sendMessage, subscribeMessages,
     searchPosts,
-    friendStatus, sendFriendRequest, acceptFriend, removeFriend, pendingRequests, friends, friendCount, areFriends,
+    friendStatus, sendFriendRequest, acceptFriend, removeFriend, pendingRequests, friends, friendCount, areFriends, friendSuggestions,
     listGroups, getGroup, createGroup, joinGroup, leaveGroup, groupPosts, addGroupPost,
     uploadImages, pendingMembers, approveMember, rejectMember, updateGroupCover,
     updateGroupRules, updateGroupInfo, groupMembers, setMemberRole, removeMember,

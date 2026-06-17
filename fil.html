@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=36">
+<link rel="stylesheet" href="assets/style.css?v=37">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -81,10 +81,12 @@
         <button class="btn btn-primary btn-sm" id="compGo">Publier</button>
       </div>
     </div>
+    <div id="suggestStrip"></div>
     <div id="feed"></div>
   </main>
 
   <aside class="side side-r">
+    <div id="suggestCard"></div>
     <div class="side-card">
       <h3 style="font-family:'Plus Jakarta Sans';font-size:1rem;margin-bottom:12px">À venir près de chez toi</h3>
       <div id="evMini"></div>
@@ -103,7 +105,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=29"></script>
+<script src="assets/app.supabase.js?v=30"></script>
 <script src="assets/nav.js?v=2"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=21"></script>
@@ -467,7 +469,52 @@
       <div><b style="font-size:.88rem;display:block">${JP.esc(e.title)}</b><span style="font-size:.78rem;color:var(--ink-soft)">${JP.esc(e.town)}</span></div>
     </div>`).join('') || '<div style="font-size:.85rem;color:var(--ink-soft)">Aucun événement pour l\'instant.</div>';
 
+  /* ---- Suggestions d'amis (amis communs prioritaires) ---- */
+  async function renderSuggestions(){
+    const strip=document.getElementById('suggestStrip');
+    const card=document.getElementById('suggestCard');
+    const sugg=await JP.friendSuggestions(10);
+    if(!sugg.length){ if(strip) strip.innerHTML=''; if(card) card.innerHTML=''; return; }
+    const mut=s=> s.mutual>0 ? (s.mutual+' ami'+(s.mutual>1?'s':'')+' en commun') : (s.town?('📍 '+JP.esc(s.town)):'Suggéré pour toi');
+
+    // Bande horizontale dans le fil
+    if(strip){
+      strip.innerHTML=`<div class="side-card sugg-stripwrap">
+        <h3 style="font-family:'Plus Jakarta Sans';font-size:1rem;margin-bottom:12px">Des personnes que tu connais peut-être</h3>
+        <div class="sugg-strip">${sugg.map(s=>`
+          <div class="sugg-card" data-id="${s.id}">
+            <a href="membre.html?id=${s.id}" style="text-decoration:none;color:inherit;display:flex;flex-direction:column;align-items:center;gap:6px">
+              ${JP.avatarHTML(s.name,s.avatar,'av','width:64px;height:64px;font-size:1.4rem')}
+              <b style="font-size:.9rem;text-align:center;line-height:1.2">${JP.esc(s.name)}</b>
+            </a>
+            <span class="sugg-mut">${mut(s)}</span>
+            <button class="btn btn-primary btn-sm sugg-add" data-id="${s.id}">+ Ajouter</button>
+          </div>`).join('')}</div>
+      </div>`;
+    }
+    // Liste verticale (colonne droite)
+    if(card){
+      card.innerHTML=`<div class="side-card">
+        <h3 style="font-family:'Plus Jakarta Sans';font-size:1rem;margin-bottom:12px">Suggestions d'amis</h3>
+        ${sugg.slice(0,5).map(s=>`
+          <div class="sugg-row" data-id="${s.id}">
+            <a href="membre.html?id=${s.id}" style="text-decoration:none">${JP.avatarHTML(s.name,s.avatar,'av')}</a>
+            <div class="si"><b>${JP.esc(s.name)}</b><span>${mut(s)}</span></div>
+            <button class="btn btn-primary btn-sm sugg-add" data-id="${s.id}">+</button>
+          </div>`).join('')}
+      </div>`;
+    }
+    // Wiring des boutons "Ajouter" (fil + colonne droite)
+    document.querySelectorAll('.sugg-add').forEach(b=>b.addEventListener('click',async()=>{
+      const id=b.dataset.id;
+      await JP.sendFriendRequest(id);
+      JP.toast('Demande envoyée 👋');
+      document.querySelectorAll(`.sugg-add[data-id="${id}"]`).forEach(o=>{ o.textContent='Demande envoyée'; o.disabled=true; o.classList.remove('btn-primary'); o.classList.add('btn-ghost'); });
+    }));
+  }
+
   await render();
+  renderSuggestions();
   const lb=document.getElementById('lightbox');
   lb.querySelector('.lb-close').addEventListener('click',()=>lb.classList.remove('open'));
   lb.addEventListener('click',e=>{ if(e.target===lb) lb.classList.remove('open'); });
