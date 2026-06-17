@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=31">
+<link rel="stylesheet" href="assets/style.css?v=32">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -54,7 +54,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=25"></script>
+<script src="assets/app.supabase.js?v=26"></script>
 <script src="assets/bell.js?v=21"></script>
 <script>
 (async function(){
@@ -394,7 +394,14 @@
       <div class="post-body">${JP.esc(p.text)}</div>
       ${galleryHTML(p.images)}
       <div class="post-actions">
-        <button class="act like ${JP.isLiked(p)?'liked':''}"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg><span class="lc">${p.likes}</span></button>
+        <div class="act-react">
+          <button class="act like ${p.myReaction?'reacted':''}">
+            <span class="rx-face">${p.myReaction?JP.reactionMeta(p.myReaction).emoji:'👍'}</span>
+            <span class="rx-label">${p.myReaction?JP.reactionMeta(p.myReaction).label:"J'aime"}</span>
+            <span class="lc">${p.likes}</span>
+          </button>
+          <div class="react-picker">${JP.REACTIONS.map(r=>`<button type="button" class="rx" data-t="${r.type}" title="${r.label}">${r.emoji}</button>`).join('')}</div>
+        </div>
         <button class="act cbtn"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>${p.comments.length}</span></button>
       </div>
       <div class="comments open">
@@ -415,13 +422,31 @@
   function bind(p){
     const pid=p.id;
     const el=feed.querySelector(`[data-id="${pid}"]`);
+    /* ---- Réactions multiples (tap = J'aime, appui long = choisir) ---- */
     const likeBtn=el.querySelector('.like');
-    likeBtn.addEventListener('click',async()=>{
-      const liked=likeBtn.classList.contains('liked');
-      likeBtn.classList.toggle('liked',!liked);
-      const lc=el.querySelector('.lc'); lc.textContent=Math.max(0,parseInt(lc.textContent)+(liked?-1:1));
-      await JP.toggleLike(pid);
-    });
+    const picker=el.querySelector('.react-picker');
+    const lc=el.querySelector('.lc'), face=el.querySelector('.rx-face'), lbl=el.querySelector('.rx-label');
+    let myReact=p.myReaction;
+    function paintReact(){
+      likeBtn.classList.toggle('reacted',!!myReact);
+      const m=myReact?JP.reactionMeta(myReact):null;
+      face.textContent=m?m.emoji:'👍'; lbl.textContent=m?m.label:"J'aime";
+    }
+    async function setReact(type){
+      const had=!!myReact, will=!!type; let c=parseInt(lc.textContent)||0;
+      if(had&&!will)c--; else if(!had&&will)c++;
+      lc.textContent=Math.max(0,c); myReact=type||null; paintReact();
+      await JP.reactPost(pid, myReact);
+    }
+    let lpTimer=null, longPressed=false;
+    const cancelLp=()=>clearTimeout(lpTimer);
+    likeBtn.addEventListener('pointerdown',()=>{ longPressed=false; lpTimer=setTimeout(()=>{ longPressed=true; picker.classList.add('open'); },380); });
+    likeBtn.addEventListener('pointerup',()=>{ clearTimeout(lpTimer); if(longPressed) return; setReact(myReact?'':'like'); });
+    likeBtn.addEventListener('pointerleave',cancelLp);
+    likeBtn.addEventListener('pointercancel',cancelLp);
+    likeBtn.addEventListener('click',e=>e.stopPropagation());
+    picker.querySelectorAll('.rx').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); picker.classList.remove('open'); setReact(b.dataset.t); }));
+    document.addEventListener('click',()=>picker.classList.remove('open'));
     /* ---- Commentaires : aperçu (2) + voir tous + tri + like (façon FB) ---- */
     const cstate={expanded:false, sort:'recent'};
     const cList=el.querySelector('.comment-list');

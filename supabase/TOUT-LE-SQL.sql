@@ -368,5 +368,12 @@ create policy "supprimer son avis" on public.page_reviews for delete using ( aut
 
 
 -- ============================================================
+--  12. RÉACTIONS MULTIPLES (like 👍 love ❤️ haha 😆 wow 😮 sad 😢)
+--     On ajoute un type sur la table likes (1 réaction par personne).
+-- ============================================================
+alter table public.likes add column if not exists type text default 'like';
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================

@@ -251,7 +251,7 @@ window.JP = (() => {
       .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
                shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
-               likes ( user_id ),
+               likes ( user_id, type ),
                comments ( id, text, created_at, author_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .is('group_id', null)
       .order('created_at', {ascending:false})
@@ -275,14 +275,18 @@ window.JP = (() => {
   }
 
   function mapPost(p){
-    const likedBy=(p.likes||[]).map(l=>l.user_id);
+    const rx=(p.likes||[]);
+    const likedBy=rx.map(l=>l.user_id);
+    const myReaction = rx.find(l=>l.user_id===_me?.id)?.type || null;
+    const reactionCounts={};
+    rx.forEach(l=>{ const t=l.type||'like'; reactionCounts[t]=(reactionCounts[t]||0)+1; });
     let imgs = Array.isArray(p.images) ? p.images.filter(Boolean) : [];
     if(!imgs.length && p.image_url) imgs=[p.image_url];   // compat ancien format
     return {
       id:p.id, text:p.text, tag:p.tag, image:imgs[0]||null, images:imgs, ts:p.created_at,
       authorEmail:p.author_id,
       author:p.author?.name||'Membre', town:p.author?.town||'', authorAvatar:p.author?.avatar_url||null,
-      likes:likedBy.length, likedBy,
+      likes:likedBy.length, likedBy, myReaction, reactionCounts,
       sharedId:p.shared_post_id||null,
       shared: mapSharedPost(p.shared),
       comments:(p.comments||[]).map(c=>({
@@ -334,7 +338,7 @@ window.JP = (() => {
       .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
                shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
-               likes ( user_id ),
+               likes ( user_id, type ),
                comments ( id, text, created_at, author_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .eq('id', pid).single();
     if(error){ console.error(error); return null; }
@@ -350,9 +354,26 @@ window.JP = (() => {
     if(!_me) return;
     const { data } = await sb.from('likes').select('post_id').eq('post_id',pid).eq('user_id',_me.id).maybeSingle();
     if(data) await sb.from('likes').delete().eq('post_id',pid).eq('user_id',_me.id);
-    else      await sb.from('likes').insert({post_id:pid, user_id:_me.id});
+    else      await sb.from('likes').insert({post_id:pid, user_id:_me.id, type:'like'});
   }
   const isLiked = p => !!_me && (p.likedBy||[]).includes(_me.id);
+
+  /* Réactions multiples */
+  const REACTIONS=[
+    {type:'like', emoji:'👍', label:"J'aime"},
+    {type:'love', emoji:'❤️', label:"J'adore"},
+    {type:'haha', emoji:'😆', label:'Haha'},
+    {type:'wow',  emoji:'😮', label:'Waouh'},
+    {type:'sad',  emoji:'😢', label:'Triste'}
+  ];
+  function reactionMeta(type){ return REACTIONS.find(r=>r.type===type) || REACTIONS[0]; }
+
+  /* Définir / changer / retirer (type=null) sa réaction à une publication */
+  async function reactPost(pid, type){
+    if(!_me) return;
+    if(!type){ await sb.from('likes').delete().eq('post_id',pid).eq('user_id',_me.id); return; }
+    await sb.from('likes').upsert({post_id:pid, user_id:_me.id, type}, {onConflict:'post_id,user_id'});
+  }
 
   async function addComment(pid, text){
     if(!_me) return;
@@ -610,7 +631,7 @@ window.JP = (() => {
       .from('posts')
       .select(`id, text, tag, image_url, images, created_at, author_id,
                author:profiles!author_id ( name, town, avatar_url ),
-               likes ( user_id ),
+               likes ( user_id, type ),
                comments ( id )`)
       .is('group_id', null)
       .ilike('text', `%${q}%`)
@@ -858,7 +879,7 @@ window.JP = (() => {
     const { data } = await sb.from('posts')
       .select(`id, text, tag, image_url, images, created_at, author_id,
                author:profiles!author_id ( name, town, avatar_url ),
-               likes ( user_id ),
+               likes ( user_id, type ),
                comments ( id, text, created_at, author_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .eq('group_id', groupId)
       .order('created_at', {ascending:false})
@@ -896,7 +917,7 @@ window.JP = (() => {
       .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
                shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
-               likes ( user_id ),
+               likes ( user_id, type ),
                comments ( id, text, created_at, author_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .eq('author_id', userId).is('group_id', null)
       .order('created_at', {ascending:false}).limit(100);
@@ -1089,7 +1110,7 @@ window.JP = (() => {
     sb, loadMe, requireAuth, user, toast, avatarHTML,
     colorFor, initials, esc, timeAgo, uploadImage, uploadBlob, cropImage, fileToBlob,
     register, login, logout, updateProfile,
-    posts, getPost, addPost, sharePost, deletePost, toggleLike, isLiked, addComment, toggleCommentLike,
+    posts, getPost, addPost, sharePost, deletePost, toggleLike, isLiked, reactPost, REACTIONS, reactionMeta, addComment, toggleCommentLike,
     events, toggleGoing, isGoing, createEvent,
     notifications, unreadCount, markAllRead, notifText, subscribeNotifications,
     follow, unfollow, isFollowing, followCounts,
