@@ -223,6 +223,7 @@
     return d;
   }
   function insertFeedExtras(){
+    feed.querySelectorAll('.feed-extra').forEach(el=>el.remove());   // idempotent
     const posts=[...feed.querySelectorAll('.post:not(.ad-post)')];
     if(!posts.length) return;
     const place=(el,pos)=>{ if(!el) return; const anchor=posts[pos]||null; if(anchor) feed.insertBefore(el,anchor); else feed.appendChild(el); };
@@ -312,13 +313,14 @@
 
   /* ---- Fil paginé + scroll infini ---- */
   const PAGE=20;
-  let loadedPosts=[], loadingMore=false, reachedEnd=false;
+  let loadedPosts=[], loadingMore=false, reachedEnd=false, feedToken=0;
 
   function renderFeed(){
     if(!loadedPosts.length){
       feed.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><p>Aucune publication pour l\'instant. Sois le premier à lancer la discussion !</p></div>';
       return;
     }
+    const tok=++feedToken;   // jeton anti-course (insertions async)
     const list=orderPosts(loadedPosts);
     feed.innerHTML=list.map(p=>postHTML(p)).join('');
     list.forEach(p=>bind(p));
@@ -331,17 +333,18 @@
       const idx=Math.max(0, imgs.indexOf(img.src));
       JPLightbox.open(imgs, idx);
     }));
-    insertFeedAds();
+    insertFeedAds(tok);
     insertFeedExtras();
-    decorateTags();
+    decorateTags(tok);
   }
 
   /* ---- Tags de personnes : affichage « 🏷️ Avec … » + bouton « Identifier » (auteur) ---- */
-  async function decorateTags(){
+  async function decorateTags(tok){
     const els=[...feed.querySelectorAll('.post[data-id]')].filter(el=>el.querySelector('.post-gallery'));
     if(!els.length) return;
     const ids=els.map(el=>el.dataset.id);
     let map={}; try{ map=await JP.postTags(ids); }catch(e){ return; }
+    if(tok!==undefined && tok!==feedToken) return;   // rendu obsolète
     els.forEach(el=>{
       const pid=el.dataset.id;
       const post=loadedPosts.find(x=>String(x.id)===String(pid));
@@ -429,9 +432,13 @@
     if(media && ad.link) media.addEventListener('click',()=>{ JP.adClick(ad.id); });
     return card;
   }
-  async function insertFeedAds(){
+  async function insertFeedAds(tok){
     try{
-      const ads=(await JP.activeAds()).filter(a=>a && a.image);
+      let ads=(await JP.activeAds()).filter(a=>a && a.image);
+      // dédoublonnage par id (jamais 2× la même annonce)
+      const seen=new Set(); ads=ads.filter(a=>{ if(seen.has(a.id)) return false; seen.add(a.id); return true; });
+      if(tok!==undefined && tok!==feedToken) return;   // rendu obsolète → on abandonne
+      feed.querySelectorAll('.ad-post').forEach(el=>el.remove());   // idempotent (pas de doublon)
       if(!ads.length) return;
       const shuffled=ads.slice().sort(()=>Math.random()-0.5);   // variété d'affichage
       const posts=[...feed.querySelectorAll('.post:not(.ad-post)')];
