@@ -473,14 +473,23 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 .group-header .gh-desc{margin-top:10px;color:var(--ink);font-size:.97rem;max-width:600px}
 
 /* ============ MULTI-PHOTOS (v11) ============ */
-.post-gallery{display:grid;gap:4px;margin:4px 0 13px;border-radius:13px;overflow:hidden}
-.post-gallery.g1{grid-template-columns:1fr}
-.post-gallery.g2{grid-template-columns:1fr 1fr}
-.post-gallery.g3{grid-template-columns:1fr 1fr}
-.post-gallery.g4,.post-gallery.g5,.post-gallery.g6{grid-template-columns:1fr 1fr 1fr}
-.post-gallery img{width:100%;height:100%;object-fit:cover;display:block;cursor:pointer;aspect-ratio:1/1}
-.post-gallery.g1 img{aspect-ratio:auto;max-height:520px}
-.post-gallery.g3 img:first-child{grid-row:span 2;aspect-ratio:auto}
+.post-gallery{display:grid;gap:3px;margin:4px 0 13px;border-radius:13px;overflow:hidden}
+.post-gallery .gtile{position:relative;overflow:hidden;min-width:0}
+.post-gallery .gtile img{width:100%;height:100%;object-fit:cover;display:block;cursor:pointer}
+.post-gallery .more{position:absolute;inset:0;background:rgba(0,0,0,.45);color:#fff;display:grid;place-items:center;font-size:1.9rem;font-weight:700;pointer-events:none}
+/* 1 photo : ratio naturel */
+.post-gallery.g1 .gtile img{aspect-ratio:auto;max-height:520px;width:100%}
+/* 2 : côte à côte */
+.post-gallery.g2{grid-template-columns:1fr 1fr;aspect-ratio:2/1}
+/* 3 : une grande à gauche, deux empilées à droite */
+.post-gallery.g3{grid-template-columns:2fr 1fr;aspect-ratio:3/2}
+.post-gallery.g3 .gtile:first-child{grid-row:span 2}
+/* 4 : grille 2×2 */
+.post-gallery.g4{grid-template-columns:1fr 1fr;aspect-ratio:1/1}
+/* 5 (et + via « +N ») : 2 en haut, 3 en bas */
+.post-gallery.g5{grid-template-columns:repeat(6,1fr);aspect-ratio:3/2}
+.post-gallery.g5 .gtile:nth-child(1),.post-gallery.g5 .gtile:nth-child(2){grid-column:span 3}
+.post-gallery.g5 .gtile:nth-child(3),.post-gallery.g5 .gtile:nth-child(4),.post-gallery.g5 .gtile:nth-child(5){grid-column:span 2}
 .comp-previews{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .comp-previews .thumb{position:relative;width:74px;height:74px;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
 .comp-previews .thumb img{width:100%;height:100%;object-fit:cover}

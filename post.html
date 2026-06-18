@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=56">
+<link rel="stylesheet" href="assets/style.css?v=57">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -46,7 +46,7 @@
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
 <script src="assets/app.supabase.js?v=51"></script>
-<script src="assets/nav.js?v=4"></script>
+<script src="assets/nav.js?v=5"></script>
 <script src="assets/bell.js?v=22"></script>
 <script>
 (async function(){
@@ -62,8 +62,13 @@
   function galleryHTML(images){
     const imgs=(images||[]).filter(Boolean);
     if(!imgs.length) return '';
-    const n=Math.min(imgs.length,6);
-    return `<div class="post-gallery g${n}">`+imgs.slice(0,6).map(u=>`<img src="${u}" alt="" class="gimg">`).join('')+`</div>`;
+    const show=Math.min(imgs.length,5), extra=imgs.length-show;
+    let tiles='';
+    for(let i=0;i<show;i++){
+      const more=(i===show-1 && extra>0)?`<div class="more">+${extra}</div>`:'';
+      tiles+=`<div class="gtile"><img src="${imgs[i]}" alt="" class="gimg" loading="lazy">${more}</div>`;
+    }
+    return `<div class="post-gallery g${show}">${tiles}</div>`;
   }
   function pollHTML(poll){
     if(!poll) return '';
