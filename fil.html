@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=59">
+<link rel="stylesheet" href="assets/style.css?v=60">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -63,7 +63,6 @@
   <main>
     <div id="installBar" class="install-bar" style="display:none"></div>
     <div id="storiesBar" class="stories-bar"></div>
-    <div id="reelsStrip"></div>
     <div class="composer">
       <div class="top">
         <div id="compAvBox"></div>
@@ -95,8 +94,6 @@
       </div>
     </div>
     <div id="suggestStrip"></div>
-    <div id="groupSuggest"></div>
-    <div id="pageSuggest"></div>
     <div class="feed-toolbar">
       <div class="search-tabs" id="feedTabs">
         <button data-s="recent" class="active">Récent</button>
@@ -125,7 +122,7 @@
 <input type="file" id="photoFile" accept="image/*" multiple style="display:none">
 <input type="file" id="videoFile" accept="video/*" style="display:none">
 
-<div class="lightbox" id="lightbox"><button class="lb-close">&times;</button><img id="lbImg" alt=""></div>
+<div class="lightbox" id="lightbox"><button class="lb-close" aria-label="Fermer">&times;</button><button class="lb-nav lb-prev" aria-label="Précédent">&#8249;</button><img id="lbImg" alt=""><button class="lb-nav lb-next" aria-label="Suivant">&#8250;</button><span class="lb-count"></span></div>
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
@@ -184,34 +181,45 @@
   /* ---- Stories éphémères ---- */
   if(window.JPStories) JPStories.mount(document.getElementById('storiesBar'));
 
-  /* ---- Reels (vidéos récentes) ---- */
-  (async function renderReels(){
-    const el=document.getElementById('reelsStrip'); if(!el) return;
-    let rs=[]; try{ rs=await JP.reels(12); }catch(e){}
-    if(!rs.length){ el.innerHTML=''; return; }
-    el.innerHTML=`<div class="side-card"><h3 class="rs-title">🎬 Reels du Jura</h3><div class="reels-row">`+
-      rs.map(r=>`<a class="reel" href="post.html?id=${r.id}"><video src="${r.video}#t=0.1" muted playsinline preload="metadata"></video><div class="reel-grad"></div><span class="reel-play">▶</span><span class="reel-name">${JP.esc(r.author)}</span></a>`).join('')+
-      `</div></div>`;
-  })();
-
-  /* ---- Suggestions de groupes / pages ---- */
-  async function renderGroupSuggest(containerId, kind, title){
-    const el=document.getElementById(containerId); if(!el) return;
-    let gs=[]; try{ gs=await JP.suggestGroups(kind, 8); }catch(e){}
-    if(!gs.length){ el.innerHTML=''; return; }
-    el.innerHTML=`<div class="side-card"><h3 class="rs-title">${title}</h3><div class="gsugg-row">`+
-      gs.map(g=>`<div class="gsugg"><a href="groupe.html?id=${g.id}"><div class="gsugg-cover" ${g.cover?`style="background-image:url(${g.cover})"`:''}></div></a><b>${JP.esc(g.name)}</b><span>${g.memberCount} ${kind==='page'?'abonné'+(g.memberCount>1?'s':''):'membre'+(g.memberCount>1?'s':'')}</span><button class="btn btn-primary btn-sm gsugg-join" data-id="${g.id}">${kind==='page'?'Voir':'Rejoindre'}</button></div>`).join('')+
-      `</div></div>`;
-    el.querySelectorAll('.gsugg-join').forEach(b=>b.addEventListener('click',async()=>{
+  /* ---- Reels + suggestions groupes/pages : intercalés DANS le fil (façon FB) ----
+     Préchargés une fois, puis insérés comme « cartes » à des positions espacées. */
+  let _reels=null, _gsuggGroup=null, _gsuggPage=null;
+  async function prefetchExtras(){
+    try{ _reels=await JP.reels(12); }catch(e){ _reels=[]; }
+    try{ _gsuggGroup=await JP.suggestGroups('group',10); }catch(e){ _gsuggGroup=[]; }
+    try{ _gsuggPage=await JP.suggestGroups('page',10); }catch(e){ _gsuggPage=[]; }
+  }
+  function reelsCardEl(){
+    if(!_reels || !_reels.length) return null;
+    const d=document.createElement('div'); d.className='side-card feed-extra';
+    d.innerHTML=`<h3 class="rs-title">🎬 Reels du Jura</h3><div class="reels-row">`+
+      _reels.map(r=>`<a class="reel" href="post.html?id=${r.id}"><video src="${r.video}#t=0.1" muted playsinline preload="metadata"></video><div class="reel-grad"></div><span class="reel-play">▶</span><span class="reel-name">${JP.esc(r.author)}</span></a>`).join('')+
+      `</div>`;
+    return d;
+  }
+  function suggCardEl(list, kind, title){
+    if(!list || !list.length) return null;
+    const d=document.createElement('div'); d.className='side-card feed-extra';
+    d.innerHTML=`<h3 class="rs-title">${title}</h3><div class="gsugg-row">`+
+      list.map(g=>`<div class="gsugg"><a href="groupe.html?id=${g.id}"><div class="gsugg-cover" ${g.cover?`style="background-image:url(${g.cover})"`:''}></div></a><b>${JP.esc(g.name)}</b><span>${g.memberCount} ${kind==='page'?'abonné'+(g.memberCount>1?'s':''):'membre'+(g.memberCount>1?'s':'')}</span><button class="btn btn-primary btn-sm gsugg-join" data-id="${g.id}">${kind==='page'?'Voir':'Rejoindre'}</button></div>`).join('')+
+      `</div>`;
+    d.querySelectorAll('.gsugg-join').forEach(b=>b.addEventListener('click',async()=>{
       if(kind==='page'){ location.href='groupe.html?id='+b.dataset.id; return; }
       b.disabled=true;
       const r=await JP.joinGroup(b.dataset.id);
       if(r && r.ok){ JP.toast(r.pending?'Demande envoyée 👋':'Groupe rejoint ✅'); b.textContent=r.pending?'En attente':'✓ Rejoint'; }
       else { JP.toast((r&&r.msg)||'Échec'); b.disabled=false; }
     }));
+    return d;
   }
-  renderGroupSuggest('groupSuggest','group','👥 Groupes suggérés');
-  renderGroupSuggest('pageSuggest','page','⭐ Pages à découvrir');
+  function insertFeedExtras(){
+    const posts=[...feed.querySelectorAll('.post:not(.ad-post)')];
+    if(!posts.length) return;
+    const place=(el,pos)=>{ if(!el) return; const anchor=posts[pos]||null; if(anchor) feed.insertBefore(el,anchor); else feed.appendChild(el); };
+    place(reelsCardEl(), 1);
+    place(suggCardEl(_gsuggGroup,'group','👥 Groupes suggérés'), 4);
+    place(suggCardEl(_gsuggPage,'page','⭐ Pages à découvrir'), 8);
+  }
 
   const feed=document.getElementById('feed');
   let pendingImages=[];   // jusqu'à 6 fichiers File
@@ -307,10 +315,14 @@
     wireFollowButtons();
     wireFriendButtons();
     feed.querySelectorAll('.gimg').forEach(img=>img.addEventListener('click',()=>{
-      document.getElementById('lbImg').src=img.src;
-      document.getElementById('lightbox').classList.add('open');
+      const pid=img.closest('.post')?.dataset.id;
+      const post=loadedPosts.find(x=>String(x.id)===String(pid));
+      const imgs=(post && post.images && post.images.length) ? post.images.filter(Boolean) : [img.src];
+      const idx=Math.max(0, imgs.indexOf(img.src));
+      JPLightbox.open(imgs, idx);
     }));
     insertFeedAds();
+    insertFeedExtras();
   }
 
   // Recharge complète depuis la 1ère page (après une action : publier, voter…)
@@ -816,11 +828,38 @@
   }
 
   try{ (await JP.friends()).forEach(f=>{ if(f && f.id) friendSet.add(f.id); }); }catch(e){}
+
+  /* ---- Visionneuse photos (galerie : précédent / suivant / swipe) ---- */
+  window.JPLightbox = (function(){
+    const lb=document.getElementById('lightbox');
+    const img=document.getElementById('lbImg');
+    const prev=lb.querySelector('.lb-prev'), next=lb.querySelector('.lb-next'), cnt=lb.querySelector('.lb-count');
+    let imgs=[], idx=0;
+    function paint(){
+      img.src=imgs[idx]||'';
+      const multi=imgs.length>1;
+      if(prev) prev.style.display=multi?'':'none';
+      if(next) next.style.display=multi?'':'none';
+      if(cnt){ cnt.style.display=multi?'':'none'; cnt.textContent=`${idx+1} / ${imgs.length}`; }
+    }
+    function go(d){ if(!imgs.length) return; idx=(idx+d+imgs.length)%imgs.length; paint(); }
+    function open(list, start){ imgs=(list||[]).filter(Boolean); idx=start||0; if(!imgs.length) return; paint(); lb.classList.add('open'); }
+    function close(){ lb.classList.remove('open'); imgs=[]; }
+    if(prev) prev.addEventListener('click',e=>{ e.stopPropagation(); go(-1); });
+    if(next) next.addEventListener('click',e=>{ e.stopPropagation(); go(1); });
+    lb.querySelector('.lb-close').addEventListener('click',close);
+    lb.addEventListener('click',e=>{ if(e.target===lb) close(); });
+    document.addEventListener('keydown',e=>{ if(!lb.classList.contains('open')) return; if(e.key==='Escape')close(); else if(e.key==='ArrowLeft')go(-1); else if(e.key==='ArrowRight')go(1); });
+    // swipe tactile
+    let x0=null;
+    lb.addEventListener('touchstart',e=>{ x0=e.touches[0].clientX; },{passive:true});
+    lb.addEventListener('touchend',e=>{ if(x0==null)return; const dx=e.changedTouches[0].clientX-x0; if(Math.abs(dx)>40) go(dx<0?1:-1); x0=null; },{passive:true});
+    return { open, close };
+  })();
+
+  await prefetchExtras();
   await render();
   renderSuggestions();
-  const lb=document.getElementById('lightbox');
-  lb.querySelector('.lb-close').addEventListener('click',()=>lb.classList.remove('open'));
-  lb.addEventListener('click',e=>{ if(e.target===lb) lb.classList.remove('open'); });
 })();
 </script>
 <script src="/assets/pwa.js?v=20"></script>

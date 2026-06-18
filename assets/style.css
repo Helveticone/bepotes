@@ -34,8 +34,11 @@ nav{position:sticky;top:0;z-index:50;background:var(--paper);border-bottom:1px s
 .btn-sm{padding:8px 15px;font-size:.85rem}
 .btn-block{width:100%}
 @media(max-width:900px){.nav-links a:not(.btn){display:none}}
-/* Mobile : barre NON sticky (évite la « disparition » du logo sur Chrome Android) */
-@media(max-width:900px){nav{position:relative}}
+/* Mobile : barre NON sticky (évite la « disparition » du logo sur Chrome Android) ;
+   fond opaque + au-dessus de la barre du bas pour que le logo reste toujours visible. */
+@media(max-width:900px){nav{position:relative;z-index:61;background:var(--paper)}
+  .nav-inner{height:58px}
+  .logo .brand-dot{width:28px;height:28px}}
 /* Menu mobile : hamburger + tiroir latéral gauche (v36) */
 .nav-burger{display:none;background:none;border:none;cursor:pointer;padding:6px;color:var(--ink);align-items:center}
 .nav-burger svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
@@ -505,7 +508,13 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:none;align-items:center;justify-content:center;padding:20px}
 .lightbox.open{display:flex}
 .lightbox img{max-width:95%;max-height:92vh;border-radius:8px}
-.lightbox .lb-close{position:absolute;top:18px;right:24px;color:#fff;font-size:2rem;cursor:pointer;background:none;border:none}
+.lightbox .lb-close{position:absolute;top:18px;right:24px;color:#fff;font-size:2rem;cursor:pointer;background:none;border:none;z-index:2}
+.lightbox .lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;border:none;background:rgba(255,255,255,.16);color:#fff;font-size:1.8rem;line-height:1;cursor:pointer;display:grid;place-items:center;z-index:2}
+.lightbox .lb-nav:hover{background:rgba(255,255,255,.28)}
+.lightbox .lb-prev{left:14px}
+.lightbox .lb-next{right:14px}
+.lightbox .lb-count{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);color:#fff;font-size:.9rem;background:rgba(0,0,0,.5);padding:4px 12px;border-radius:999px;z-index:2}
+@media(max-width:600px){.lightbox .lb-nav{width:40px;height:40px;font-size:1.5rem}}
 
 /* Demandes d'adhésion */
 .pending-row{display:flex;align-items:center;gap:12px;background:var(--white);border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:8px}
@@ -779,6 +788,7 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 /* ============================================================
    REELS (mini, dans le fil) + SUGGESTIONS groupes/pages
    ============================================================ */
+.feed-extra{margin-bottom:16px}
 .rs-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:1rem;font-weight:800;margin-bottom:12px}
 .reels-row,.gsugg-row{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
 .reels-row::-webkit-scrollbar,.gsugg-row::-webkit-scrollbar{display:none}
