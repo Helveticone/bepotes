@@ -233,6 +233,18 @@ window.JP = (() => {
     _me.email_notifications=!!on;
     return {ok:true};
   }
+  /* ---- Notifications push (Web Push) ---- */
+  async function savePushSubscription({endpoint, p256dh, auth}){
+    if(!_me) return {ok:false};
+    const { error } = await sb.from('push_subscriptions')
+      .upsert({ user_id:_me.id, endpoint, p256dh, auth }, { onConflict:'endpoint' });
+    return error ? {ok:false, msg:error.message} : {ok:true};
+  }
+  async function deletePushSubscription(endpoint){
+    if(!endpoint) return;
+    await sb.from('push_subscriptions').delete().eq('endpoint', endpoint);
+  }
+
   /* mode = 'instant' | 'daily' | 'off' (garde email_notifications cohérent) */
   async function setEmailMode(mode){
     if(!_me) return {ok:false};
@@ -1491,6 +1503,7 @@ window.JP = (() => {
     colorFor, initials, esc, timeAgo, uploadImage, uploadBlob, uploadVideo, cropImage, fileToBlob,
     mentionHTML, attachMentions, tokenizeMentions, COMMUNES, fillCommuneSelect,
     register, login, logout, updateProfile, updateEmail, updatePassword, deleteAccount, setEmailNotifications, setEmailMode,
+    savePushSubscription, deletePushSubscription,
     posts, getPost, addPost, sharePost, deletePost, editPost, editComment, toggleLike, isLiked, reactPost, REACTIONS, reactionMeta, addComment, toggleCommentLike,
     votePoll, removePollVote,
     events, getEvent, toggleGoing, isGoing, setEventRsvp, eventComments, addEventComment, deleteEventComment, createEvent, updateEvent, updateEventCover, deleteEvent,

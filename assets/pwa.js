@@ -1,13 +1,15 @@
-/* PWA temporairement désactivée.
-   Ce script DÉSINSTALLE tout service worker existant et vide les caches,
-   pour réparer les téléphones bloqués sur une page blanche. */
+/* ============================================================
+   Jurapotes — PWA / Service Worker
+   - Enregistre le SW push (sw-push.js) : il ne met RIEN en cache,
+     donc aucun risque d'écran blanc / contenu périmé.
+   - Nettoie une fois les anciens caches (bug historique).
+   ============================================================ */
 (function () {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then((regs) => {
-      regs.forEach((r) => r.unregister());
-    }).catch(() => {});
-  }
+  if (!('serviceWorker' in navigator)) return;
+  // Purge des anciens caches éventuels (ancienne PWA)
   if (window.caches && caches.keys) {
-    caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
+    caches.keys().then((ks) => ks.forEach((k) => caches.delete(k))).catch(() => {});
   }
+  // Enregistre le SW push (reçoit les notifications même app fermée)
+  navigator.serviceWorker.register('/sw-push.js').catch(() => {});
 })();

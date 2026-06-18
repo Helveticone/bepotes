@@ -67,6 +67,15 @@
     </div>
   </div>
 
+  <div class="side-card" style="margin-bottom:18px">
+    <h3 style="font-family:'Plus Jakarta Sans';font-size:1.05rem;margin-bottom:8px">Notifications push (sur cet appareil)</h3>
+    <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:14px">Reçois une notification directement sur ton téléphone/ordinateur, même quand Jurapotes est fermé.</p>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <button class="btn btn-primary btn-sm" id="pushBtn" disabled>…</button>
+      <span id="pushHint" style="font-size:.82rem;color:var(--ink-soft)"></span>
+    </div>
+  </div>
+
   <div class="side-card danger-card">
     <h3 style="font-family:'Plus Jakarta Sans';font-size:1.05rem;margin-bottom:8px;color:var(--rouge-dark)">Zone de danger</h3>
     <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:14px">Supprimer ton compte efface définitivement ton profil, tes publications, commentaires, photos et messages. <b>Cette action est irréversible.</b></p>
@@ -76,9 +85,10 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=43"></script>
+<script src="assets/app.supabase.js?v=44"></script>
 <script src="assets/nav.js?v=4"></script>
 <script src="assets/bell.js?v=22"></script>
+<script src="assets/push.js?v=1"></script>
 <script>
 (async function(){
   const okAuth = await JP.requireAuth();
@@ -117,6 +127,29 @@
     else JP.toast(r.msg||'Échec');
   });
 
+  /* ---- Notifications push ---- */
+  (async function initPush(){
+    const btn=document.getElementById('pushBtn'), hint=document.getElementById('pushHint');
+    if(!window.JPPush){ btn.style.display='none'; return; }
+    async function refresh(){
+      const st=await JPPush.status();
+      if(st==='unsupported'){ btn.style.display='none'; hint.textContent='Non disponible sur ce navigateur.'; return; }
+      if(st==='denied'){ btn.disabled=true; btn.textContent='Bloqué'; hint.textContent='Notifications bloquées dans les réglages du navigateur.'; return; }
+      btn.disabled=false;
+      if(st==='on'){ btn.textContent='Désactiver sur cet appareil'; btn.classList.remove('btn-primary'); btn.classList.add('btn-ghost'); hint.textContent='Activées sur cet appareil ✅'; }
+      else { btn.textContent='Activer les notifications'; btn.classList.add('btn-primary'); btn.classList.remove('btn-ghost'); hint.textContent=''; }
+    }
+    btn.addEventListener('click',async()=>{
+      btn.disabled=true;
+      const on=(await JPPush.status())==='on';
+      const r= on ? await JPPush.disable() : await JPPush.enable();
+      if(!r.ok) JP.toast(r.msg||'Échec');
+      else JP.toast(on?'Notifications désactivées':'Notifications activées 🔔');
+      await refresh();
+    });
+    await refresh();
+  })();
+
   document.getElementById('delBtn').addEventListener('click',async()=>{
     const v=prompt('Cette action est irréversible. Tape SUPPRIMER (en majuscules) pour confirmer la suppression de ton compte :');
     if(v!=='SUPPRIMER'){ if(v!==null) JP.toast('Suppression annulée'); return; }
@@ -126,7 +159,7 @@
   });
 })();
 </script>
-<script src="/assets/pwa.js?v=18"></script>
+<script src="/assets/pwa.js?v=19"></script>
 
 <nav class="mobile-nav">
 <a href="fil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Fil</span></a>

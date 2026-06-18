@@ -8,5 +8,8 @@
 
 window.JP_CONFIG = {
   SUPABASE_URL:  "https://nvlquqrsjmwgtkhmxazq.supabase.co",
-  SUPABASE_ANON: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52bHF1cXJzam13Z3RraG14YXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MDA1ODAsImV4cCI6MjA5NzE3NjU4MH0.p-D6FAH2jTTCFWhcrI8NwpOrkYH2ImwBGxZrprIw0K0"
+  SUPABASE_ANON: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52bHF1cXJzam13Z3RraG14YXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MDA1ODAsImV4cCI6MjA5NzE3NjU4MH0.p-D6FAH2jTTCFWhcrI8NwpOrkYH2ImwBGxZrprIw0K0",
+  // Notifications push : clé PUBLIQUE VAPID (générée via `npx web-push generate-vapid-keys`).
+  // Colle ici la "Public Key" ; la clé privée va dans les secrets Supabase (voir push-GUIDE.md).
+  VAPID_PUBLIC: ""
 };
