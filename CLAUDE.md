@@ -50,3 +50,5 @@ Digest e-mail quotidien (optionnel, via `pg_cron` au lieu d'un mail par notif). 
 - Liste des **communes** : centralisée dans `JP.COMMUNES` / `JP.communeOptions()` (inclut Moutier, rattaché au Jura en 2026). À utiliser partout (inscription, profil, groupes, pages, marketplace, événements).
 - **Cache-busting** : `theme.js` injecté dans le `<head>` (avant rendu, anti-flash) ; versions actuelles `app.supabase.js?v=42`, `style.css?v=45`, `nav.js?v=4`, `bell.js?v=22`, `theme.js?v=1`.
 - **Edge Functions à déployer manuellement** (CLI Supabase) : `notify-email` (Resend, notifs e-mail) et `og-preview` (aperçus OG). L'app fonctionne sans, juste sans ces extras.
+- **Triggers PL/pgSQL partagés posts↔comments** : ne jamais référencer `NEW.post_id` dans un `CASE`/expression unique d'une fonction attachée AUSSI à `posts` (qui n'a pas ce champ) → erreur `42703 record "new" has no field "post_id"` qui casse TOUTE insertion. Utiliser un `IF TG_TABLE_NAME='comments' THEN … ELSE …` (branches compilées à l'exécution). Cf. `notify_on_mention`.
+- Après un `alter table … add column`, si l'API renvoie `PGRST204 (column not in schema cache)` : `notify pgrst, 'reload schema';`.
