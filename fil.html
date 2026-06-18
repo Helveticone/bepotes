@@ -160,7 +160,11 @@
       } else if(st==='ios-bad-browser'){
         bar.innerHTML='<span class="ib-txt">📲 Pour installer Jurapotes sur iPhone, ouvre le site dans <b>Safari</b>.</span><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
         bar.style.display='flex';
-      } else { hide(); return; }
+      } else {
+        // Android/Chrome sans invite native (ou nav. privée) : on guide via le menu
+        bar.innerHTML='<span class="ib-txt">📲 Installe Jurapotes : menu <b>⋮</b> du navigateur → <b>« Installer l\'application »</b></span><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
+        bar.style.display='flex';
+      }
       wireX();
     }
     document.addEventListener('jp-install-available', paint);

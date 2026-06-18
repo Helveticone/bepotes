@@ -155,8 +155,11 @@
       } else if(st==='ios-bad-browser'){
         btn.style.display='none';
         hint.innerHTML='Sur iPhone, l\'installation n\'est possible que depuis <b>Safari</b>. Ouvre <b>jurapotes-betatest.pages.dev</b> dans Safari, puis <b>Partager ⬆️ → Sur l\'écran d\'accueil</b>.';
+      } else if(window.matchMedia('(max-width:900px)').matches){
+        // mobile sans invite native (Android sans prompt, nav. privée…) : on guide
+        card.style.display=''; btn.style.display='none';
+        hint.innerHTML='Menu <b>⋮</b> du navigateur → <b>« Installer l\'application »</b> (ou « Ajouter à l\'écran d\'accueil »).';
       } else {
-        // navigateur sans prompt (ex. Firefox desktop) : on masque
         card.style.display='none';
       }
     }
