@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=50">
+<link rel="stylesheet" href="assets/style.css?v=51">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -111,15 +111,11 @@
   JP.fillCommuneSelect(evTownFilter, {first:'📍 Toutes les communes'});
   evTownFilter.addEventListener('change',()=>render());
 
-  async function render(){
-    list.innerHTML='<p style="color:var(--ink-soft)">Chargement…</p>';
-    const evs=await JP.events({town:evTownFilter.value||''});
-    if(!evs.length){ list.innerHTML='<div class="empty"><p>Aucun événement pour l\'instant.</p></div>'; return; }
-    list.innerHTML=evs.map(e=>{
-      const goCls=e.myStatus==='going'?'btn-primary':'btn-ghost';
-      const intCls=e.myStatus==='interested'?'btn-primary':'btn-ghost';
-      return `
-      <div class="ev" data-id="${e.id}">
+  function evCard(e, past){
+    const goCls=e.myStatus==='going'?'btn-primary':'btn-ghost';
+    const intCls=e.myStatus==='interested'?'btn-primary':'btn-ghost';
+    return `
+      <div class="ev${past?' past':''}" data-id="${e.id}">
         <a class="date" href="evenement.html?id=${e.id}" style="text-decoration:none"><div class="d">${e.day}</div><div class="m">${JP.esc(e.month)}</div></a>
         <div class="info">
           <h3><a href="evenement.html?id=${e.id}" style="color:inherit;text-decoration:none">${JP.esc(e.title)}</a></h3>
@@ -131,9 +127,38 @@
             <a class="btn btn-ghost btn-sm" href="evenement.html?id=${e.id}">Détails</a>
           </div>
         </div>
-      </div>`;}).join('');
+      </div>`;
+  }
+
+  async function render(){
+    list.innerHTML='<p style="color:var(--ink-soft)">Chargement…</p>';
+    const evs=await JP.events({town:evTownFilter.value||''});
+    if(!evs.length){ list.innerHTML='<div class="empty"><p>Aucun événement pour l\'instant.</p></div>'; return; }
+    // Agenda : regroupé par date
+    const now=new Date();
+    const todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime();
+    const tomorrow=todayStart+86400000, weekEnd=todayStart+7*86400000;
+    const G={today:[],week:[],later:[],past:[]};
+    evs.forEach(e=>{
+      const t=e.ts?new Date(e.ts).getTime():0;
+      if(t<todayStart) G.past.push(e);
+      else if(t<tomorrow) G.today.push(e);
+      else if(t<weekEnd) G.week.push(e);
+      else G.later.push(e);
+    });
+    const section=(title,arr)=> arr.length ? `<h2 class="agenda-title">${title}</h2>`+arr.map(e=>evCard(e,false)).join('') : '';
+    let html = section('Aujourd\'hui',G.today)+section('Cette semaine',G.week)+section('À venir',G.later);
+    if(G.past.length){
+      const n=G.past.length;
+      html += `<button class="btn btn-ghost btn-sm" id="showPast" style="margin:14px 0">Voir les ${n} événement${n>1?'s':''} passé${n>1?'s':''}</button>`
+            + `<div id="pastWrap" style="display:none">${G.past.slice().reverse().map(e=>evCard(e,true)).join('')}</div>`;
+    }
+    list.innerHTML = html || '<div class="empty"><p>Aucun événement à venir.</p></div>';
+    const sp=document.getElementById('showPast');
+    if(sp) sp.addEventListener('click',()=>{ document.getElementById('pastWrap').style.display=''; sp.style.display='none'; });
     evs.forEach(e=>{
       const el=list.querySelector(`[data-id="${e.id}"]`);
+      if(!el) return;
       el.querySelector('.rsvp-go').addEventListener('click',async()=>{
         await JP.setEventRsvp(e.id, e.myStatus==='going'?null:'going');
         JP.toast(e.myStatus==='going'?'Participation annulée':'Tu participes ! 🎉'); await render();

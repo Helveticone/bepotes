@@ -725,3 +725,10 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 .feed-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
 .feed-toolbar .search-tabs{margin-bottom:0;border-bottom:none}
 .commune-filter{border:1.5px solid var(--line);border-radius:999px;padding:7px 13px;font-family:inherit;font-size:.84rem;font-weight:600;color:var(--rouge-dark);background:var(--rouge-soft);cursor:pointer;max-width:62%}
+
+/* ============================================================
+   AGENDA (page Événements groupée par date)
+   ============================================================ */
+.agenda-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.05rem;color:var(--rouge-dark);margin:22px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.agenda-title:first-child{margin-top:0}
+.ev.past{opacity:.62}
