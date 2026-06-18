@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=62">
+<link rel="stylesheet" href="assets/style.css?v=63">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -84,7 +84,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=54"></script>
+<script src="assets/app.supabase.js?v=55"></script>
 <script src="assets/nav.js?v=5"></script>
 <script src="assets/bell.js?v=22"></script>
 <script>
@@ -97,7 +97,7 @@
   const layout=document.getElementById('layout');
   const convItems=document.getElementById('convItems');
   const threadArea=document.getElementById('threadArea');
-  let activeConv=null, unsub=null;
+  let activeConv=null, unsub=null, unsubReact=null;
 
   /* ---- Liste des conversations ---- */
   async function loadConvs(selectId){
@@ -124,6 +124,7 @@
   async function openThread(convId, name, avatar, isGroup){
     activeConv=convId;
     if(unsub){ unsub(); unsub=null; }
+    if(unsubReact){ unsubReact(); unsubReact=null; }
     convItems.querySelectorAll('.conv-item').forEach(e=>e.classList.toggle('active', e.dataset.id===convId));
     layout.classList.add('show-thread');
     threadArea.className='';
@@ -161,6 +162,7 @@
     msgs.forEach(m=>shown.add(m.id));
     tbody.innerHTML=msgs.map(m=>bubbleHTML(m, isGroup, membersMap)).join('');
     scrollBottom(tbody);
+    decorateReactions();
 
     function appendMsg(m){
       if(m.id && shown.has(m.id)) return;
@@ -175,7 +177,33 @@
       scrollBottom(tbody);
     }
 
+    /* Réactions : récupère + peint les pastilles sous chaque message visible */
+    async function decorateReactions(){
+      const ids=[...tbody.querySelectorAll('.msg-row[data-mid]')].map(r=>r.dataset.mid).filter(Boolean);
+      if(!ids.length) return;
+      let map={}; try{ map=await JP.messageReactions(ids); }catch(e){ return; }
+      tbody.querySelectorAll('.msg-row[data-mid]').forEach(row=>{
+        renderChips(row, map[row.dataset.mid]||[]);
+      });
+    }
+    function renderChips(row, list){
+      const box=row.querySelector('.msg-reactions'); if(!box) return;
+      if(!list.length){ box.innerHTML=''; return; }
+      const counts={}; let mine=null;
+      list.forEach(r=>{ counts[r.emoji]=(counts[r.emoji]||0)+1; if(r.mine) mine=r.emoji; });
+      box.innerHTML=Object.entries(counts).map(([e,c])=>
+        `<button type="button" class="rx-chip ${mine===e?'mine':''}" data-e="${e}">${e} ${c>1?c:''}</button>`).join('');
+      box.querySelectorAll('.rx-chip').forEach(ch=>ch.addEventListener('click',async()=>{
+        const e=ch.dataset.e; const remove=ch.classList.contains('mine');
+        await JP.reactMessage(row.dataset.mid, remove?'':e);
+        decorateReactions();
+      }));
+    }
+    // expose pour le menu d'emojis
+    tbody._react = async (mid, emoji)=>{ await JP.reactMessage(mid, emoji); decorateReactions(); };
+
     unsub=JP.subscribeMessages(convId, m=>{ appendMsg(m); loadConvs(); });
+    unsubReact=JP.subscribeMessageReactions(()=>{ decorateReactions(); });
 
     const input=document.getElementById('msgInput');
     const send=async()=>{
@@ -199,8 +227,42 @@
       const nm = m.senderName || (membersMap && membersMap[m.senderId] && membersMap[m.senderId].name) || 'Membre';
       label=`<span class="bubble-sender">${JP.esc(nm)}</span>`;
     }
-    return `<div class="bubble-msg ${m.mine?'me':'them'}">${label}${JP.esc(m.text)}<span class="bubble-time">${time}</span></div>`;
+    const mid=m.id||'';
+    const reactBtn = mid ? `<button type="button" class="msg-react-btn" aria-label="Réagir">🙂</button>` : '';
+    return `<div class="msg-row ${m.mine?'me':'them'}" data-mid="${mid}">
+      <div class="msg-line">
+        <div class="bubble-msg ${m.mine?'me':'them'}">${label}${JP.esc(m.text)}<span class="bubble-time">${time}</span></div>
+        ${reactBtn}
+      </div>
+      <div class="msg-reactions"></div>
+    </div>`;
   }
+
+  /* ---- Sélecteur d'emoji (réaction à un message) ---- */
+  const RX = JP.MSG_REACTIONS || ['👍','❤️','😆','😮','😢','🙏'];
+  let rxPop=null;
+  const closeRxPop=()=>{ if(rxPop){ rxPop.remove(); rxPop=null; } };
+  document.addEventListener('click', e=>{
+    const btn=e.target.closest && e.target.closest('.msg-react-btn');
+    if(btn){
+      e.stopPropagation();
+      const row=btn.closest('.msg-row'); const tb=btn.closest('.thread-body');
+      const mid=row && row.dataset.mid; if(!mid || !tb) return;
+      closeRxPop();
+      rxPop=document.createElement('div'); rxPop.className='rx-pop';
+      rxPop.innerHTML=RX.map(em=>`<button type="button" data-e="${em}">${em}</button>`).join('');
+      document.body.appendChild(rxPop);
+      const r=btn.getBoundingClientRect();
+      rxPop.style.top=(window.scrollY + r.top - 48)+'px';
+      rxPop.style.left=(window.scrollX + Math.max(8, Math.min(r.left-40, window.innerWidth-220)))+'px';
+      rxPop.querySelectorAll('button').forEach(b=>b.addEventListener('click',ev=>{
+        ev.stopPropagation(); closeRxPop();
+        if(tb._react) tb._react(mid, b.dataset.e);
+      }));
+      return;
+    }
+    closeRxPop();
+  });
 
   /* ---- Groupes : créer / gérer ---- */
   const groupModal=document.getElementById('groupModal');

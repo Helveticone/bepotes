@@ -1014,6 +1014,38 @@ window.JP = (() => {
     return ()=> sb.removeChannel(ch);   // fonction de désabonnement
   }
 
+  /* ---- Réactions sur les messages (👍❤️😆😮😢🙏) ---- */
+  const MSG_REACTIONS = ['👍','❤️','😆','😮','😢','🙏'];
+  async function reactMessage(messageId, emoji){
+    if(!_me || !messageId) return {ok:false};
+    if(!emoji){
+      await sb.from('message_reactions').delete().eq('message_id',messageId).eq('user_id',_me.id);
+      return {ok:true};
+    }
+    const { error } = await sb.from('message_reactions')
+      .upsert({message_id:messageId, user_id:_me.id, emoji}, {onConflict:'message_id,user_id'});
+    return error ? {ok:false, msg:error.message} : {ok:true};
+  }
+  async function messageReactions(messageIds){
+    const ids=(Array.isArray(messageIds)?messageIds:[messageIds]).filter(Boolean);
+    if(!ids.length) return {};
+    const { data, error } = await sb.from('message_reactions')
+      .select('message_id, user_id, emoji').in('message_id', ids);
+    if(error) return {};   // table absente (SQL pas lancé)
+    const map={};
+    (data||[]).forEach(r=>{ (map[r.message_id]=map[r.message_id]||[]).push({
+      userId:r.user_id, emoji:r.emoji, mine:r.user_id===_me?.id }); });
+    return map;
+  }
+  /* Écoute toutes les réactions (filtrage côté client par message visible). */
+  function subscribeMessageReactions(onChange){
+    const ch = sb.channel('msg-reactions')
+      .on('postgres_changes', {event:'*', schema:'public', table:'message_reactions'},
+        payload=>onChange && onChange(payload))
+      .subscribe();
+    return ()=> sb.removeChannel(ch);
+  }
+
   /* Recherche de publications par texte */
   async function searchPosts(q){
     if(!q) return [];
@@ -1740,6 +1772,7 @@ window.JP = (() => {
     notifications, unreadCount, markAllRead, notifText, subscribeNotifications,
     follow, unfollow, isFollowing, followCounts,
     members, openConversationWith, contactSeller, conversations, messagesOf, sendMessage, subscribeMessages,
+    MSG_REACTIONS, reactMessage, messageReactions, subscribeMessageReactions,
     createGroupConversation, conversationInfo, addConversationMembers, leaveConversation, renameConversation,
     searchPosts,
     friendStatus, sendFriendRequest, acceptFriend, removeFriend, pendingRequests, friends, friendCount, areFriends, friendSuggestions,
