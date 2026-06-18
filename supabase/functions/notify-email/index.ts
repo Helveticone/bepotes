@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     const rec = body?.record;
-    if (!rec || !rec.user_id) return new Response("no record", { status: 200 });
+    if (!rec || !rec.user_id) { console.log("JP skip: no record", JSON.stringify(body)); return new Response("no record", { status: 200 }); }
 
     // Préférence du destinataire : on n'envoie en instantané que si email_mode='instant'
     const { data: prof } = await admin
@@ -56,6 +56,7 @@ Deno.serve(async (req) => {
       .eq("id", rec.user_id)
       .single();
     const mode = prof?.email_mode || (prof?.email_notifications === false ? "off" : "instant");
+    console.log("JP mode=", mode, "prof=", JSON.stringify(prof));
     if (mode !== "instant") {
       return new Response("not instant mode", { status: 200 });
     }
@@ -63,6 +64,7 @@ Deno.serve(async (req) => {
     // E-mail du destinataire
     const { data: userRes } = await admin.auth.admin.getUserById(rec.user_id);
     const toEmail = userRes?.user?.email;
+    console.log("JP toEmail=", toEmail);
     if (!toEmail) return new Response("no email", { status: 200 });
 
     // Nom de l'acteur
@@ -85,13 +87,15 @@ Deno.serve(async (req) => {
         <p style="font-size:12px;color:#8a7d7d">Tu reçois cet e-mail car les notifications sont activées dans tes Paramètres Jurapotes. Tu peux les couper à tout moment.</p>
       </div>`;
 
-    if (!RESEND_API_KEY) return new Response("RESEND_API_KEY manquant", { status: 500 });
+    if (!RESEND_API_KEY) { console.log("JP RESEND_API_KEY manquant"); return new Response("RESEND_API_KEY manquant", { status: 500 }); }
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "Authorization": `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({ from: FROM_EMAIL, to: toEmail, subject, html }),
     });
-    if (!r.ok) return new Response("resend error: " + (await r.text()), { status: 502 });
+    const out = await r.text();
+    console.log("JP resend status=", r.status, "body=", out);
+    if (!r.ok) return new Response("resend error: " + out, { status: 502 });
     return new Response("sent", { status: 200 });
   } catch (e) {
     return new Response("error: " + (e as Error).message, { status: 500 });
