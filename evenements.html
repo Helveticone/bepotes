@@ -52,6 +52,7 @@
   <div class="notice"><svg viewBox="0 0 24 24" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
     <div>Seuls les <b>événements en lien avec le Jura</b> sont autorisés. Tout événement contraire à nos règles sera supprimé sans avertissement. Merci de jouer le jeu 🙏</div>
   </div>
+  <div style="margin-bottom:18px"><select id="evTownFilter" class="chip" style="cursor:pointer"></select></div>
   <div id="evList"></div>
 </div></div>
 
@@ -96,7 +97,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=46"></script>
+<script src="assets/app.supabase.js?v=47"></script>
 <script src="assets/nav.js?v=4"></script>
 <script src="assets/bell.js?v=22"></script>
 <script>
@@ -106,10 +107,13 @@
   JP.fillCommuneSelect(document.getElementById('evTown'), {first:'Choisis la commune…'});
   document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
   const list=document.getElementById('evList');
+  const evTownFilter=document.getElementById('evTownFilter');
+  JP.fillCommuneSelect(evTownFilter, {first:'📍 Toutes les communes'});
+  evTownFilter.addEventListener('change',()=>render());
 
   async function render(){
     list.innerHTML='<p style="color:var(--ink-soft)">Chargement…</p>';
-    const evs=await JP.events();
+    const evs=await JP.events({town:evTownFilter.value||''});
     if(!evs.length){ list.innerHTML='<div class="empty"><p>Aucun événement pour l\'instant.</p></div>'; return; }
     list.innerHTML=evs.map(e=>{
       const goCls=e.myStatus==='going'?'btn-primary':'btn-ghost';

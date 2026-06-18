@@ -55,6 +55,7 @@
       <input id="q" type="search" placeholder="Rechercher une annonce…" aria-label="Rechercher" style="width:100%">
     </form>
     <select id="catFilter" class="chip" style="cursor:pointer"></select>
+    <select id="townFilter" class="chip" style="cursor:pointer"></select>
   </div>
 
   <div class="mkt-grid" id="grid"></div>
@@ -105,7 +106,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=46"></script>
+<script src="assets/app.supabase.js?v=47"></script>
 <script src="assets/nav.js?v=4"></script>
 <script src="assets/bell.js?v=22"></script>
 <script>
@@ -123,6 +124,9 @@
   const catFilter=document.getElementById('catFilter');
   catFilter.innerHTML='<option value="">Toutes les catégories</option>'+CATS.map(c=>`<option>${c}</option>`).join('');
   document.getElementById('nCat').innerHTML=CATS.map(c=>`<option>${c}</option>`).join('');
+  const townFilter=document.getElementById('townFilter');
+  JP.fillCommuneSelect(townFilter, {first:'📍 Toutes les communes'});
+  townFilter.addEventListener('change',()=>render());
 
   function priceLabel(p){
     if(p===null||p===undefined) return 'Prix à discuter';
@@ -133,7 +137,7 @@
 
   async function render(){
     grid.innerHTML='<p style="color:var(--ink-soft)">Chargement…</p>';
-    const items=await JP.listListings({ search:document.getElementById('q').value.trim(), category:catFilter.value });
+    const items=await JP.listListings({ search:document.getElementById('q').value.trim(), category:catFilter.value, town:townFilter.value });
     if(!items.length){ grid.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><path d="M3 9l1-5h16l1 5M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9M9 13h6"/></svg><p>Aucune annonce. Sois le premier à publier !</p></div>'; return; }
     grid.innerHTML=items.map(l=>`
       <div class="mkt-card" data-id="${l.id}">

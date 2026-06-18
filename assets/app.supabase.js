@@ -624,11 +624,13 @@ window.JP = (() => {
       myStatus: att.find(a=>a.user_id===_me?.id)?.status || null
     };
   }
-  async function events(){
-    const { data, error } = await sb
+  async function events({town=''}={}){
+    let q = sb
       .from('events')
       .select(`id, title, town, starts_at, ends_at, description, cover_url, images, creator_id, attendees:event_attendees ( user_id, status )`)
       .order('starts_at', {ascending:true});
+    if(town) q = q.eq('town', town);
+    const { data, error } = await q;
     if(error){ console.error(error); return []; }
     return (data||[]).map(mapEvent);
   }
@@ -1364,11 +1366,12 @@ window.JP = (() => {
       mine: l.seller_id===_me?.id
     };
   }
-  async function listListings({search='', category=''}={}){
+  async function listListings({search='', category='', town=''}={}){
     let q=sb.from('listings')
       .select(`id, title, description, price, category, town, images, status, created_at, seller_id, seller:profiles!seller_id ( name, avatar_url, town )`)
       .order('created_at',{ascending:false}).limit(120);
     if(category) q=q.eq('category', category);
+    if(town)     q=q.eq('town', town);
     if(search)   q=q.ilike('title', `%${search}%`);
     const { data } = await q;
     return (data||[]).map(mapListing);
