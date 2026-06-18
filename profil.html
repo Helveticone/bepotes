@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=54">
+<link rel="stylesheet" href="assets/style.css?v=55">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -82,9 +82,11 @@
   <div class="profile-tabs">
     <button class="active" data-tab="posts">Publications</button>
     <button data-tab="photos">Photos</button>
+    <button data-tab="albums">Albums</button>
   </div>
   <div id="mine"></div>
   <div id="photos" style="display:none"></div>
+  <div id="albums" style="display:none"></div>
 
   <div id="blockedSection" style="display:none;margin-top:32px">
     <h2 style="font-size:1.4rem;margin-bottom:16px">Membres bloqués</h2>
@@ -140,11 +142,21 @@
   </div>
 </div>
 
+<!-- Modale album -->
+<div class="modal-bg" id="albumModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="alTitle">Album</h3><button class="x" id="alClose">&times;</button></div>
+    <div class="modal-body" id="alBody"></div>
+    <div class="modal-foot" id="alFoot"></div>
+  </div>
+</div>
+<input type="file" id="albumFile" accept="image/*" multiple style="display:none">
+
 <div class="lightbox" id="lightbox"><button class="lb-close">&times;</button><img id="lbImg" alt=""></div>
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=50"></script>
+<script src="assets/app.supabase.js?v=51"></script>
 <script src="assets/nav.js?v=4"></script>
 <script src="assets/bell.js?v=22"></script>
 <script>
@@ -285,13 +297,69 @@
       document.getElementById('lbImg').src=img.src; document.getElementById('lightbox').classList.add('open');
     }));
   }
+  /* ---- Albums ---- */
+  let albumsLoaded=false, albumTarget=null;
+  const albumModal=document.getElementById('albumModal');
+  const albumFile=document.getElementById('albumFile');
+  document.getElementById('alClose').addEventListener('click',()=>albumModal.classList.remove('open'));
+  albumModal.addEventListener('click',e=>{ if(e.target===albumModal) albumModal.classList.remove('open'); });
+
+  async function renderAlbums(){
+    const wrap=document.getElementById('albums');
+    wrap.innerHTML='<p style="color:var(--ink-soft)">Chargement…</p>';
+    const albums=await JP.listAlbums(meId);
+    wrap.innerHTML='<div class="album-grid">'+
+      '<button class="album-card album-new" id="newAlbum" type="button"><div class="album-cover plus">+</div><div class="album-meta"><b>Créer un album</b></div></button>'+
+      albums.map(a=>`<div class="album-card" data-id="${a.id}"><div class="album-cover" ${a.cover?`style="background-image:url(${a.cover})"`:''}></div><div class="album-meta"><b>${JP.esc(a.title)}</b><span>${a.count} photo${a.count>1?'s':''}</span></div></div>`).join('')+
+      '</div>';
+    document.getElementById('newAlbum').addEventListener('click',createAlbumFlow);
+    wrap.querySelectorAll('.album-card[data-id]').forEach(el=>el.addEventListener('click',()=>openAlbum(el.dataset.id)));
+  }
+  async function createAlbumFlow(){
+    const title=(prompt('Nom de l\'album :','')||'').trim(); if(!title) return;
+    const r=await JP.createAlbum(title);
+    if(!r.ok){ JP.toast(r.msg||'Échec'); return; }
+    JP.toast('Album créé ✅'); albumTarget=r.id; albumFile.click();
+    await renderAlbums();
+  }
+  albumFile.addEventListener('change',async()=>{
+    const files=[...albumFile.files]; albumFile.value='';
+    if(!files.length || !albumTarget) return;
+    JP.toast('Téléversement…');
+    const r=await JP.addAlbumPhotos(albumTarget, files);
+    JP.toast(r.ok?(r.added+' photo(s) ajoutée(s) 📷'):(r.msg||'Échec'));
+    await renderAlbums();
+    if(albumModal.classList.contains('open')) openAlbum(albumTarget);
+  });
+  async function openAlbum(id){
+    const albums=await JP.listAlbums(meId);
+    const a=albums.find(x=>x.id===id);
+    document.getElementById('alTitle').textContent=a?a.title:'Album';
+    const photos=await JP.albumPhotos(id);
+    document.getElementById('alBody').innerHTML = photos.length
+      ? '<div class="photo-grid">'+photos.map(p=>`<div class="ph" data-pid="${p.id}"><img src="${p.url}" loading="lazy">${a&&a.mine?`<button class="ph-del" data-pid="${p.id}" title="Supprimer">&times;</button>`:''}</div>`).join('')+'</div>'
+      : '<p style="color:var(--ink-soft)">Album vide. Ajoute des photos !</p>';
+    document.getElementById('alFoot').innerHTML = (a&&a.mine)
+      ? '<button class="btn btn-ghost btn-sm" id="alDel" style="color:var(--rouge);margin-right:auto" type="button">Supprimer l\'album</button><button class="btn btn-primary btn-sm" id="alAdd" type="button">Ajouter des photos</button>'
+      : '';
+    document.querySelectorAll('#alBody .ph img').forEach(img=>img.addEventListener('click',()=>{ document.getElementById('lbImg').src=img.src; document.getElementById('lightbox').classList.add('open'); }));
+    if(a&&a.mine){
+      document.getElementById('alAdd').addEventListener('click',()=>{ albumTarget=id; albumFile.click(); });
+      document.getElementById('alDel').addEventListener('click',async()=>{ if(confirm('Supprimer cet album et toutes ses photos ?')){ await JP.deleteAlbum(id); albumModal.classList.remove('open'); await renderAlbums(); } });
+      document.querySelectorAll('#alBody .ph-del').forEach(b=>b.addEventListener('click',async(e)=>{ e.stopPropagation(); if(confirm('Supprimer cette photo ?')){ await JP.deleteAlbumPhoto(b.dataset.pid); await openAlbum(id); renderAlbums(); } }));
+    }
+    albumModal.classList.add('open');
+  }
+
   document.querySelectorAll('.profile-tabs button').forEach(b=>b.addEventListener('click',async()=>{
     document.querySelectorAll('.profile-tabs button').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
     const tab=b.dataset.tab;
     document.getElementById('mine').style.display = tab==='posts'?'':'none';
     document.getElementById('photos').style.display = tab==='photos'?'':'none';
+    document.getElementById('albums').style.display = tab==='albums'?'':'none';
     if(tab==='photos' && !photosLoaded){ photosLoaded=true; await renderPhotos(); }
+    if(tab==='albums' && !albumsLoaded){ albumsLoaded=true; await renderAlbums(); }
   }));
   const lb=document.getElementById('lightbox');
   lb.querySelector('.lb-close').addEventListener('click',()=>lb.classList.remove('open'));

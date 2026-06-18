@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=54">
+<link rel="stylesheet" href="assets/style.css?v=55">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -45,16 +45,25 @@
   <div class="profile-tabs">
     <button class="active" data-tab="posts">Publications</button>
     <button data-tab="photos">Photos</button>
+    <button data-tab="albums">Albums</button>
   </div>
   <div id="posts"></div>
   <div id="photos" style="display:none"></div>
+  <div id="albums" style="display:none"></div>
 </div></div>
+
+<div class="modal-bg" id="albumModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="albumTitle">Album</h3><button class="x" id="albumClose">&times;</button></div>
+    <div class="modal-body" id="albumBody"></div>
+  </div>
+</div>
 
 <div class="lightbox" id="lightbox"><button class="lb-close">&times;</button><img id="lbImg" alt=""></div>
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=50"></script>
+<script src="assets/app.supabase.js?v=51"></script>
 <script src="assets/nav.js?v=4"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=22"></script>
@@ -196,13 +205,36 @@
       document.getElementById('lbImg').src=img.src; document.getElementById('lightbox').classList.add('open');
     }));
   }
+  /* ---- Albums (lecture seule) ---- */
+  let albumsLoaded=false;
+  async function renderAlbums(){
+    const wrap=document.getElementById('albums');
+    wrap.innerHTML='<p style="color:var(--ink-soft)">Chargement…</p>';
+    const albums=await JP.listAlbums(userId);
+    if(!albums.length){ wrap.innerHTML='<div class="empty"><p>Aucun album.</p></div>'; return; }
+    wrap.innerHTML='<div class="album-grid">'+albums.map(a=>`<div class="album-card" data-id="${a.id}"><div class="album-cover" ${a.cover?`style="background-image:url(${a.cover})"`:''}></div><div class="album-meta"><b>${JP.esc(a.title)}</b><span>${a.count} photo${a.count>1?'s':''}</span></div></div>`).join('')+'</div>';
+    wrap.querySelectorAll('.album-card[data-id]').forEach(el=>el.addEventListener('click',async()=>{
+      const photos=await JP.albumPhotos(el.dataset.id);
+      const body=document.getElementById('albumBody');
+      document.getElementById('albumTitle').textContent=el.querySelector('b').textContent;
+      body.innerHTML = photos.length ? '<div class="photo-grid">'+photos.map(p=>`<div class="ph"><img src="${p.url}" loading="lazy"></div>`).join('')+'</div>' : '<p style="color:var(--ink-soft)">Album vide.</p>';
+      body.querySelectorAll('.ph img').forEach(img=>img.addEventListener('click',()=>{ document.getElementById('lbImg').src=img.src; document.getElementById('lightbox').classList.add('open'); }));
+      document.getElementById('albumModal').classList.add('open');
+    }));
+  }
+  const albumModal=document.getElementById('albumModal');
+  document.getElementById('albumClose').addEventListener('click',()=>albumModal.classList.remove('open'));
+  albumModal.addEventListener('click',e=>{ if(e.target===albumModal) albumModal.classList.remove('open'); });
+
   document.querySelectorAll('.profile-tabs button').forEach(b=>b.addEventListener('click',async()=>{
     document.querySelectorAll('.profile-tabs button').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
     const tab=b.dataset.tab;
     document.getElementById('posts').style.display = tab==='posts'?'':'none';
     document.getElementById('photos').style.display = tab==='photos'?'':'none';
+    document.getElementById('albums').style.display = tab==='albums'?'':'none';
     if(tab==='photos' && !photosLoaded){ photosLoaded=true; await renderPhotos(); }
+    if(tab==='albums' && !albumsLoaded){ albumsLoaded=true; await renderAlbums(); }
   }));
 
   const lb=document.getElementById('lightbox');

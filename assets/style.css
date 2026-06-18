@@ -747,3 +747,17 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
    Pastille de marque dans la barre (logo)
    ============================================================ */
 .logo .brand-dot{flex:0 0 auto;width:30px;height:30px;border-radius:9px;background:var(--rouge);color:#fff;display:inline-grid;place-items:center;font-family:'Fraunces',serif;font-weight:700;font-size:1.05rem;box-shadow:0 3px 9px rgba(225,29,42,.35)}
+
+/* ============================================================
+   ALBUMS PHOTOS
+   ============================================================ */
+.album-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.album-card{background:var(--white);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;text-align:left;padding:0;font-family:inherit;display:flex;flex-direction:column;transition:transform .18s,box-shadow .18s}
+.album-card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.album-card .album-cover{height:120px;background:var(--rouge-soft);background-size:cover;background-position:center}
+.album-card .album-cover.plus{display:grid;place-items:center;font-size:2.2rem;color:var(--rouge);font-weight:300}
+.album-card .album-meta{padding:10px 12px}
+.album-card .album-meta b{display:block;font-size:.92rem;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.album-card .album-meta span{font-size:.78rem;color:var(--ink-soft)}
+.photo-grid .ph{position:relative}
+.photo-grid .ph .ph-del{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;cursor:pointer;font-size:1rem;line-height:1;display:grid;place-items:center}

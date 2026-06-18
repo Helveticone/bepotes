@@ -1507,6 +1507,49 @@ window.JP = (() => {
   }
 
   /* ============================================================
+     ALBUMS PHOTOS (profil)
+     ============================================================ */
+  async function listAlbums(userId){
+    const uid = userId || _me?.id;
+    if(!uid) return [];
+    const { data } = await sb.from('albums')
+      .select('id, title, cover_url, created_at, owner_id, album_photos ( id )')
+      .eq('owner_id', uid).order('created_at', {ascending:false});
+    return (data||[]).map(a=>({ id:a.id, title:a.title, cover:a.cover_url,
+      count:(a.album_photos||[]).length, ownerId:a.owner_id, mine:a.owner_id===_me?.id }));
+  }
+  async function createAlbum(title){
+    if(!_me) return {ok:false};
+    const { data, error } = await sb.from('albums')
+      .insert({owner_id:_me.id, title:(title||'').trim()||'Album'}).select().single();
+    return error ? {ok:false, msg:error.message} : {ok:true, id:data.id};
+  }
+  async function albumPhotos(albumId){
+    const { data } = await sb.from('album_photos')
+      .select('id, url, created_at').eq('album_id', albumId).order('created_at', {ascending:true});
+    return (data||[]).map(p=>({ id:p.id, url:p.url }));
+  }
+  async function addAlbumPhotos(albumId, files){
+    if(!_me || !files || !files.length) return {ok:false};
+    const urls = await uploadImages('posts', files, 1400, 0.85);
+    if(!urls.length) return {ok:false, msg:'Aucune image'};
+    const rows = urls.map(u=>({album_id:albumId, owner_id:_me.id, url:u}));
+    const { error } = await sb.from('album_photos').insert(rows);
+    if(error) return {ok:false, msg:error.message};
+    // définir la couverture si l'album n'en a pas
+    await sb.from('albums').update({cover_url:urls[0]}).eq('id', albumId).is('cover_url', null);
+    return {ok:true, added:urls.length};
+  }
+  async function deleteAlbum(id){
+    if(!_me) return;
+    await sb.from('albums').delete().eq('id', id).eq('owner_id', _me.id);
+  }
+  async function deleteAlbumPhoto(id){
+    if(!_me) return;
+    await sb.from('album_photos').delete().eq('id', id).eq('owner_id', _me.id);
+  }
+
+  /* ============================================================
      STORIES ÉPHÉMÈRES (24 h)
      ============================================================ */
   async function listStories(){
@@ -1648,6 +1691,7 @@ window.JP = (() => {
     listListings, getListing, createListing, markListingSold, deleteListing,
     pageReviews, saveReview, deleteMyReview,
     listStories, addStory, markStoryViewed, storyViewCount, deleteStory,
+    listAlbums, createAlbum, albumPhotos, addAlbumPhotos, deleteAlbum, deleteAlbumPhoto,
     activeAds, pickAd, adImpression, adClick, listAds, createAd, updateAd, deleteAd, reorderAds,
     report, block, unblock, isBlocked, blockedList, loadBlocked, blockedIds,
     isAdmin, listReports, resolveReport, adminDeletePost, banUser, unbanUser
