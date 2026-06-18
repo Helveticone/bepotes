@@ -673,5 +673,31 @@ alter table public.posts add column if not exists link_site  text;
 
 
 -- ============================================================
+--  26. SÉCURITÉ RLS (durcissement avant lancement)
+--      - Anti-escalade : la policy UPDATE de profiles n'a pas de
+--        WITH CHECK -> un membre pouvait se mettre is_admin=true sur
+--        SA ligne. On verrouille is_admin/is_banned par trigger.
+--      - poll_votes : ajout du WITH CHECK manquant sur l'UPDATE.
+-- ============================================================
+create or replace function public.protect_profile_privesc()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then
+    new.is_admin  := old.is_admin;
+    new.is_banned := old.is_banned;
+  end if;
+  return new;
+end; $$;
+drop trigger if exists trg_protect_profile_privesc on public.profiles;
+create trigger trg_protect_profile_privesc
+  before update on public.profiles
+  for each row execute function public.protect_profile_privesc();
+
+drop policy if exists "changer son vote" on public.poll_votes;
+create policy "changer son vote" on public.poll_votes for update
+  using ( auth.uid() = user_id ) with check ( auth.uid() = user_id );
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================
