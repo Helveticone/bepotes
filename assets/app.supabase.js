@@ -429,18 +429,22 @@ window.JP = (() => {
   /* Fil paginé par curseur : opts.before = created_at du dernier post chargé
      (renvoie les plus anciens que `before`), opts.limit = taille de page. */
   async function posts({before=null, limit=100, town=null}={}){
-    let q = sb
-      .from('posts')
-      .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
+    const sel = `id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
                shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
                video_url, link_url, link_title, link_desc, link_image, link_site, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
-               comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
-      .is('group_id', null);
-    if(town) q = q.eq('town', town);
-    if(before) q = q.lt('created_at', before);
-    q = q.order('created_at', {ascending:false}).limit(limit);
-    const { data, error } = await q;
+               comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`;
+    // withReel=true → exclut les reels du fil normal (colonne is_reel ; section 35).
+    const build = (withReel)=>{
+      let q = sb.from('posts').select(sel).is('group_id', null);
+      if(withReel) q = q.eq('is_reel', false);
+      if(town) q = q.eq('town', town);
+      if(before) q = q.lt('created_at', before);
+      return q.order('created_at', {ascending:false}).limit(limit);
+    };
+    let { data, error } = await build(true);
+    // Repli si la colonne is_reel n'existe pas encore (SQL pas encore lancé)
+    if(error && /is_reel|column/i.test(error.message||'')){ ({ data, error } = await build(false)); }
     if(error){ console.error(error); return []; }
     await loadBlocked();
     const blocked=blockedIds();
@@ -1086,15 +1090,26 @@ window.JP = (() => {
     const gs = await listGroups('', kind);
     return gs.filter(g=>!g.isMember && !g.isOwner).slice(0, limit);
   }
-  /* Derniers posts contenant une vidéo (mini « Reels » du fil) */
-  async function reels(limit=12){
+  /* Reels = publications verticales is_reel=true (vidéo courte, type FB/Insta) */
+  async function reels(limit=20){
     const { data, error } = await sb.from('posts')
-      .select('id, video_url, town, created_at, author_id, author:profiles!author_id ( name, avatar_url )')
-      .is('group_id', null).not('video_url','is',null)
+      .select('id, video_url, text, town, created_at, author_id, author:profiles!author_id ( name, avatar_url )')
+      .is('group_id', null).eq('is_reel', true).not('video_url','is',null)
       .order('created_at', {ascending:false}).limit(limit);
-    if(error){ console.error(error); return []; }
-    return (data||[]).map(p=>({ id:p.id, video:p.video_url, town:p.town||'',
-      author:p.author?.name||'Membre', avatar:p.author?.avatar_url||null }));
+    if(error){ /* colonne is_reel absente (SQL pas encore lancé) → pas de reels */ return []; }
+    return (data||[]).map(p=>({ id:p.id, video:p.video_url, caption:p.text||'', town:p.town||'',
+      authorId:p.author_id, author:p.author?.name||'Membre', avatar:p.author?.avatar_url||null }));
+  }
+  /* Publier un reel (vidéo verticale + légende). */
+  async function addReel(video, caption=''){
+    if(!_me || !video) return {ok:false, msg:'Vidéo manquante'};
+    let videoUrl=null;
+    try{ videoUrl=await uploadVideo(video); }catch(e){ console.error(e); return {ok:false, msg:'Vidéo refusée (trop lourde ?)'}; }
+    const { error } = await sb.from('posts').insert({
+      author_id:_me.id, text:(caption||'').slice(0,300), tag:'Reel', town:_me.town||null,
+      images:[], video_url:videoUrl, is_reel:true
+    });
+    return error ? {ok:false, msg:error.message} : {ok:true};
   }
 
   async function listGroups(search='', kind='group'){
@@ -1700,7 +1715,7 @@ window.JP = (() => {
     createGroupConversation, conversationInfo, addConversationMembers, leaveConversation, renameConversation,
     searchPosts,
     friendStatus, sendFriendRequest, acceptFriend, removeFriend, pendingRequests, friends, friendCount, areFriends, friendSuggestions,
-    listGroups, suggestGroups, reels, getGroup, createGroup, joinGroup, leaveGroup, groupPosts, addGroupPost,
+    listGroups, suggestGroups, reels, addReel, getGroup, createGroup, joinGroup, leaveGroup, groupPosts, addGroupPost,
     uploadImages, pendingMembers, approveMember, rejectMember, updateGroupCover,
     updateGroupRules, updateGroupInfo, groupMembers, setMemberRole, removeMember,
     publicProfile, userPosts, userPhotos,
