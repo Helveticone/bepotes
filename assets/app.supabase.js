@@ -1430,6 +1430,57 @@ window.JP = (() => {
   }
 
   /* ============================================================
+     STORIES ÉPHÉMÈRES (24 h)
+     ============================================================ */
+  async function listStories(){
+    const { data, error } = await sb.from('stories')
+      .select('id, media_url, media_type, text, created_at, author_id, author:profiles!author_id ( name, avatar_url )')
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', {ascending:true});
+    if(error){ console.error(error); return []; }
+    let seen=new Set();
+    if(_me){
+      const { data:v } = await sb.from('story_views').select('story_id').eq('user_id', _me.id);
+      (v||[]).forEach(r=>seen.add(r.story_id));
+    }
+    const byAuthor=new Map();
+    (data||[]).forEach(s=>{
+      if(!byAuthor.has(s.author_id)) byAuthor.set(s.author_id, {
+        authorId:s.author_id, name:s.author?.name||'Membre', avatar:s.author?.avatar_url||null,
+        items:[], hasUnseen:false, mine:s.author_id===_me?.id
+      });
+      const g=byAuthor.get(s.author_id);
+      g.items.push({id:s.id, url:s.media_url, type:s.media_type||'image', text:s.text||'', ts:s.created_at, seen:seen.has(s.id)});
+      if(!seen.has(s.id)) g.hasUnseen=true;
+    });
+    const arr=[...byAuthor.values()];
+    arr.sort((a,b)=> (b.mine?1:0)-(a.mine?1:0) || (b.hasUnseen?1:0)-(a.hasUnseen?1:0));
+    return arr;
+  }
+  async function addStory({file, text}){
+    if(!_me || !file) return {ok:false};
+    const isVideo=(file.type||'').startsWith('video/');
+    let url;
+    try{ url = isVideo ? await uploadVideo(file) : await uploadImage('posts', file, 1280, 0.85); }
+    catch(e){ return {ok:false, msg:'Média trop lourd ou refusé'}; }
+    const { error } = await sb.from('stories')
+      .insert({author_id:_me.id, media_url:url, media_type:isVideo?'video':'image', text:text||null});
+    return error ? {ok:false, msg:error.message} : {ok:true};
+  }
+  async function markStoryViewed(storyId){
+    if(!_me) return;
+    await sb.from('story_views').upsert({story_id:storyId, user_id:_me.id}, {onConflict:'story_id,user_id'});
+  }
+  async function storyViewCount(storyId){
+    const { count } = await sb.from('story_views').select('user_id',{count:'exact',head:true}).eq('story_id', storyId);
+    return count||0;
+  }
+  async function deleteStory(id){
+    if(!_me) return;
+    await sb.from('stories').delete().eq('id', id).eq('author_id', _me.id);
+  }
+
+  /* ============================================================
      PUBLICITÉS (régie — affichage dans le fil, gestion admin)
      ============================================================ */
   /* Quelle pub afficher (membre) : rotation aléatoire parmi les
@@ -1518,6 +1569,7 @@ window.JP = (() => {
     publicProfile, userPosts, userPhotos,
     listListings, getListing, createListing, markListingSold, deleteListing,
     pageReviews, saveReview, deleteMyReview,
+    listStories, addStory, markStoryViewed, storyViewCount, deleteStory,
     activeAds, pickAd, adImpression, adClick, listAds, createAd, updateAd, deleteAd, reorderAds,
     report, block, unblock, isBlocked, blockedList, loadBlocked, blockedIds,
     isAdmin, listReports, resolveReport, adminDeletePost, banUser, unbanUser

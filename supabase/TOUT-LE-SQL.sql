@@ -735,5 +735,43 @@ create policy "push_subs_delete" on public.push_subscriptions for delete using (
 
 
 -- ============================================================
+--  29. STORIES ÉPHÉMÈRES (24 h)
+--      Image/vidéo + texte, expire après 24 h (RLS). story_views =
+--      qui a vu quoi (anneau « non vu » + compteur). Voir stories.sql.
+-- ============================================================
+create table if not exists public.stories (
+  id         uuid primary key default gen_random_uuid(),
+  author_id  uuid references public.profiles(id) on delete cascade not null,
+  media_url  text not null,
+  media_type text default 'image',
+  text       text,
+  created_at timestamptz default now(),
+  expires_at timestamptz not null default (now() + interval '24 hours')
+);
+create index if not exists stories_active_idx on public.stories(expires_at);
+create index if not exists stories_author_idx on public.stories(author_id, created_at);
+alter table public.stories enable row level security;
+drop policy if exists "stories actives visibles" on public.stories;
+create policy "stories actives visibles" on public.stories for select
+  using ( auth.uid() is not null and expires_at > now() );
+drop policy if exists "publier une story" on public.stories;
+create policy "publier une story" on public.stories for insert with check ( auth.uid() = author_id );
+drop policy if exists "supprimer sa story" on public.stories;
+create policy "supprimer sa story" on public.stories for delete using ( auth.uid() = author_id );
+
+create table if not exists public.story_views (
+  story_id   uuid references public.stories(id) on delete cascade,
+  user_id    uuid references public.profiles(id) on delete cascade,
+  created_at timestamptz default now(),
+  primary key (story_id, user_id)
+);
+alter table public.story_views enable row level security;
+drop policy if exists "vues visibles" on public.story_views;
+create policy "vues visibles" on public.story_views for select using ( auth.uid() is not null );
+drop policy if exists "marquer vu" on public.story_views;
+create policy "marquer vu" on public.story_views for insert with check ( auth.uid() = user_id );
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================
