@@ -1081,6 +1081,22 @@ window.JP = (() => {
   /* ============================================================
      GROUPES / COMMUNAUTÉS
      ============================================================ */
+  /* Suggestions de groupes/pages où je ne suis pas (encore) membre */
+  async function suggestGroups(kind='group', limit=8){
+    const gs = await listGroups('', kind);
+    return gs.filter(g=>!g.isMember && !g.isOwner).slice(0, limit);
+  }
+  /* Derniers posts contenant une vidéo (mini « Reels » du fil) */
+  async function reels(limit=12){
+    const { data, error } = await sb.from('posts')
+      .select('id, video_url, town, created_at, author_id, author:profiles!author_id ( name, avatar_url )')
+      .is('group_id', null).not('video_url','is',null)
+      .order('created_at', {ascending:false}).limit(limit);
+    if(error){ console.error(error); return []; }
+    return (data||[]).map(p=>({ id:p.id, video:p.video_url, town:p.town||'',
+      author:p.author?.name||'Membre', avatar:p.author?.avatar_url||null }));
+  }
+
   async function listGroups(search='', kind='group'){
     let q = sb.from('groups')
       .select(`id, name, description, town, cover_url, owner_id, is_private, kind, category, members:group_members ( user_id, role )`)
@@ -1684,7 +1700,7 @@ window.JP = (() => {
     createGroupConversation, conversationInfo, addConversationMembers, leaveConversation, renameConversation,
     searchPosts,
     friendStatus, sendFriendRequest, acceptFriend, removeFriend, pendingRequests, friends, friendCount, areFriends, friendSuggestions,
-    listGroups, getGroup, createGroup, joinGroup, leaveGroup, groupPosts, addGroupPost,
+    listGroups, suggestGroups, reels, getGroup, createGroup, joinGroup, leaveGroup, groupPosts, addGroupPost,
     uploadImages, pendingMembers, approveMember, rejectMember, updateGroupCover,
     updateGroupRules, updateGroupInfo, groupMembers, setMemberRole, removeMember,
     publicProfile, userPosts, userPhotos,

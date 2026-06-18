@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=57">
+<link rel="stylesheet" href="assets/style.css?v=58">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -63,6 +63,7 @@
   <main>
     <div id="installBar" class="install-bar" style="display:none"></div>
     <div id="storiesBar" class="stories-bar"></div>
+    <div id="reelsStrip"></div>
     <div class="composer">
       <div class="top">
         <div id="compAvBox"></div>
@@ -94,6 +95,8 @@
       </div>
     </div>
     <div id="suggestStrip"></div>
+    <div id="groupSuggest"></div>
+    <div id="pageSuggest"></div>
     <div class="feed-toolbar">
       <div class="search-tabs" id="feedTabs">
         <button data-s="recent" class="active">Récent</button>
@@ -126,7 +129,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=51"></script>
+<script src="assets/app.supabase.js?v=52"></script>
 <script src="assets/nav.js?v=5"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=22"></script>
@@ -180,6 +183,35 @@
 
   /* ---- Stories éphémères ---- */
   if(window.JPStories) JPStories.mount(document.getElementById('storiesBar'));
+
+  /* ---- Reels (vidéos récentes) ---- */
+  (async function renderReels(){
+    const el=document.getElementById('reelsStrip'); if(!el) return;
+    let rs=[]; try{ rs=await JP.reels(12); }catch(e){}
+    if(!rs.length){ el.innerHTML=''; return; }
+    el.innerHTML=`<div class="side-card"><h3 class="rs-title">🎬 Reels du Jura</h3><div class="reels-row">`+
+      rs.map(r=>`<a class="reel" href="post.html?id=${r.id}"><video src="${r.video}#t=0.1" muted playsinline preload="metadata"></video><div class="reel-grad"></div><span class="reel-play">▶</span><span class="reel-name">${JP.esc(r.author)}</span></a>`).join('')+
+      `</div></div>`;
+  })();
+
+  /* ---- Suggestions de groupes / pages ---- */
+  async function renderGroupSuggest(containerId, kind, title){
+    const el=document.getElementById(containerId); if(!el) return;
+    let gs=[]; try{ gs=await JP.suggestGroups(kind, 8); }catch(e){}
+    if(!gs.length){ el.innerHTML=''; return; }
+    el.innerHTML=`<div class="side-card"><h3 class="rs-title">${title}</h3><div class="gsugg-row">`+
+      gs.map(g=>`<div class="gsugg"><a href="groupe.html?id=${g.id}"><div class="gsugg-cover" ${g.cover?`style="background-image:url(${g.cover})"`:''}></div></a><b>${JP.esc(g.name)}</b><span>${g.memberCount} ${kind==='page'?'abonné'+(g.memberCount>1?'s':''):'membre'+(g.memberCount>1?'s':'')}</span><button class="btn btn-primary btn-sm gsugg-join" data-id="${g.id}">${kind==='page'?'Voir':'Rejoindre'}</button></div>`).join('')+
+      `</div></div>`;
+    el.querySelectorAll('.gsugg-join').forEach(b=>b.addEventListener('click',async()=>{
+      if(kind==='page'){ location.href='groupe.html?id='+b.dataset.id; return; }
+      b.disabled=true;
+      const r=await JP.joinGroup(b.dataset.id);
+      if(r && r.ok){ JP.toast(r.pending?'Demande envoyée 👋':'Groupe rejoint ✅'); b.textContent=r.pending?'En attente':'✓ Rejoint'; }
+      else { JP.toast((r&&r.msg)||'Échec'); b.disabled=false; }
+    }));
+  }
+  renderGroupSuggest('groupSuggest','group','👥 Groupes suggérés');
+  renderGroupSuggest('pageSuggest','page','⭐ Pages à découvrir');
 
   const feed=document.getElementById('feed');
   let pendingImages=[];   // jusqu'à 6 fichiers File
