@@ -189,6 +189,7 @@ section.block{padding:80px 0}
 .shared-card .sc-head b{font-size:.9rem}
 .shared-card .sc-text{font-size:.92rem;color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere}
 .shared-card .sc-img{width:100%;border-radius:10px;margin-top:8px;max-height:320px;object-fit:cover;display:block}
+.shared-card .sc-vid{width:100%;border-radius:10px;margin-top:8px;max-height:320px;object-fit:cover;display:block;background:#000}
 .post-actions .act-share{flex:1;position:relative;display:flex}
 .act-share .act{flex:1}
 .share-menu{position:absolute;bottom:calc(100% + 6px);right:0;background:var(--white);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow-lg);padding:6px;display:none;z-index:20;min-width:190px}

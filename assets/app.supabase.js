@@ -431,7 +431,7 @@ window.JP = (() => {
   async function posts({before=null, limit=100, town=null}={}){
     const sel = `id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
-               shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
+               shared:posts!shared_post_id ( id, text, image_url, images, video_url, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
                video_url, link_url, link_title, link_desc, link_image, link_site, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`;
     // withReel=true → exclut les reels du fil normal (colonne is_reel ; section 35).
@@ -457,8 +457,8 @@ window.JP = (() => {
     let imgs = Array.isArray(s.images) ? s.images.filter(Boolean) : [];
     if(!imgs.length && s.image_url) imgs=[s.image_url];
     return {
-      id:s.id, text:s.text||'', image:imgs[0]||null, ts:s.created_at,
-      authorEmail:s.author_id, author:s.author?.name||'Membre',
+      id:s.id, text:s.text||'', image:imgs[0]||null, video:s.video_url||null, ts:s.created_at,
+      authorEmail:s.author_id, author:s.author?.name||'',
       authorAvatar:s.author?.avatar_url||null
     };
   }
@@ -575,7 +575,7 @@ window.JP = (() => {
       .from('posts')
       .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
-               shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
+               shared:posts!shared_post_id ( id, text, image_url, images, video_url, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
                video_url, link_url, link_title, link_desc, link_image, link_site, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .eq('id', pid).single();
@@ -1373,7 +1373,7 @@ window.JP = (() => {
     const { data } = await sb.from('posts')
       .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
-               shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
+               shared:posts!shared_post_id ( id, text, image_url, images, video_url, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
                video_url, link_url, link_title, link_desc, link_image, link_site, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .eq('author_id', userId).is('group_id', null)
