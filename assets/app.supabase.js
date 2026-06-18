@@ -382,7 +382,7 @@ window.JP = (() => {
       .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
                shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
-               video_url, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
+               video_url, link_url, link_title, link_desc, link_image, link_site, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .is('group_id', null);
     if(before) q = q.lt('created_at', before);
@@ -425,8 +425,11 @@ window.JP = (() => {
         myChoice:(p.poll_votes||[]).find(v=>v.user_id===_me?.id)?.choice ?? null
       };
     }
+    const linkPreview = p.link_url ? {
+      url:p.link_url, title:p.link_title||'', desc:p.link_desc||'', image:p.link_image||null, site:p.link_site||''
+    } : null;
     return {
-      id:p.id, text:p.text, tag:p.tag, image:imgs[0]||null, images:imgs, video:p.video_url||null, ts:p.created_at, poll,
+      id:p.id, text:p.text, tag:p.tag, image:imgs[0]||null, images:imgs, video:p.video_url||null, linkPreview, ts:p.created_at, poll,
       authorEmail:p.author_id,
       author:p.author?.name||'Membre', town:p.author?.town||'', authorAvatar:p.author?.avatar_url||null,
       likes:likedBy.length, likedBy, myReaction, reactionCounts,
@@ -465,13 +468,31 @@ window.JP = (() => {
     let videoUrl=null;
     if(video){ try{ videoUrl=await uploadVideo(video); }catch(e){ console.error(e); toast('Vidéo refusée (trop lourde ?)'); } }
     const poll = (pollOptions && pollOptions.length>=2) ? pollOptions.slice(0,6) : null;
+    const link = await fetchLinkPreview(text, {skip: !!sharedPostId});
     const { error } = await sb.from('posts').insert({
       author_id:_me.id, text, tag:tag||'Général',
       image_url:urls[0]||null, images:urls, video_url:videoUrl,
       shared_post_id: sharedPostId||null,
-      poll_options: poll
+      poll_options: poll,
+      link_url:link.url, link_title:link.title, link_desc:link.desc, link_image:link.image, link_site:link.site
     });
     if(error) toast(error.message);
+  }
+
+  /* Détecte la 1ère URL d'un texte et récupère son aperçu Open Graph
+     via l'Edge Function « og-preview ». Renvoie des champs vides si pas
+     d'URL / fonction absente (l'app reste fonctionnelle). */
+  async function fetchLinkPreview(text, opts={}){
+    const empty={url:null,title:null,desc:null,image:null,site:null};
+    if(opts.skip) return empty;
+    const m=(text||'').match(/https?:\/\/[^\s]+/);
+    if(!m) return empty;
+    try{
+      const { data, error } = await sb.functions.invoke('og-preview', { body:{ url:m[0] } });
+      if(error || !data) return empty;
+      if(!data.title && !data.image) return empty;   // pas d'aperçu exploitable
+      return { url:m[0], title:data.title||null, desc:data.description||null, image:data.image||null, site:data.site||null };
+    }catch(e){ return empty; }
   }
 
   /* Voter / changer son vote à un sondage (choice = index de l'option) */
@@ -498,7 +519,7 @@ window.JP = (() => {
       .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
                shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
-               video_url, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
+               video_url, link_url, link_title, link_desc, link_image, link_site, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .eq('id', pid).single();
     if(error){ console.error(error); return null; }
@@ -872,7 +893,7 @@ window.JP = (() => {
       .from('posts')
       .select(`id, text, tag, image_url, images, created_at, author_id,
                author:profiles!author_id ( name, town, avatar_url ),
-               video_url, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
+               video_url, link_url, link_title, link_desc, link_image, link_site, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( id )`)
       .is('group_id', null)
       .ilike('text', `%${q}%`)
@@ -1120,7 +1141,7 @@ window.JP = (() => {
     const { data } = await sb.from('posts')
       .select(`id, text, tag, image_url, images, created_at, author_id,
                author:profiles!author_id ( name, town, avatar_url ),
-               video_url, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
+               video_url, link_url, link_title, link_desc, link_image, link_site, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .eq('group_id', groupId)
       .order('created_at', {ascending:false})
@@ -1158,7 +1179,7 @@ window.JP = (() => {
       .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
                shared:posts!shared_post_id ( id, text, image_url, images, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
-               video_url, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
+               video_url, link_url, link_title, link_desc, link_image, link_site, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .eq('author_id', userId).is('group_id', null)
       .order('created_at', {ascending:false}).limit(100);

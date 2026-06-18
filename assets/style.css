@@ -660,3 +660,14 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 .comp-video{position:relative;margin-bottom:10px}
 .comp-video video{width:100%;max-height:300px;border-radius:12px;background:#000;display:block}
 .comp-video .rm{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;cursor:pointer;font-size:1rem;display:grid;place-items:center}
+
+/* ============================================================
+   APERÇU DE LIENS (Open Graph)
+   ============================================================ */
+.link-card{display:block;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:2px 0 12px;text-decoration:none;color:inherit;background:var(--white)}
+.link-card .lc-img{width:100%;max-height:260px;object-fit:cover;display:block}
+.link-card .lc-body{padding:11px 14px;display:flex;flex-direction:column;gap:3px}
+.link-card .lc-site{font-size:.72rem;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-soft)}
+.link-card .lc-title{font-size:.97rem;line-height:1.3}
+.link-card .lc-desc{font-size:.85rem;color:var(--ink-soft);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.link-card:hover{border-color:var(--rouge)}

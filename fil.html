@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=44">
+<link rel="stylesheet" href="assets/style.css?v=45">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -121,7 +121,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=41"></script>
+<script src="assets/app.supabase.js?v=42"></script>
 <script src="assets/nav.js?v=4"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=22"></script>
@@ -391,6 +391,19 @@
     </a>`;
   }
 
+  function linkCardHTML(lp){
+    if(!lp || !lp.url) return '';
+    let host=''; try{ host=new URL(lp.url).hostname.replace(/^www\./,''); }catch(e){}
+    return `<a href="${JP.esc(lp.url)}" target="_blank" rel="noopener nofollow" class="link-card">
+      ${lp.image?`<img src="${JP.esc(lp.image)}" alt="" class="lc-img" loading="lazy">`:''}
+      <div class="lc-body">
+        <span class="lc-site">${JP.esc(lp.site||host)}</span>
+        <b class="lc-title">${JP.esc(lp.title||lp.url)}</b>
+        ${lp.desc?`<span class="lc-desc">${JP.esc(lp.desc)}</span>`:''}
+      </div>
+    </a>`;
+  }
+
   function postHTML(p){
     const mine=p.authorEmail===me.id;
     return `<article class="post" data-id="${p.id}" data-author="${p.authorEmail}">
@@ -411,6 +424,7 @@
       ${pollHTML(p.poll)}
       ${p.video?`<video class="post-video" src="${p.video}" controls preload="metadata" playsinline></video>`:''}
       ${galleryHTML(p.images)}
+      ${linkCardHTML(p.linkPreview)}
       ${p.shared?sharedCardHTML(p.shared):''}
       <div class="post-actions">
         <div class="act-react">

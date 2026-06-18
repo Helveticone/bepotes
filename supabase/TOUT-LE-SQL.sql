@@ -655,5 +655,17 @@ alter table public.posts add column if not exists video_url text;
 
 
 -- ============================================================
+--  25. APERÇU DE LIENS (Open Graph) sur les publications
+--      Aperçu récupéré une fois à la publication (Edge Function
+--      « og-preview ») et stocké sur le post. Voir le guide.
+-- ============================================================
+alter table public.posts add column if not exists link_url   text;
+alter table public.posts add column if not exists link_title text;
+alter table public.posts add column if not exists link_desc  text;
+alter table public.posts add column if not exists link_image text;
+alter table public.posts add column if not exists link_site  text;
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================
