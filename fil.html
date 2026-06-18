@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=65">
+<link rel="stylesheet" href="assets/style.css?v=66">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -130,7 +130,7 @@
   <div class="rv-stage" id="rvStage"></div>
 </div>
 
-<div class="lightbox" id="lightbox"><button class="lb-close" aria-label="Fermer">&times;</button><button class="lb-nav lb-prev" aria-label="Précédent">&#8249;</button><img id="lbImg" alt=""><button class="lb-nav lb-next" aria-label="Suivant">&#8250;</button><span class="lb-count"></span></div>
+<div class="lightbox" id="lightbox"><button class="lb-close" aria-label="Fermer">&times;</button><button class="lb-nav lb-prev" aria-label="Précédent">&#8249;</button><img id="lbImg" alt=""><button class="lb-nav lb-next" aria-label="Suivant">&#8250;</button><span class="lb-count"></span><button class="lb-tag" type="button" style="display:none">🏷️ Identifier</button></div>
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
@@ -331,7 +331,11 @@
       const post=loadedPosts.find(x=>String(x.id)===String(pid));
       const imgs=(post && post.images && post.images.length) ? post.images.filter(Boolean) : [img.src];
       const idx=Math.max(0, imgs.indexOf(img.src));
-      JPLightbox.open(imgs, idx);
+      const mine = post && post.authorEmail===me.id;
+      JPLightbox.open(imgs, idx, { canTag:!!mine, onTag: async()=>{
+        let ex=[]; try{ const m=await JP.postTags([pid]); ex=(m[pid]||[]).map(t=>t.id); }catch(e){}
+        openTagModal(pid, ex);
+      }});
     }));
     insertFeedAds(tok);
     insertFeedExtras();
@@ -900,8 +904,8 @@
   window.JPLightbox = (function(){
     const lb=document.getElementById('lightbox');
     const img=document.getElementById('lbImg');
-    const prev=lb.querySelector('.lb-prev'), next=lb.querySelector('.lb-next'), cnt=lb.querySelector('.lb-count');
-    let imgs=[], idx=0;
+    const prev=lb.querySelector('.lb-prev'), next=lb.querySelector('.lb-next'), cnt=lb.querySelector('.lb-count'), tagBtn=lb.querySelector('.lb-tag');
+    let imgs=[], idx=0, cfg={};
     function paint(){
       img.src=imgs[idx]||'';
       const multi=imgs.length>1;
@@ -910,7 +914,9 @@
       if(cnt){ cnt.style.display=multi?'':'none'; cnt.textContent=`${idx+1} / ${imgs.length}`; }
     }
     function go(d){ if(!imgs.length) return; idx=(idx+d+imgs.length)%imgs.length; paint(); }
-    function open(list, start){ imgs=(list||[]).filter(Boolean); idx=start||0; if(!imgs.length) return; paint(); lb.classList.add('open'); }
+    function open(list, start, opts){ imgs=(list||[]).filter(Boolean); idx=start||0; cfg=opts||{}; if(!imgs.length) return; paint();
+      if(tagBtn){ tagBtn.style.display=cfg.canTag?'':'none'; tagBtn.onclick=()=>{ close(); if(cfg.onTag) cfg.onTag(); }; }
+      lb.classList.add('open'); }
     function close(){ lb.classList.remove('open'); imgs=[]; }
     if(prev) prev.addEventListener('click',e=>{ e.stopPropagation(); go(-1); });
     if(next) next.addEventListener('click',e=>{ e.stopPropagation(); go(1); });
