@@ -1,15 +1,20 @@
 /* ============================================================
    Jurapotes — PWA / Service Worker
-   - Enregistre le SW push (sw-push.js) : il ne met RIEN en cache,
-     donc aucun risque d'écran blanc / contenu périmé.
-   - Nettoie une fois les anciens caches (bug historique).
+   - Désinstalle l'ANCIEN sw.js (il faisait clients.navigate -> rechargements
+     en boucle / logo qui « disparaît »).
+   - Enregistre le SW push (sw-push.js) : il ne met RIEN en cache.
+   - Purge une fois les anciens caches.
    ============================================================ */
 (function () {
   if (!('serviceWorker' in navigator)) return;
-  // Purge des anciens caches éventuels (ancienne PWA)
   if (window.caches && caches.keys) {
     caches.keys().then((ks) => ks.forEach((k) => caches.delete(k))).catch(() => {});
   }
-  // Enregistre le SW push (reçoit les notifications même app fermée)
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    regs.forEach((r) => {
+      const url = (r.active && r.active.scriptURL) || (r.installing && r.installing.scriptURL) || '';
+      if (url.endsWith('/sw.js')) r.unregister();   // ancien SW « reloader » -> on l'enlève
+    });
+  }).catch(() => {});
   navigator.serviceWorker.register('/sw-push.js').catch(() => {});
 })();
