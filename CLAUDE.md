@@ -49,6 +49,14 @@ Auth, profils (avatar/couverture recadrables), fil (posts multi-photos, réactio
 - **Albums photos** (section 34 : `albums` + `album_photos`, RLS owner) : `JP.listAlbums/createAlbum/albumPhotos/addAlbumPhotos/deleteAlbum/deleteAlbumPhoto` ; onglet « Albums » sur profil.html (CRUD) et membre.html (lecture).
 - **Identité** : pastille `.brand-dot` « J » dans la barre (toutes les pages).
 - **Messagerie** : envoi optimiste réconcilié par texte avec l'écho temps réel (anti-doublon).
+- **Galerie photos** : mosaïque façon FB (g1–g5 + « +N ») ; visionneuse `JPLightbox` navigable (flèches/swipe/clavier, compteur) dans fil.html + post.html.
+- **Reels** (section 35 : `posts.is_reel`) : vidéos verticales courtes, EXCLUES du fil normal (`posts()` filtre `is_reel=false`, repli si SQL absent). `JP.reels()`/`addReel()` ; carrousel « 🎬 Reels » + tuile « + Ton reel » + lecteur plein écran `JPReels` (autoplay, swipe ↑↓). Reels/suggestions groupes (`JP.suggestGroups`)/pages **intercalés** dans le fil (positions 1/4/8), pas empilés.
+- **Tags de personnes** (section 36 : `photo_tags` + trigger `notify_on_phototag`, notif type `phototag`) : `JP.postTags/tagPeople/untagPerson` ; ligne « 🏷️ Avec … » sous la galerie + bouton « Identifier » (auteur) dans fil.html/post.html.
+- **Réactions messages** (section 37 : `message_reactions`, RLS membres) : `JP.reactMessage/messageReactions/subscribeMessageReactions`, `JP.MSG_REACTIONS` ; bouton 🙂 + sélecteur + pastilles cumulées (temps réel) dans messages.html.
+- **Sous-commentaires illimités** : arbre récursif (fil.html/post.html), `Répondre` cible `data-parent=id`, indentation plafonnée (`var --cind`).
+- **Modération renforcée** (section 38 : `banned_words` + `mod_queue` + trigger `flag_banned_words`, RLS `is_admin()`) : auto-signalement (sans blocage) ; `JP.listBannedWords/addBannedWord/removeBannedWord/modQueue/resolveModItem/adminDeleteComment` ; onglets Signalements/File d'attente/Mots interdits dans `panneau-hcm-7x2k9.html`.
+- **Pages publiques** : `faq.html` (à tenir à jour à chaque feature), `publicite.html` (onglets Format/Formats à fournir/Tarifs/Règles — **ne jamais citer un autre réseau social** ; promotion hors annonce supprimable sans avertissement).
+- **SEO** (domaine cible **jurapotes.ch**) : `robots.txt` (bloque l'espace membre + admin), `sitemap.xml`, canonical + meta description + OG/Twitter + JSON-LD (WebSite/Organization) sur les pages publiques. Pubs : insertion `insertFeedAds` idempotente + dédoublonnage + jeton anti-course.
 
 ## Reste à faire
 Digest e-mail quotidien (optionnel, via `pg_cron` au lieu d'un mail par notif). Sinon : peaufinage lancement.
@@ -56,7 +64,7 @@ Digest e-mail quotidien (optionnel, via `pg_cron` au lieu d'un mail par notif). 
 ## Pièges connus
 - Messagerie **amis-only** (RLS `cm_insert`) ; le Marché contourne via la fonction `contact_user` uniquement.
 - Liste des **communes** : centralisée dans `JP.COMMUNES` / `JP.communeOptions()` (inclut Moutier, rattaché au Jura en 2026). À utiliser partout (inscription, profil, groupes, pages, marketplace, événements).
-- **Cache-busting** : `theme.js` injecté dans le `<head>` (avant rendu, anti-flash) ; versions actuelles `app.supabase.js?v=51`, `style.css?v=55`, `nav.js?v=4`, `bell.js?v=22`, `theme.js?v=1`, `pwa.js?v=19`, `push.js?v=1`, `install.js?v=1`, `stories.js?v=1`. `config.js` (no-cache, pas de `?v`) contient `VAPID_PUBLIC`.
+- **Cache-busting** : `theme.js` injecté dans le `<head>` (avant rendu, anti-flash) ; versions actuelles `app.supabase.js?v=57`, `style.css?v=65`, `nav.js?v=5`, `bell.js?v=22`, `theme.js?v=1`, `pwa.js?v=20`, `push.js?v=1`, `install.js?v=1`, `stories.js?v=1`. `config.js` (no-cache, pas de `?v`) contient `VAPID_PUBLIC`.
 - **Edge Functions à déployer manuellement** (CLI Supabase) : `notify-email` (Resend, notifs e-mail) et `og-preview` (aperçus OG). L'app fonctionne sans, juste sans ces extras.
 - **Triggers PL/pgSQL partagés posts↔comments** : ne jamais référencer `NEW.post_id` dans un `CASE`/expression unique d'une fonction attachée AUSSI à `posts` (qui n'a pas ce champ) → erreur `42703 record "new" has no field "post_id"` qui casse TOUTE insertion. Utiliser un `IF TG_TABLE_NAME='comments' THEN … ELSE …` (branches compilées à l'exécution). Cf. `notify_on_mention`.
 - Après un `alter table … add column`, si l'API renvoie `PGRST204 (column not in schema cache)` : `notify pgrst, 'reload schema';`.
