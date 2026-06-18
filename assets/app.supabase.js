@@ -1473,6 +1473,32 @@ window.JP = (() => {
   async function unbanUser(userId){
     await sb.from('profiles').update({is_banned:false}).eq('id', userId);
   }
+  async function adminDeleteComment(commentId){
+    await sb.from('comments').delete().eq('id', commentId);
+  }
+
+  /* ---- Modération renforcée : mots interdits + file d'attente (section 38) ---- */
+  async function listBannedWords(){
+    const { data } = await sb.from('banned_words').select('id, word').order('word');
+    return data||[];
+  }
+  async function addBannedWord(word){
+    word=(word||'').trim().toLowerCase(); if(!word) return {ok:false};
+    const { error } = await sb.from('banned_words').upsert({word}, {onConflict:'word', ignoreDuplicates:true});
+    return error ? {ok:false, msg:error.message} : {ok:true};
+  }
+  async function removeBannedWord(id){ await sb.from('banned_words').delete().eq('id', id); }
+  async function modQueue(status='open'){
+    let q = sb.from('mod_queue')
+      .select('id, target_type, target_id, author_id, content, matched_word, status, created_at, author:profiles!author_id ( name, avatar_url )')
+      .order('created_at', {ascending:false}).limit(100);
+    if(status && status!=='all') q = q.eq('status', status);
+    const { data, error } = await q;
+    if(error) return [];
+    return (data||[]).map(m=>({ id:m.id, targetType:m.target_type, targetId:m.target_id, authorId:m.author_id,
+      content:m.content, word:m.matched_word, status:m.status, ts:m.created_at, authorName:m.author?.name||'Membre' }));
+  }
+  async function resolveModItem(id, status){ await sb.from('mod_queue').update({status}).eq('id', id); }
 
   /* ============================================================
      SUGGESTIONS D'AMIS (amis communs prioritaires, façon FB)
@@ -1787,6 +1813,7 @@ window.JP = (() => {
     listAlbums, createAlbum, albumPhotos, addAlbumPhotos, deleteAlbum, deleteAlbumPhoto,
     activeAds, pickAd, adImpression, adClick, listAds, createAd, updateAd, deleteAd, reorderAds,
     report, block, unblock, isBlocked, blockedList, loadBlocked, blockedIds,
-    isAdmin, listReports, resolveReport, adminDeletePost, banUser, unbanUser
+    isAdmin, listReports, resolveReport, adminDeletePost, adminDeleteComment, banUser, unbanUser,
+    listBannedWords, addBannedWord, removeBannedWord, modQueue, resolveModItem
   };
 })();

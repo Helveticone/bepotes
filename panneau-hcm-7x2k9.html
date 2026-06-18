@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=64">
+<link rel="stylesheet" href="assets/style.css?v=65">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -31,19 +31,43 @@
 
 <div class="page-pad"><div class="narrow">
   <h1 style="font-size:2rem;margin-bottom:6px">Modération <span class="admin-badge">ADMIN</span></h1>
-  <p style="color:var(--ink-soft);margin-bottom:24px">Signalements reçus des membres. Examine, supprime le contenu ou bannis si nécessaire.</p>
+  <p style="color:var(--ink-soft);margin-bottom:24px">Signalements des membres, file d'attente automatique (mots interdits) et gestion des mots interdits.</p>
 
-  <div class="search-tabs" id="tabs">
-    <button class="active" data-f="open">À traiter</button>
-    <button data-f="all">Tous</button>
+  <div class="search-tabs" id="secTabs" style="margin-bottom:18px">
+    <button class="active" data-s="reports">🚩 Signalements</button>
+    <button data-s="queue">⏳ File d'attente</button>
+    <button data-s="words">🚫 Mots interdits</button>
   </div>
 
-  <div id="reports"></div>
+  <section id="secReports">
+    <div class="search-tabs" id="tabs">
+      <button class="active" data-f="open">À traiter</button>
+      <button data-f="all">Tous</button>
+    </div>
+    <div id="reports"></div>
+  </section>
+
+  <section id="secQueue" style="display:none">
+    <div class="search-tabs" id="qTabs">
+      <button class="active" data-q="open">À traiter</button>
+      <button data-q="all">Tous</button>
+    </div>
+    <div id="queue"></div>
+  </section>
+
+  <section id="secWords" style="display:none">
+    <p style="color:var(--ink-soft);font-size:.9rem;margin-bottom:12px">Tout contenu contenant l'un de ces mots est automatiquement placé dans la file d'attente pour examen (sans blocage de publication).</p>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <input id="wordInput" type="text" placeholder="Ajouter un mot interdit…" style="flex:1;min-width:0;padding:10px 14px;border:1.5px solid var(--line);border-radius:999px;font-family:inherit">
+      <button class="btn btn-primary" id="wordAdd">Ajouter</button>
+    </div>
+    <div id="words"></div>
+  </section>
 </div></div>
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=55"></script>
+<script src="assets/app.supabase.js?v=56"></script>
 <script src="assets/nav.js?v=5"></script>
 <script src="assets/bell.js?v=22"></script>
 <script>
@@ -105,6 +129,76 @@
       await JP.resolveReport(b.dataset.id,'dismissed'); JP.toast('Signalement rejeté'); await render();
     }));
   }
+
+  /* ---- Navigation entre sections ---- */
+  const sections={ reports:document.getElementById('secReports'), queue:document.getElementById('secQueue'), words:document.getElementById('secWords') };
+  document.querySelectorAll('#secTabs button').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('#secTabs button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    Object.entries(sections).forEach(([k,el])=>el.style.display = k===b.dataset.s ? '' : 'none');
+    if(b.dataset.s==='queue') renderQueue();
+    if(b.dataset.s==='words') renderWords();
+  }));
+
+  /* ---- File d'attente (auto-détection mots interdits) ---- */
+  let qFilter='open';
+  document.querySelectorAll('#qTabs button').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('#qTabs button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); qFilter=b.dataset.q; renderQueue();
+  }));
+  async function renderQueue(){
+    const box=document.getElementById('queue');
+    box.innerHTML='<p style="color:var(--ink-soft)">Chargement…</p>';
+    const items=await JP.modQueue(qFilter);
+    if(!items.length){ box.innerHTML='<div class="empty"><p>'+(qFilter==='open'?'File d\'attente vide. 🎉':'Aucun élément.')+'</p></div>'; return; }
+    box.innerHTML=items.map(m=>`
+      <div class="report-card" data-id="${m.id}">
+        <div class="rc-top">
+          <div><span class="rc-reason">Mot interdit : « ${JP.esc(m.word||'?')} »</span>
+            <span style="font-size:.82rem;color:var(--ink-soft);margin-left:8px">${m.targetType==='comment'?'Commentaire':'Publication'} · ${JP.timeAgo(m.ts)}</span></div>
+          <span class="rc-status ${m.status}">${m.status==='open'?'À traiter':m.status==='reviewed'?'Traité':'Ignoré'}</span>
+        </div>
+        <div style="font-size:.85rem;color:var(--ink-soft)">Auteur : ${JP.esc(m.authorName)}</div>
+        ${m.content?`<div class="rc-content">« ${JP.esc(m.content.slice(0,220))}${m.content.length>220?'…':''} »</div>`:''}
+        <div class="rc-actions">
+          ${m.targetType==='post'?`<a class="btn btn-ghost btn-sm" href="post.html?id=${m.targetId}" target="_blank">↗ Voir</a>
+            <button class="btn btn-ghost btn-sm qDelPost" data-tid="${m.targetId}" data-id="${m.id}">🗑 Supprimer la publication</button>`:
+            `<button class="btn btn-ghost btn-sm qDelCom" data-tid="${m.targetId}" data-id="${m.id}">🗑 Supprimer le commentaire</button>`}
+          ${m.authorId?`<button class="btn btn-ghost btn-sm qBan" data-uid="${m.authorId}">🚫 Bannir l'auteur</button>`:''}
+          ${m.status==='open'?`<button class="btn btn-primary btn-sm qOk" data-id="${m.id}">✓ Garder (traité)</button>
+            <button class="btn btn-ghost btn-sm qIgnore" data-id="${m.id}">Ignorer</button>`:''}
+        </div>
+      </div>`).join('');
+    box.querySelectorAll('.qDelPost').forEach(b=>b.addEventListener('click',async()=>{
+      if(confirm('Supprimer définitivement cette publication ?')){ await JP.adminDeletePost(b.dataset.tid); await JP.resolveModItem(b.dataset.id,'reviewed'); JP.toast('Publication supprimée'); renderQueue(); }
+    }));
+    box.querySelectorAll('.qDelCom').forEach(b=>b.addEventListener('click',async()=>{
+      if(confirm('Supprimer définitivement ce commentaire ?')){ await JP.adminDeleteComment(b.dataset.tid); await JP.resolveModItem(b.dataset.id,'reviewed'); JP.toast('Commentaire supprimé'); renderQueue(); }
+    }));
+    box.querySelectorAll('.qBan').forEach(b=>b.addEventListener('click',async()=>{
+      if(confirm('Bannir ce membre ?')){ await JP.banUser(b.dataset.uid); JP.toast('Membre banni'); }
+    }));
+    box.querySelectorAll('.qOk').forEach(b=>b.addEventListener('click',async()=>{ await JP.resolveModItem(b.dataset.id,'reviewed'); JP.toast('Marqué traité'); renderQueue(); }));
+    box.querySelectorAll('.qIgnore').forEach(b=>b.addEventListener('click',async()=>{ await JP.resolveModItem(b.dataset.id,'dismissed'); JP.toast('Ignoré'); renderQueue(); }));
+  }
+
+  /* ---- Mots interdits ---- */
+  async function renderWords(){
+    const box=document.getElementById('words');
+    box.innerHTML='<p style="color:var(--ink-soft)">Chargement…</p>';
+    const words=await JP.listBannedWords();
+    if(!words.length){ box.innerHTML='<div class="empty"><p>Aucun mot interdit pour l\'instant.</p></div>'; return; }
+    box.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:8px">'+words.map(w=>
+      `<span class="word-chip">${JP.esc(w.word)}<button class="wDel" data-id="${w.id}" title="Retirer">&times;</button></span>`).join('')+'</div>';
+    box.querySelectorAll('.wDel').forEach(b=>b.addEventListener('click',async()=>{ await JP.removeBannedWord(b.dataset.id); renderWords(); }));
+  }
+  document.getElementById('wordAdd').addEventListener('click',async()=>{
+    const inp=document.getElementById('wordInput'); const v=inp.value.trim();
+    if(!v) return;
+    const r=await JP.addBannedWord(v);
+    if(r && r.ok){ inp.value=''; renderWords(); } else JP.toast((r&&r.msg)||'Échec');
+  });
+  document.getElementById('wordInput').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('wordAdd').click(); });
 
   await render();
 })();
