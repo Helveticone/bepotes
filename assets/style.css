@@ -535,7 +535,7 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 .lightbox .lb-prev{left:14px}
 .lightbox .lb-next{right:14px}
 .lightbox .lb-count{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);color:#fff;font-size:.9rem;background:rgba(0,0,0,.5);padding:4px 12px;border-radius:999px;z-index:2}
-.lightbox .lb-tag{position:absolute;bottom:16px;left:16px;background:rgba(255,255,255,.94);color:var(--ink);border:none;border-radius:999px;padding:9px 16px;font-weight:600;cursor:pointer;font-family:inherit;font-size:.9rem;z-index:3}
+.lightbox .lb-tag{position:absolute;bottom:16px;left:16px;background:rgba(255,255,255,.94);color:#1A1416;border:none;border-radius:999px;padding:9px 16px;font-weight:600;cursor:pointer;font-family:inherit;font-size:.9rem;z-index:3}
 .lightbox .lb-tag:hover{background:#fff}
 @media(max-width:600px){.lightbox .lb-nav{width:40px;height:40px;font-size:1.5rem}}
 
@@ -853,3 +853,53 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 .gsugg b{font-size:.88rem;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gsugg span{font-size:.76rem;color:var(--ink-soft)}
 .gsugg .btn{margin-top:4px}
+
+/* ============================================================
+   PEAUFINAGE UI/UX (finitions globales)
+   ============================================================ */
+/* Mode sombre : surfaces encore codées en clair (#FBF4F4 …) */
+:root[data-theme="dark"] .comment .bubble,
+:root[data-theme="dark"] .shared-card,
+:root[data-theme="dark"] .thread-body,
+:root[data-theme="dark"] .app-feed{background:#241d1e}
+:root[data-theme="dark"] .conv-item:hover,
+:root[data-theme="dark"] .notif.clickable:hover{background:#241d1e}
+:root[data-theme="dark"] .report-reasons label:hover{background:var(--rouge-soft)}
+:root[data-theme="dark"] .danger-card{background:#241617}
+
+/* Accessibilité clavier : contour net uniquement au clavier */
+:focus-visible{outline:2px solid var(--rouge);outline-offset:2px}
+a:focus:not(:focus-visible),button:focus:not(:focus-visible){outline:none}
+
+/* Retour tactile sur les boutons + transitions douces */
+.btn{transition:transform .08s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease, color .15s ease}
+.btn:active{transform:translateY(1px)}
+.icon-btn,.act,.reel,.gsugg .btn,.pt-edit,.rx-chip{transition:transform .08s ease, background .15s ease}
+.icon-btn:active,.act:active,.pt-edit:active{transform:scale(.96)}
+
+/* Élévation douce des cartes au survol (souris uniquement) */
+@media (hover:hover){
+  .gsugg:hover{transform:translateY(-2px)}
+  .reel:hover{transform:translateY(-2px)}
+}
+
+/* Barres de défilement discrètes, adaptées au thème */
+*{scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px;border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:var(--ink-soft)}
+
+/* Respect de la préférence « animations réduites » */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+}
+
+/* Squelettes de chargement (perçus plus rapides que « Chargement… ») */
+.sk-card{background:var(--white);border:1px solid var(--line);border-radius:18px;padding:16px 16px 18px;margin-bottom:16px}
+.sk-row{display:flex;align-items:center;gap:11px;margin-bottom:13px}
+.sk{position:relative;overflow:hidden;background:var(--line);border-radius:8px}
+.sk::after{content:'';position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);animation:sksh 1.3s infinite}
+@keyframes sksh{100%{transform:translateX(100%)}}
+.sk-av{width:42px;height:42px;border-radius:50%;flex:0 0 auto}
+.sk-line{height:11px}
+.sk-img{height:200px;border-radius:12px;margin-top:6px}

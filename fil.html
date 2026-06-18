@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=67">
+<link rel="stylesheet" href="assets/style.css?v=68">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -393,8 +393,12 @@
   }
 
   // Recharge complète depuis la 1ère page (après une action : publier, voter…)
+  function skeletonHTML(n=3){
+    const card=`<div class="sk-card"><div class="sk-row"><div class="sk sk-av"></div><div style="flex:1"><div class="sk sk-line" style="width:40%;margin-bottom:7px"></div><div class="sk sk-line" style="width:25%"></div></div></div><div class="sk sk-line" style="width:90%;margin-bottom:7px"></div><div class="sk sk-line" style="width:70%"></div><div class="sk sk-img"></div></div>`;
+    return card.repeat(n);
+  }
   async function render(){
-    feed.innerHTML='<div class="empty"><p>Chargement…</p></div>';
+    feed.innerHTML=skeletonHTML(3);
     reachedEnd=false;
     loadedPosts=await JP.posts({limit:PAGE, town:feedTown||undefined});
     reachedEnd = loadedPosts.length<PAGE;
