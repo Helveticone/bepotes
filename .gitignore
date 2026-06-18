@@ -7,3 +7,6 @@ _*.html
 _*.png
 # réglages Claude Code personnels (permissions)
 .claude/settings.local.json
+
+# clés VAPID (privé) — ne jamais committer
+_vapid.txt
