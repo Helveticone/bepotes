@@ -351,13 +351,14 @@
     let map={}; try{ map=await JP.postTags(ids); }catch(e){ return; }
     feed.querySelectorAll('.photo-tags[data-pid]').forEach(box=>{
       const pid=box.dataset.pid;
-      const post=loadedPosts.find(x=>String(x.id)===String(pid));
-      const mine = post && post.authorEmail===me.id;
       const tags=map[pid]||[];
-      const names = tags.length
-        ? `<span class="pt-list">🏷️ Avec ${tags.map(t=>`<a href="membre.html?id=${t.id}">${JP.esc(t.name)}</a>`).join(', ')}</span>`
-        : '';
-      box.innerHTML = names + (mine?`<button type="button" class="pt-edit" data-id="${pid}">🏷️ Identifier</button>`:'');
+      // on retire seulement l'ancienne ligne de noms ; le bouton « Identifier »
+      // (rendu par postHTML) n'est JAMAIS supprimé.
+      box.querySelectorAll('.pt-list').forEach(n=>n.remove());
+      if(tags.length){
+        const names=`<span class="pt-list">🏷️ Avec ${tags.map(t=>`<a href="membre.html?id=${t.id}">${JP.esc(t.name)}</a>`).join(', ')}</span>`;
+        box.insertAdjacentHTML('afterbegin', names);
+      }
     });
   }
   // Clic sur « Identifier » (délégation : survit aux re-rendus du fil)

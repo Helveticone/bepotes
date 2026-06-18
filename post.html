@@ -126,11 +126,11 @@
     const box=host.querySelector('.photo-tags[data-pid]'); if(!box) return;
     let map={}; try{ map=await JP.postTags([pid]); }catch(e){ return; }
     const tags=map[pid]||[];
-    const mine = p && p.authorEmail===me.id;
-    const names = tags.length
-      ? `<span class="pt-list">🏷️ Avec ${tags.map(t=>`<a href="membre.html?id=${t.id}">${JP.esc(t.name)}</a>`).join(', ')}</span>`
-      : '';
-    box.innerHTML = names + (mine?`<button type="button" class="pt-edit" data-id="${pid}">🏷️ Identifier</button>`:'');
+    box.querySelectorAll('.pt-list').forEach(n=>n.remove());   // bouton « Identifier » préservé
+    if(tags.length){
+      const names=`<span class="pt-list">🏷️ Avec ${tags.map(t=>`<a href="membre.html?id=${t.id}">${JP.esc(t.name)}</a>`).join(', ')}</span>`;
+      box.insertAdjacentHTML('afterbegin', names);
+    }
   }
   // Clic « Identifier » (délégation sur le conteneur persistant)
   host.addEventListener('click', async e=>{
