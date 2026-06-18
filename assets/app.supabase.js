@@ -326,12 +326,22 @@ window.JP = (() => {
   }
 
   /* Upload d'une vidéo (telle quelle, pas de transcodage) -> URL publique */
+  const MAX_VIDEO_MB = 50;   // limite côté client (doit rester ≤ limite du bucket Storage)
   async function uploadVideo(file){
-    if(!file || !_me) throw 'invalide';
+    if(!file || !_me) throw new Error('Vidéo invalide.');
+    const mb = file.size/1048576;
+    if(mb > MAX_VIDEO_MB) throw new Error(`Vidéo trop lourde (${Math.round(mb)} Mo). Maximum ${MAX_VIDEO_MB} Mo — raccourcis-la ou réduis la qualité.`);
     const ext=(file.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'') || 'mp4';
     const path=`${_me.id}/${Date.now()}.${ext}`;
     const { error } = await sb.storage.from('posts').upload(path, file, {contentType:file.type||'video/mp4', upsert:true});
-    if(error) throw error;
+    if(error){
+      const m=(error.message||'').toLowerCase();
+      if(m.includes('mime')||m.includes('not allowed')||m.includes('not supported'))
+        throw new Error("Format vidéo non autorisé par le serveur. (Dans Supabase → Storage → bucket « posts », autorise les types video/mp4, video/quicktime, video/webm — ou laisse vide.)");
+      if(m.includes('exceed')||m.includes('too large')||m.includes('maximum')||String(error.statusCode)==='413')
+        throw new Error("Vidéo refusée : dépasse la limite de taille du bucket Storage « posts ». (Augmente la « File size limit » du bucket dans Supabase.)");
+      throw new Error(error.message || "Échec de l'envoi de la vidéo.");
+    }
     const { data } = sb.storage.from('posts').getPublicUrl(path);
     return data.publicUrl;
   }
@@ -523,7 +533,7 @@ window.JP = (() => {
     if(images && images.length) urls=await uploadImages('posts', images, 1280, 0.82);
     else if(image){ try{ urls=[await uploadImage('posts', image, 1280, 0.82)]; }catch(e){ toast('Photo trop lourde'); } }
     let videoUrl=null;
-    if(video){ try{ videoUrl=await uploadVideo(video); }catch(e){ console.error(e); toast('Vidéo refusée (trop lourde ?)'); } }
+    if(video){ try{ videoUrl=await uploadVideo(video); }catch(e){ console.error(e); toast(e.message||'Vidéo refusée.'); } }
     const poll = (pollOptions && pollOptions.length>=2) ? pollOptions.slice(0,6) : null;
     const link = await fetchLinkPreview(text, {skip: !!sharedPostId});
     const { error } = await sb.from('posts').insert({
@@ -1164,7 +1174,7 @@ window.JP = (() => {
   async function addReel(video, caption=''){
     if(!_me || !video) return {ok:false, msg:'Vidéo manquante'};
     let videoUrl=null;
-    try{ videoUrl=await uploadVideo(video); }catch(e){ console.error(e); return {ok:false, msg:'Vidéo refusée (trop lourde ?)'}; }
+    try{ videoUrl=await uploadVideo(video); }catch(e){ console.error(e); return {ok:false, msg:e.message||'Vidéo refusée.'}; }
     const { error } = await sb.from('posts').insert({
       author_id:_me.id, text:(caption||'').slice(0,300), tag:'Reel', town:_me.town||null,
       images:[], video_url:videoUrl, is_reel:true
@@ -1704,7 +1714,7 @@ window.JP = (() => {
     const isVideo=(file.type||'').startsWith('video/');
     let url;
     try{ url = isVideo ? await uploadVideo(file) : await uploadImage('posts', file, 1280, 0.85); }
-    catch(e){ return {ok:false, msg:'Média trop lourd ou refusé'}; }
+    catch(e){ return {ok:false, msg:e.message||'Média trop lourd ou refusé'}; }
     const { error } = await sb.from('stories')
       .insert({author_id:_me.id, media_url:url, media_type:isVideo?'video':'image', text:text||null});
     return error ? {ok:false, msg:error.message} : {ok:true};
