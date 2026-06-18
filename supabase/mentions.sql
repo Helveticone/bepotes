@@ -12,7 +12,13 @@ returns trigger language plpgsql security definer set search_path = public as $$
 declare m record; uid uuid; pid uuid; actor uuid;
 begin
   actor := NEW.author_id;
-  pid := case when TG_TABLE_NAME = 'comments' then NEW.post_id else NEW.id end;
+  -- IF/ELSE (et pas un CASE en une expression) : sinon Postgres résout
+  -- NEW.post_id même sur la table posts (qui n'a pas ce champ) -> 42703.
+  if TG_TABLE_NAME = 'comments' then
+    pid := NEW.post_id;
+  else
+    pid := NEW.id;
+  end if;
   for m in
     select (regexp_matches(NEW.text, '@\[[^\]]+\]\(([0-9a-fA-F-]{36})\)', 'g'))[1] as id
   loop
