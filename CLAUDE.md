@@ -43,6 +43,9 @@ Auth, profils (avatar/couverture recadrables), fil (posts multi-photos, réactio
 - Pubs : plusieurs encarts espacés (1ère après 3e publi, puis ~toutes les 5), ordre mélangé, 1× chacune.
 - **Stories éphémères 24 h** (`stories`+`story_views`, section 29) : barre en haut du fil (`assets/stories.js`, `JPStories.mount`), création photo/vidéo+légende, visionneuse plein écran, expiration RLS 24 h.
 - **Notifications push** (`push_subscriptions` section 28) : `assets/push.js` (`JPPush`), `sw-push.js` (SW sans cache), Edge Function `notify-push` (web-push+VAPID, déploiement manuel), clé `VAPID_PUBLIC` dans `config.js`. **Installation PWA** : `assets/install.js` (`JPInstall`), bouton/bannière dans Paramètres + fil.
+- **Angle local** : filtre par **commune** sur fil (`posts.town`, section 30), Marché (`listings.town`) et Événements (`events.town`) ; page Événements = **agenda** groupé par date.
+- **Messagerie de groupe** (section 31 : policies `cm_delete`/`conv_update`) : `JP.createGroupConversation/conversationInfo/addConversationMembers/leaveConversation/renameConversation` ; `conversations()`/`messagesOf()` gèrent groupes ; UI dans `messages.html` (bouton 👥, modale créer/gérer).
+- **Profil enrichi** (section 32 : `profiles.job/origin/website`) : bloc « À propos » sur profil.html + membre.html.
 
 ## Reste à faire
 Digest e-mail quotidien (optionnel, via `pg_cron` au lieu d'un mail par notif). Sinon : peaufinage lancement.
@@ -50,7 +53,7 @@ Digest e-mail quotidien (optionnel, via `pg_cron` au lieu d'un mail par notif). 
 ## Pièges connus
 - Messagerie **amis-only** (RLS `cm_insert`) ; le Marché contourne via la fonction `contact_user` uniquement.
 - Liste des **communes** : centralisée dans `JP.COMMUNES` / `JP.communeOptions()` (inclut Moutier, rattaché au Jura en 2026). À utiliser partout (inscription, profil, groupes, pages, marketplace, événements).
-- **Cache-busting** : `theme.js` injecté dans le `<head>` (avant rendu, anti-flash) ; versions actuelles `app.supabase.js?v=45`, `style.css?v=49`, `nav.js?v=4`, `bell.js?v=22`, `theme.js?v=1`, `pwa.js?v=19`, `push.js?v=1`, `install.js?v=1`, `stories.js?v=1`. `config.js` (no-cache, pas de `?v`) contient `VAPID_PUBLIC`.
+- **Cache-busting** : `theme.js` injecté dans le `<head>` (avant rendu, anti-flash) ; versions actuelles `app.supabase.js?v=49`, `style.css?v=53`, `nav.js?v=4`, `bell.js?v=22`, `theme.js?v=1`, `pwa.js?v=19`, `push.js?v=1`, `install.js?v=1`, `stories.js?v=1`. `config.js` (no-cache, pas de `?v`) contient `VAPID_PUBLIC`.
 - **Edge Functions à déployer manuellement** (CLI Supabase) : `notify-email` (Resend, notifs e-mail) et `og-preview` (aperçus OG). L'app fonctionne sans, juste sans ces extras.
 - **Triggers PL/pgSQL partagés posts↔comments** : ne jamais référencer `NEW.post_id` dans un `CASE`/expression unique d'une fonction attachée AUSSI à `posts` (qui n'a pas ce champ) → erreur `42703 record "new" has no field "post_id"` qui casse TOUTE insertion. Utiliser un `IF TG_TABLE_NAME='comments' THEN … ELSE …` (branches compilées à l'exécution). Cf. `notify_on_mention`.
 - Après un `alter table … add column`, si l'API renvoie `PGRST204 (column not in schema cache)` : `notify pgrst, 'reload schema';`.
