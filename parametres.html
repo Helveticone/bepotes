@@ -67,6 +67,15 @@
     </div>
   </div>
 
+  <div class="side-card" id="installCard" style="margin-bottom:18px;display:none">
+    <h3 style="font-family:'Plus Jakarta Sans';font-size:1.05rem;margin-bottom:8px">Installer l'application</h3>
+    <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:14px">Ajoute Jurapotes à ton écran d'accueil pour un accès rapide (et les notifications push sur iPhone).</p>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <button class="btn btn-primary btn-sm" id="installBtn" style="display:none">📲 Installer Jurapotes</button>
+      <div id="installHint" style="font-size:.86rem;color:var(--ink-soft);line-height:1.5"></div>
+    </div>
+  </div>
+
   <div class="side-card" style="margin-bottom:18px">
     <h3 style="font-family:'Plus Jakarta Sans';font-size:1.05rem;margin-bottom:8px">Notifications push (sur cet appareil)</h3>
     <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:14px">Reçois une notification directement sur ton téléphone/ordinateur, même quand Jurapotes est fermé.</p>
@@ -89,6 +98,7 @@
 <script src="assets/nav.js?v=4"></script>
 <script src="assets/bell.js?v=22"></script>
 <script src="assets/push.js?v=1"></script>
+<script src="assets/install.js?v=1"></script>
 <script>
 (async function(){
   const okAuth = await JP.requireAuth();
@@ -126,6 +136,39 @@
     if(r.ok){ JP.toast('Mot de passe mis à jour ✅'); document.getElementById('pw1').value=''; document.getElementById('pw2').value=''; }
     else JP.toast(r.msg||'Échec');
   });
+
+  /* ---- Installer l'app (PWA) ---- */
+  (function initInstall(){
+    if(!window.JPInstall) return;
+    const card=document.getElementById('installCard');
+    const btn=document.getElementById('installBtn');
+    const hint=document.getElementById('installHint');
+    function paint(){
+      const st=JPInstall.state();
+      if(st==='installed'){ card.style.display='none'; return; }
+      card.style.display='';
+      if(st==='prompt'){
+        btn.style.display=''; hint.textContent='';
+      } else if(st==='ios'){
+        btn.style.display='none';
+        hint.innerHTML='Sur iPhone : appuie sur <b>Partager</b> (le carré avec une flèche ⬆️ en bas de Safari), puis <b>« Sur l\'écran d\'accueil »</b>.';
+      } else if(st==='ios-bad-browser'){
+        btn.style.display='none';
+        hint.innerHTML='Sur iPhone, l\'installation n\'est possible que depuis <b>Safari</b>. Ouvre <b>jurapotes-betatest.pages.dev</b> dans Safari, puis <b>Partager ⬆️ → Sur l\'écran d\'accueil</b>.';
+      } else {
+        // navigateur sans prompt (ex. Firefox desktop) : on masque
+        card.style.display='none';
+      }
+    }
+    btn.addEventListener('click',async()=>{
+      const r=await JPInstall.promptInstall();
+      if(r.ok){ JP.toast('Application installée 🎉'); }
+      paint();
+    });
+    document.addEventListener('jp-install-available', paint);
+    document.addEventListener('jp-installed', ()=>{ JP.toast('Application installée 🎉'); paint(); });
+    paint();
+  })();
 
   /* ---- Notifications push ---- */
   (async function initPush(){

@@ -7,6 +7,11 @@
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
+/* Handler fetch « passe-plat » : ne met RIEN en cache, n'intercepte rien
+   (pas de respondWith) — mais sa présence permet à Chrome/Android de
+   proposer l'installation de l'app. */
+self.addEventListener('fetch', () => {});
+
 self.addEventListener('push', (e) => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data && e.data.text() }; }
