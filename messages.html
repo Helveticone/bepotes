@@ -156,6 +156,7 @@
 
     const tbody=document.getElementById('tbody');
     const shown=new Set();
+    const pendingMine=[];   // textes envoyés en optimiste, en attente de l'écho temps réel
     const msgs=await JP.messagesOf(convId);
     msgs.forEach(m=>shown.add(m.id));
     tbody.innerHTML=msgs.map(m=>bubbleHTML(m, isGroup, membersMap)).join('');
@@ -163,6 +164,12 @@
 
     function appendMsg(m){
       if(m.id && shown.has(m.id)) return;
+      // Réconciliation : mon propre message qui revient par le temps réel
+      // (déjà affiché en optimiste) -> on ne le ré-affiche pas.
+      if(m.id && m.mine){
+        const i=pendingMine.indexOf(m.text);
+        if(i>=0){ pendingMine.splice(i,1); shown.add(m.id); return; }
+      }
       if(m.id) shown.add(m.id);
       tbody.insertAdjacentHTML('beforeend', bubbleHTML(m, isGroup, membersMap));
       scrollBottom(tbody);
@@ -175,6 +182,7 @@
       const t=input.value.trim(); if(!t) return;
       input.value='';
       appendMsg({id:null, text:t, ts:new Date().toISOString(), mine:true});
+      pendingMine.push(t);
       const r=await JP.sendMessage(convId, t);
       if(r && r.error){ JP.toast('Message non envoyé'); }
       loadConvs();
