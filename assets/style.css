@@ -789,6 +789,15 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
    REELS (mini, dans le fil) + SUGGESTIONS groupes/pages
    ============================================================ */
 .feed-extra{margin-bottom:16px}
+/* Tags de personnes sur photos */
+.photo-tags{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:-6px 0 12px;font-size:.88rem;color:var(--ink-soft)}
+.photo-tags a{color:var(--rouge);font-weight:600;text-decoration:none}
+.photo-tags .pt-edit{background:var(--rouge-soft);color:var(--rouge-dark);border:none;border-radius:999px;padding:5px 12px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit}
+.tag-list{display:flex;flex-direction:column;gap:4px;max-height:50vh;overflow:auto}
+.tag-row{display:flex;align-items:center;gap:11px;padding:8px;border-radius:11px;cursor:pointer}
+.tag-row:hover{background:var(--rouge-soft)}
+.tag-row input{width:18px;height:18px;accent-color:var(--rouge);flex:0 0 auto}
+.tag-row .av{width:36px;height:36px}
 .rs-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:1rem;font-weight:800;margin-bottom:12px}
 .reels-row,.gsugg-row{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
 .reels-row::-webkit-scrollbar,.gsugg-row::-webkit-scrollbar{display:none}

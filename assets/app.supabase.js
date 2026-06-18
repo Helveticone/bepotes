@@ -827,7 +827,35 @@ window.JP = (() => {
     if(type==='friend_request') return "t'a envoyé une demande d'ami";
     if(type==='friend_accept')  return "a accepté ta demande d'ami";
     if(type==='mention')        return "t'a mentionné·e";
+    if(type==='phototag')       return "t'a identifié·e sur une photo";
+    if(type==='msg_reaction')   return "a réagi à ton message";
     return "a interagi avec toi";
+  }
+
+  /* ---------- Tags de personnes sur les photos ----------
+     postTags(ids) → { postId: [{id,name,avatar}] } (requête groupée).
+     tagPeople / untagPerson : réservés à l'auteur du post (RLS). */
+  async function postTags(postIds){
+    const ids = Array.isArray(postIds) ? postIds : [postIds];
+    if(!ids.length) return {};
+    const { data, error } = await sb.from('photo_tags')
+      .select('post_id, tagged_id, tagged:profiles!tagged_id ( id, name, avatar_url )')
+      .in('post_id', ids);
+    if(error) return {};   // table absente (SQL pas lancé) → aucun tag
+    const map={};
+    (data||[]).forEach(t=>{ (map[t.post_id]=map[t.post_id]||[]).push({
+      id:t.tagged_id, name:t.tagged?.name||'Membre', avatar:t.tagged?.avatar_url||null }); });
+    return map;
+  }
+  async function tagPeople(postId, ids){
+    if(!_me || !ids || !ids.length) return {ok:false};
+    const rows = ids.map(id=>({post_id:postId, tagged_id:id, tagger_id:_me.id}));
+    const { error } = await sb.from('photo_tags').upsert(rows, {onConflict:'post_id,tagged_id', ignoreDuplicates:true});
+    return error ? {ok:false, msg:error.message} : {ok:true};
+  }
+  async function untagPerson(postId, taggedId){
+    if(!_me) return;
+    await sb.from('photo_tags').delete().eq('post_id',postId).eq('tagged_id',taggedId);
   }
 
   /* ============================================================
@@ -1715,6 +1743,7 @@ window.JP = (() => {
     createGroupConversation, conversationInfo, addConversationMembers, leaveConversation, renameConversation,
     searchPosts,
     friendStatus, sendFriendRequest, acceptFriend, removeFriend, pendingRequests, friends, friendCount, areFriends, friendSuggestions,
+    postTags, tagPeople, untagPerson,
     listGroups, suggestGroups, reels, addReel, getGroup, createGroup, joinGroup, leaveGroup, groupPosts, addGroupPost,
     uploadImages, pendingMembers, approveMember, rejectMember, updateGroupCover,
     updateGroupRules, updateGroupInfo, groupMembers, setMemberRole, removeMember,

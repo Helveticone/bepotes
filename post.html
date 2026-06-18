@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=61">
+<link rel="stylesheet" href="assets/style.css?v=62">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -45,7 +45,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=53"></script>
+<script src="assets/app.supabase.js?v=54"></script>
 <script src="assets/nav.js?v=5"></script>
 <script src="assets/bell.js?v=22"></script>
 <script>
@@ -119,6 +119,45 @@
   }
 
   let p=null, sort='all';
+
+  /* ---- Tags de personnes (affichage + identification par l'auteur) ---- */
+  async function decorateTagsPost(){
+    let map={}; try{ map=await JP.postTags([pid]); }catch(e){ return; }
+    const tags=map[pid]||[];
+    const mine = p && p.authorEmail===me.id;
+    if(!tags.length && !mine) return;
+    host.querySelector('.photo-tags')?.remove();
+    const gal=host.querySelector('.post-gallery'); if(!gal) return;
+    const div=document.createElement('div'); div.className='photo-tags';
+    const names=tags.map(t=>`<a href="membre.html?id=${t.id}">${JP.esc(t.name)}</a>`).join(', ');
+    div.innerHTML=(tags.length?`<span class="pt-list">🏷️ Avec ${names}</span>`:'')+
+      (mine?`<button type="button" class="pt-edit">🏷️ Identifier</button>`:'');
+    gal.parentNode.insertBefore(div, gal.nextSibling);
+    const btn=div.querySelector('.pt-edit');
+    if(btn) btn.addEventListener('click',()=>openTagModal(pid, tags.map(t=>t.id)));
+  }
+  async function openTagModal(postId, existingIds){
+    const mates=await JP.friends();
+    if(!mates.length){ JP.toast('Ajoute des amis pour pouvoir les identifier'); return; }
+    const have=new Set(existingIds||[]);
+    const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.display='flex';
+    bg.innerHTML=`<div class="modal"><div class="modal-head"><h3>Identifier des amis</h3><button class="x" type="button">&times;</button></div>
+      <div class="modal-body"><div class="tag-list">`+
+      mates.map(f=>`<label class="tag-row"><input type="checkbox" value="${f.id}" ${have.has(f.id)?'checked':''}>${JP.avatarHTML(f.name,f.avatar,'av')}<span>${JP.esc(f.name)}</span></label>`).join('')+
+      `</div></div><div class="modal-foot"><button class="btn btn-primary" id="tagSave">Enregistrer</button></div></div>`;
+    document.body.appendChild(bg);
+    const close=()=>bg.remove();
+    bg.addEventListener('click',e=>{ if(e.target===bg) close(); });
+    bg.querySelector('.x').addEventListener('click',close);
+    bg.querySelector('#tagSave').addEventListener('click',async()=>{
+      const checked=new Set([...bg.querySelectorAll('input:checked')].map(i=>i.value));
+      const toAdd=[...checked].filter(id=>!have.has(id));
+      const toRemove=[...have].filter(id=>!checked.has(id));
+      if(toAdd.length){ const r=await JP.tagPeople(postId,toAdd); if(r && !r.ok) JP.toast(r.msg||'Échec'); }
+      for(const id of toRemove){ await JP.untagPerson(postId,id); }
+      close(); JP.toast('Identifications mises à jour 🏷️'); decorateTagsPost();
+    });
+  }
 
   async function load(){
     p=await JP.getPost(pid);
@@ -208,6 +247,7 @@
       const imgs=(p && p.images && p.images.length) ? p.images.filter(Boolean) : [img.src];
       JPLightbox.open(imgs, Math.max(0, imgs.indexOf(img.src)));
     }));
+    if(p.images && p.images.length) decorateTagsPost();
     const menu=host.querySelector('.post-menu');
     if(menu){
       const pop=menu.querySelector('.pop');

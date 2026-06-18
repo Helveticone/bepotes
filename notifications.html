@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=61">
+<link rel="stylesheet" href="assets/style.css?v=62">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -51,7 +51,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=53"></script>
+<script src="assets/app.supabase.js?v=54"></script>
 <script src="assets/nav.js?v=5"></script>
 <script src="assets/bell.js?v=22"></script>
 <script>
@@ -61,7 +61,7 @@
   document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
   const list=document.getElementById('list');
 
-  const ICON = { like:'❤️', comment:'💬', follow:'👋', message:'✉️', friend_request:'🤝', friend_accept:'✅', mention:'📣' };
+  const ICON = { like:'❤️', comment:'💬', follow:'👋', message:'✉️', friend_request:'🤝', friend_accept:'✅', mention:'📣', phototag:'🏷️', msg_reaction:'👍' };
 
   async function render(){
     list.innerHTML='<p style="color:var(--ink-soft)">Chargement…</p>';
