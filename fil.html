@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=47">
+<link rel="stylesheet" href="assets/style.css?v=48">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -150,19 +150,20 @@
     function paint(){
       if(dismissed || !isMobile()){ hide(); return; }
       const st=JPInstall.state();
+      const ICO='<span class="ib-ico">📲</span>';
       if(st==='prompt'){
-        bar.innerHTML='<span class="ib-txt">📲 Installe Jurapotes sur ton écran d\'accueil</span><button class="btn btn-primary btn-sm ib-go" type="button">Installer</button><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
+        bar.innerHTML=ICO+'<span class="ib-txt">Installe l\'appli Jurapotes — accès direct + notifications</span><button class="ib-go" type="button">Installer</button><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
         bar.style.display='flex';
         bar.querySelector('.ib-go').addEventListener('click',async()=>{ const r=await JPInstall.promptInstall(); if(r.ok) hide(); });
       } else if(st==='ios'){
-        bar.innerHTML='<span class="ib-txt">📲 Ajoute Jurapotes à ton écran d\'accueil : <b>Partager ⬆️ → Sur l\'écran d\'accueil</b></span><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
+        bar.innerHTML=ICO+'<span class="ib-txt">Ajoute Jurapotes à ton écran d\'accueil : <b>Partager ⬆️ → Sur l\'écran d\'accueil</b></span><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
         bar.style.display='flex';
       } else if(st==='ios-bad-browser'){
-        bar.innerHTML='<span class="ib-txt">📲 Pour installer Jurapotes sur iPhone, ouvre le site dans <b>Safari</b>.</span><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
+        bar.innerHTML=ICO+'<span class="ib-txt">Pour installer Jurapotes sur iPhone, ouvre le site dans <b>Safari</b>.</span><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
         bar.style.display='flex';
       } else {
-        // Android/Chrome sans invite native (ou nav. privée) : on guide via le menu
-        bar.innerHTML='<span class="ib-txt">📲 Installe Jurapotes : menu <b>⋮</b> du navigateur → <b>« Installer l\'application »</b></span><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
+        // Android sans invite native (Chrome sans engagement, Mi Browser, nav. privée…)
+        bar.innerHTML=ICO+'<span class="ib-txt">Installe l\'appli Jurapotes : menu <b>⋮</b> du navigateur → <b>« Installer l\'application »</b> ou <b>« Ajouter à l\'écran d\'accueil »</b></span><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
         bar.style.display='flex';
       }
       wireX();

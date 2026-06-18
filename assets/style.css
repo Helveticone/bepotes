@@ -679,6 +679,10 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 /* ============================================================
    BANNIÈRE « Installer l'app » (fil mobile) — display géré en JS
    ============================================================ */
-.install-bar{align-items:center;gap:10px;background:var(--rouge-soft);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:14px;font-size:.88rem;color:var(--ink)}
-.install-bar .ib-txt{flex:1;min-width:0;line-height:1.35}
-.install-bar .ib-x{flex:0 0 auto;background:none;border:none;color:var(--ink-soft);font-size:1.3rem;cursor:pointer;line-height:1;padding:0 4px}
+.install-bar{align-items:center;gap:12px;background:linear-gradient(120deg,var(--rouge),#F2723B);color:#fff;border:none;border-radius:14px;padding:13px 14px;margin-bottom:16px;font-size:.92rem;box-shadow:0 8px 22px rgba(225,29,42,.38);animation:ibIn .45s ease}
+@keyframes ibIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+.install-bar .ib-ico{flex:0 0 auto;font-size:1.5rem;line-height:1;animation:ibPulse 1.8s ease-in-out infinite}
+@keyframes ibPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+.install-bar .ib-txt{flex:1;min-width:0;line-height:1.3;font-weight:600}
+.install-bar .ib-go{flex:0 0 auto;background:#fff;color:var(--rouge);border:none;border-radius:999px;padding:8px 16px;font-weight:700;font-size:.85rem;font-family:inherit;cursor:pointer;white-space:nowrap}
+.install-bar .ib-x{flex:0 0 auto;background:none;border:none;color:#fff;opacity:.85;font-size:1.4rem;cursor:pointer;line-height:1;padding:0 2px}
