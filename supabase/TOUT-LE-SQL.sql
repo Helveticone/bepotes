@@ -805,5 +805,14 @@ alter table public.profiles add column if not exists website text;
 
 
 -- ============================================================
+--  33. PROFIL : anniversaire, formation, situation amoureuse
+-- ============================================================
+alter table public.profiles add column if not exists birthday        date;
+alter table public.profiles add column if not exists show_birth_year boolean default false;
+alter table public.profiles add column if not exists school          text;
+alter table public.profiles add column if not exists relationship    text;
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================

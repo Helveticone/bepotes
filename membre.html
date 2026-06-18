@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=53">
+<link rel="stylesheet" href="assets/style.css?v=54">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -18,7 +18,7 @@
 </head>
 <body>
 <nav><div class="wrap nav-inner">
-  <a href="index.html" class="logo"><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">J</span><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
   <div class="nav-links">
     <form class="nav-search" onsubmit="location.href='recherche.html?q='+encodeURIComponent(this.q.value);return false;">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -54,7 +54,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=49"></script>
+<script src="assets/app.supabase.js?v=50"></script>
 <script src="assets/nav.js?v=4"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=22"></script>
@@ -98,11 +98,7 @@
               <h1>${JP.esc(prof.name)} ${prof.is_pro?'<span style="font-size:.7em;background:var(--rouge-soft);color:var(--rouge-dark);padding:3px 10px;border-radius:999px;vertical-align:middle">Pro</span>':''}</h1>
               <div class="loc">📍 ${JP.esc(prof.town||'Jura')} · Membre depuis ${prof.joined?new Date(prof.joined).toLocaleDateString('fr-CH',{month:'long',year:'numeric'}):'récemment'}</div>
               <div class="bio ${prof.bio?'':'empty-bio'}">${prof.bio?JP.esc(prof.bio):'Pas de bio.'}</div>
-              ${(function(){const r=[];
-                if(prof.job) r.push(`<div>💼 ${JP.esc(prof.job)}</div>`);
-                if(prof.origin) r.push(`<div>🌱 Originaire de ${JP.esc(prof.origin)}</div>`);
-                if(prof.website){const u=/^https?:\/\//i.test(prof.website)?prof.website:'https://'+prof.website;r.push(`<div>🔗 <a href="${JP.esc(u)}" target="_blank" rel="noopener" style="color:var(--rouge)">${JP.esc(prof.website.replace(/^https?:\/\//,''))}</a></div>`);}
-                return r.length?`<div class="about-card">${r.join('')}</div>`:'';})()}
+              ${JP.aboutHTML(prof)}
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
               ${friendBtn}

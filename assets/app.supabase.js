@@ -131,6 +131,25 @@ window.JP = (() => {
     sel.innerHTML = html;
   }
 
+  /* Bloc « À propos » d'un profil (mutualisé profil.html / membre.html) */
+  function formatBirthday(d, showYear){
+    const dt=new Date(d+'T00:00:00'); if(isNaN(dt.getTime())) return esc(d);
+    let s=dt.toLocaleDateString('fr-CH', showYear?{day:'numeric',month:'long',year:'numeric'}:{day:'numeric',month:'long'});
+    if(showYear){ const age=Math.floor((Date.now()-dt.getTime())/(365.25*864e5)); if(age>0&&age<120) s+=' ('+age+' ans)'; }
+    return s;
+  }
+  function aboutHTML(p){
+    const r=[];
+    if(p.job)          r.push('💼 '+esc(p.job));
+    if(p.school)       r.push('🎓 '+esc(p.school));
+    if(p.relationship) r.push('💑 '+esc(p.relationship));
+    if(p.birthday)     r.push('🎂 '+formatBirthday(p.birthday, p.show_birth_year));
+    if(p.origin)       r.push('🌱 Originaire de '+esc(p.origin));
+    if(p.website){ const u=/^https?:\/\//i.test(p.website)?p.website:'https://'+p.website;
+      r.push('🔗 <a href="'+esc(u)+'" target="_blank" rel="noopener" style="color:var(--rouge)">'+esc(p.website.replace(/^https?:\/\//,''))+'</a>'); }
+    return r.length ? '<div class="about-card">'+r.map(x=>'<div>'+x+'</div>').join('')+'</div>' : '';
+  }
+
   function toast(msg){
     let t=document.querySelector('.toast');
     if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t);}
@@ -170,6 +189,8 @@ window.JP = (() => {
       bio:data.bio||'', avatar:data.avatar_url, cover:data.cover_url,
       is_pro:data.is_pro, is_admin:data.is_admin, is_banned:data.is_banned, joined:data.created_at,
       job:data.job||'', origin:data.origin||'', website:data.website||'',
+      birthday:data.birthday||null, show_birth_year:data.show_birth_year===true,
+      school:data.school||'', relationship:data.relationship||'',
       email_notifications: data.email_notifications!==false,  // compat
       email_mode: data.email_mode || 'instant'                // 'instant' | 'daily' | 'off'
     } : null;
@@ -279,6 +300,10 @@ window.JP = (() => {
     if(patch.job!==undefined)    row.job=patch.job;
     if(patch.origin!==undefined) row.origin=patch.origin;
     if(patch.website!==undefined)row.website=patch.website;
+    if(patch.birthday!==undefined)        row.birthday=patch.birthday||null;
+    if(patch.show_birth_year!==undefined) row.show_birth_year=!!patch.show_birth_year;
+    if(patch.school!==undefined)          row.school=patch.school;
+    if(patch.relationship!==undefined)    row.relationship=patch.relationship;
     const { error } = await sb.from('profiles').update(row).eq('id', _me.id);
     if(error) return {ok:false, msg:error.message};
     await loadMe();
@@ -1235,13 +1260,15 @@ window.JP = (() => {
   /* Profil public de n'importe quel membre (par id) */
   async function publicProfile(userId){
     const { data } = await sb.from('profiles')
-      .select('id, name, town, bio, avatar_url, cover_url, is_pro, created_at, job, origin, website')
+      .select('id, name, town, bio, avatar_url, cover_url, is_pro, created_at, job, origin, website, birthday, show_birth_year, school, relationship')
       .eq('id', userId).single();
     if(!data) return null;
     return {
       id:data.id, name:data.name, town:data.town, bio:data.bio||'',
       avatar:data.avatar_url, cover:data.cover_url, is_pro:data.is_pro, joined:data.created_at,
-      job:data.job||'', origin:data.origin||'', website:data.website||''
+      job:data.job||'', origin:data.origin||'', website:data.website||'',
+      birthday:data.birthday||null, show_birth_year:data.show_birth_year===true,
+      school:data.school||'', relationship:data.relationship||''
     };
   }
 
@@ -1602,7 +1629,7 @@ window.JP = (() => {
   return {
     sb, loadMe, requireAuth, user, toast, avatarHTML,
     colorFor, initials, esc, timeAgo, uploadImage, uploadBlob, uploadVideo, cropImage, fileToBlob,
-    mentionHTML, attachMentions, tokenizeMentions, COMMUNES, fillCommuneSelect,
+    mentionHTML, attachMentions, tokenizeMentions, COMMUNES, fillCommuneSelect, aboutHTML,
     register, login, logout, updateProfile, updateEmail, updatePassword, deleteAccount, setEmailNotifications, setEmailMode,
     savePushSubscription, deletePushSubscription,
     posts, getPost, addPost, sharePost, deletePost, editPost, editComment, toggleLike, isLiked, reactPost, REACTIONS, reactionMeta, addComment, toggleCommentLike,
