@@ -590,7 +590,7 @@
         ${!mine?`<button class="btn btn-ghost btn-sm follow-btn" data-target="${p.authorEmail}">Suivre</button>`:''}
         <span class="tag">${JP.esc(p.tag)}</span>
         ${mine?`<div class="post-menu"><button class="dots">\u22EF</button>
-          <div class="pop"><button class="edit-post">\u270F\uFE0F Modifier</button><button class="del"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg> Supprimer</button></div>
+          <div class="pop"><button class="edit-post">\u270F\uFE0F Modifier</button>${(p.images&&p.images.length)?`<button class="pt-edit" data-id="${p.id}">\uD83C\uDFF7\uFE0F Identifier</button>`:''}<button class="del"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg> Supprimer</button></div>
         </div>`:`<div class="post-menu"><button class="dots">\u22EF</button>
           <div class="pop"><button class="report-post" data-pid="${p.id}">Signaler</button><button class="block-author" data-uid="${p.authorEmail}">Bloquer l'auteur</button></div>
         </div>`}
