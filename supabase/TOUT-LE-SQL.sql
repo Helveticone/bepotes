@@ -797,5 +797,13 @@ create policy "conv_update" on public.conversations for update
 
 
 -- ============================================================
+--  32. PROFIL ENRICHI (« À propos » : métier, origine, site)
+-- ============================================================
+alter table public.profiles add column if not exists job     text;
+alter table public.profiles add column if not exists origin  text;
+alter table public.profiles add column if not exists website text;
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================

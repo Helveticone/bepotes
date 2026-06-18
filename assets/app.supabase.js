@@ -169,6 +169,7 @@ window.JP = (() => {
       id:data.id, email:user.email, name:data.name, town:data.town,
       bio:data.bio||'', avatar:data.avatar_url, cover:data.cover_url,
       is_pro:data.is_pro, is_admin:data.is_admin, is_banned:data.is_banned, joined:data.created_at,
+      job:data.job||'', origin:data.origin||'', website:data.website||'',
       email_notifications: data.email_notifications!==false,  // compat
       email_mode: data.email_mode || 'instant'                // 'instant' | 'daily' | 'off'
     } : null;
@@ -275,6 +276,9 @@ window.JP = (() => {
     if(patch.bio!==undefined)    row.bio=patch.bio;
     if(patch.avatar!==undefined) row.avatar_url=patch.avatar;
     if(patch.cover!==undefined)  row.cover_url=patch.cover;
+    if(patch.job!==undefined)    row.job=patch.job;
+    if(patch.origin!==undefined) row.origin=patch.origin;
+    if(patch.website!==undefined)row.website=patch.website;
     const { error } = await sb.from('profiles').update(row).eq('id', _me.id);
     if(error) return {ok:false, msg:error.message};
     await loadMe();
@@ -1231,12 +1235,13 @@ window.JP = (() => {
   /* Profil public de n'importe quel membre (par id) */
   async function publicProfile(userId){
     const { data } = await sb.from('profiles')
-      .select('id, name, town, bio, avatar_url, cover_url, is_pro, created_at')
+      .select('id, name, town, bio, avatar_url, cover_url, is_pro, created_at, job, origin, website')
       .eq('id', userId).single();
     if(!data) return null;
     return {
       id:data.id, name:data.name, town:data.town, bio:data.bio||'',
-      avatar:data.avatar_url, cover:data.cover_url, is_pro:data.is_pro, joined:data.created_at
+      avatar:data.avatar_url, cover:data.cover_url, is_pro:data.is_pro, joined:data.created_at,
+      job:data.job||'', origin:data.origin||'', website:data.website||''
     };
   }
 

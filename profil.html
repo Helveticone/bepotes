@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=52">
+<link rel="stylesheet" href="assets/style.css?v=53">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -62,6 +62,7 @@
           <h1 id="name"></h1>
           <div class="loc" id="loc"></div>
           <div class="bio" id="bio"></div>
+          <div class="about" id="about"></div>
         </div>
         <div class="edit-profile-btn" style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-ghost btn-sm" id="editBtn">Modifier le profil</button>
@@ -118,6 +119,9 @@
         <textarea id="mBio" maxlength="200" placeholder="Parle un peu de toi… (passions, quartier, métier)"></textarea>
         <div class="count-hint"><span id="bioCount">0</span>/200</div>
       </div>
+      <div class="field"><label for="mJob">Métier / activité</label><input id="mJob" type="text" maxlength="60" placeholder="Ex. Menuisier, étudiante, retraité·e…"></div>
+      <div class="field"><label for="mOrigin">Commune d'origine</label><select id="mOrigin"></select></div>
+      <div class="field"><label for="mWebsite">Site / lien (optionnel)</label><input id="mWebsite" type="text" maxlength="120" placeholder="https://…"></div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost btn-sm" id="mCancel">Annuler</button>
@@ -130,7 +134,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=48"></script>
+<script src="assets/app.supabase.js?v=49"></script>
 <script src="assets/nav.js?v=4"></script>
 <script src="assets/bell.js?v=22"></script>
 <script>
@@ -163,6 +167,7 @@
     const bio=document.getElementById('bio');
     if(me.bio){ bio.textContent=me.bio; bio.classList.remove('empty-bio'); }
     else { bio.textContent="Aucune bio pour l'instant. Clique sur « Modifier le profil » pour te présenter."; bio.classList.add('empty-bio'); }
+    document.getElementById('about').innerHTML=aboutHTML(me);
     document.getElementById('sPosts').textContent=myPosts.length;
     document.getElementById('sLikes').textContent=myPosts.reduce((s,p)=>s+p.likes,0);
     renderMine(myPosts);
@@ -224,9 +229,20 @@
 
   /* ---- Modale édition ---- */
   const modal=document.getElementById('modal');
+  function aboutHTML(p){
+    const rows=[];
+    if(p.job) rows.push(`<div>💼 ${JP.esc(p.job)}</div>`);
+    if(p.origin) rows.push(`<div>🌱 Originaire de ${JP.esc(p.origin)}</div>`);
+    if(p.website){ const u=/^https?:\/\//i.test(p.website)?p.website:'https://'+p.website;
+      rows.push(`<div>🔗 <a href="${JP.esc(u)}" target="_blank" rel="noopener" style="color:var(--rouge)">${JP.esc(p.website.replace(/^https?:\/\//,''))}</a></div>`); }
+    return rows.length?`<div class="about-card">${rows.join('')}</div>`:'';
+  }
   const openM=()=>{ document.getElementById('mName').value=me.name;
     JP.fillCommuneSelect(document.getElementById('mTown'), {selected: me.town||'Delémont'});
+    JP.fillCommuneSelect(document.getElementById('mOrigin'), {first:'Non précisée', selected: me.origin||''});
     document.getElementById('mBio').value=me.bio||'';
+    document.getElementById('mJob').value=me.job||'';
+    document.getElementById('mWebsite').value=me.website||'';
     document.getElementById('bioCount').textContent=(me.bio||'').length;
     modal.classList.add('open'); };
   const closeM=()=>modal.classList.remove('open');
@@ -239,7 +255,8 @@
   document.getElementById('mSave').addEventListener('click',async()=>{
     const name=document.getElementById('mName').value.trim();
     if(!name){JP.toast('Le nom ne peut pas être vide');return;}
-    const r=await JP.updateProfile({name, town:document.getElementById('mTown').value, bio:document.getElementById('mBio').value.trim()});
+    const r=await JP.updateProfile({name, town:document.getElementById('mTown').value, bio:document.getElementById('mBio').value.trim(),
+      job:document.getElementById('mJob').value.trim(), origin:document.getElementById('mOrigin').value||'', website:document.getElementById('mWebsite').value.trim()});
     if(r.ok){ JP.toast('Profil enregistré ✅'); closeM(); paint(); }
     else JP.toast(r.msg||'Échec de l\'enregistrement');
   });
