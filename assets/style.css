@@ -675,3 +675,10 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 /* Zone de danger (Paramètres) — clair + sombre */
 .danger-card{border-color:#f6d4d4;background:#FFF7F7}
 :root[data-theme="dark"] .danger-card{border-color:#5a2b2b;background:#241617}
+
+/* ============================================================
+   BANNIÈRE « Installer l'app » (fil mobile) — display géré en JS
+   ============================================================ */
+.install-bar{align-items:center;gap:10px;background:var(--rouge-soft);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:14px;font-size:.88rem;color:var(--ink)}
+.install-bar .ib-txt{flex:1;min-width:0;line-height:1.35}
+.install-bar .ib-x{flex:0 0 auto;background:none;border:none;color:var(--ink-soft);font-size:1.3rem;cursor:pointer;line-height:1;padding:0 4px}
