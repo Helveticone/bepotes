@@ -169,7 +169,8 @@ window.JP = (() => {
       id:data.id, email:user.email, name:data.name, town:data.town,
       bio:data.bio||'', avatar:data.avatar_url, cover:data.cover_url,
       is_pro:data.is_pro, is_admin:data.is_admin, is_banned:data.is_banned, joined:data.created_at,
-      email_notifications: data.email_notifications!==false   // défaut: activé
+      email_notifications: data.email_notifications!==false,  // compat
+      email_mode: data.email_mode || 'instant'                // 'instant' | 'daily' | 'off'
     } : null;
     return _me;
   }
@@ -230,6 +231,16 @@ window.JP = (() => {
     const { error } = await sb.from('profiles').update({email_notifications:!!on}).eq('id', _me.id);
     if(error) return {ok:false, msg:error.message};
     _me.email_notifications=!!on;
+    return {ok:true};
+  }
+  /* mode = 'instant' | 'daily' | 'off' (garde email_notifications cohérent) */
+  async function setEmailMode(mode){
+    if(!_me) return {ok:false};
+    if(!['instant','daily','off'].includes(mode)) mode='instant';
+    const { error } = await sb.from('profiles')
+      .update({ email_mode:mode, email_notifications: mode!=='off' }).eq('id', _me.id);
+    if(error) return {ok:false, msg:error.message};
+    _me.email_mode=mode; _me.email_notifications = mode!=='off';
     return {ok:true};
   }
 
@@ -1479,7 +1490,7 @@ window.JP = (() => {
     sb, loadMe, requireAuth, user, toast, avatarHTML,
     colorFor, initials, esc, timeAgo, uploadImage, uploadBlob, uploadVideo, cropImage, fileToBlob,
     mentionHTML, attachMentions, tokenizeMentions, COMMUNES, fillCommuneSelect,
-    register, login, logout, updateProfile, updateEmail, updatePassword, deleteAccount, setEmailNotifications,
+    register, login, logout, updateProfile, updateEmail, updatePassword, deleteAccount, setEmailNotifications, setEmailMode,
     posts, getPost, addPost, sharePost, deletePost, editPost, editComment, toggleLike, isLiked, reactPost, REACTIONS, reactionMeta, addComment, toggleCommentLike,
     votePoll, removePollVote,
     events, getEvent, toggleGoing, isGoing, setEventRsvp, eventComments, addEventComment, deleteEventComment, createEvent, updateEvent, updateEventCover, deleteEvent,

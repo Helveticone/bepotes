@@ -49,14 +49,15 @@ Deno.serve(async (req) => {
     const rec = body?.record;
     if (!rec || !rec.user_id) return new Response("no record", { status: 200 });
 
-    // Préférence du destinataire
+    // Préférence du destinataire : on n'envoie en instantané que si email_mode='instant'
     const { data: prof } = await admin
       .from("profiles")
-      .select("name, email_notifications")
+      .select("name, email_mode, email_notifications")
       .eq("id", rec.user_id)
       .single();
-    if (prof && prof.email_notifications === false) {
-      return new Response("opted out", { status: 200 });
+    const mode = prof?.email_mode || (prof?.email_notifications === false ? "off" : "instant");
+    if (mode !== "instant") {
+      return new Response("not instant mode", { status: 200 });
     }
 
     // E-mail du destinataire

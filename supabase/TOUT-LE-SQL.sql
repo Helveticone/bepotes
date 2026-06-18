@@ -699,5 +699,16 @@ create policy "changer son vote" on public.poll_votes for update
 
 
 -- ============================================================
+--  27. MODE D'ENVOI DES E-MAILS (instantané / quotidien / off)
+--      'instant' (défaut, notify-email), 'daily' (notify-digest +
+--      pg_cron), 'off'. Voir notifications-digest-GUIDE.md.
+-- ============================================================
+alter table public.profiles add column if not exists email_mode text default 'instant';
+update public.profiles set email_mode = 'off'
+where email_mode is null and email_notifications = false;
+update public.profiles set email_mode = 'instant' where email_mode is null;
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================

@@ -57,10 +57,14 @@
 
   <div class="side-card" style="margin-bottom:18px">
     <h3 style="font-family:'Plus Jakarta Sans';font-size:1.05rem;margin-bottom:8px">Notifications par e-mail</h3>
-    <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:14px">Reçois un e-mail quand quelqu'un t'écrit, commente, t'identifie ou t'ajoute en ami. Tu peux les couper quand tu veux.</p>
-    <label style="display:flex;gap:10px;align-items:center;font-size:.95rem;cursor:pointer">
-      <input type="checkbox" id="emailNotif"> Recevoir les notifications par e-mail
-    </label>
+    <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:14px">Choisis comment recevoir les e-mails quand quelqu'un t'écrit, commente, t'identifie ou t'ajoute en ami.</p>
+    <div class="field" style="margin-bottom:0">
+      <select id="emailMode">
+        <option value="instant">À chaque notification</option>
+        <option value="daily">Un résumé par jour</option>
+        <option value="off">Désactivées</option>
+      </select>
+    </div>
   </div>
 
   <div class="side-card danger-card">
@@ -72,7 +76,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=42"></script>
+<script src="assets/app.supabase.js?v=43"></script>
 <script src="assets/nav.js?v=4"></script>
 <script src="assets/bell.js?v=22"></script>
 <script>
@@ -83,12 +87,13 @@
   document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
   document.getElementById('curEmail').textContent = me.email || '—';
 
-  const emailNotif=document.getElementById('emailNotif');
-  emailNotif.checked = me.email_notifications!==false;
-  emailNotif.addEventListener('change',async()=>{
-    const r=await JP.setEmailNotifications(emailNotif.checked);
-    if(r.ok) JP.toast(emailNotif.checked?'E-mails activés ✅':'E-mails désactivés');
-    else { JP.toast(r.msg||'Échec'); emailNotif.checked=!emailNotif.checked; }
+  const emailMode=document.getElementById('emailMode');
+  emailMode.value = me.email_mode || 'instant';
+  let lastMode = emailMode.value;
+  emailMode.addEventListener('change',async()=>{
+    const r=await JP.setEmailMode(emailMode.value);
+    if(r.ok){ lastMode=emailMode.value; JP.toast('Préférence enregistrée ✅'); }
+    else { JP.toast(r.msg||'Échec'); emailMode.value=lastMode; }
   });
 
   document.getElementById('emailBtn').addEventListener('click',async()=>{
