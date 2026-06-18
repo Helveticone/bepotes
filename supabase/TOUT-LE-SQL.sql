@@ -784,5 +784,18 @@ update public.posts p set town = pr.town
 
 
 -- ============================================================
+--  31. MESSAGERIE DE GROUPE (policies : quitter / renommer)
+--      Le schéma gère déjà is_group + title ; on autorise le delete
+--      de sa propre adhésion et l'update du titre par un membre.
+-- ============================================================
+drop policy if exists "cm_delete" on public.conversation_members;
+create policy "cm_delete" on public.conversation_members for delete
+  using ( auth.uid() = user_id );
+drop policy if exists "conv_update" on public.conversations;
+create policy "conv_update" on public.conversations for update
+  using ( public.is_conversation_member(id) ) with check ( public.is_conversation_member(id) );
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================

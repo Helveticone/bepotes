@@ -732,3 +732,6 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 .agenda-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.05rem;color:var(--rouge-dark);margin:22px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
 .agenda-title:first-child{margin-top:0}
 .ev.past{opacity:.62}
+
+/* Nom de l'expéditeur dans les messages de groupe */
+.bubble-msg .bubble-sender{display:block;font-size:.72rem;font-weight:700;color:var(--rouge-dark);margin-bottom:2px}

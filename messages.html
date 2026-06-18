@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=51">
+<link rel="stylesheet" href="assets/style.css?v=52">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -46,7 +46,10 @@
     <div class="conv-col">
       <div class="conv-head">
         <h2>Messages</h2>
-        <button class="conv-new" id="newConv" title="Nouvelle conversation">+</button>
+        <div style="display:flex;gap:6px">
+          <button class="conv-new" id="newGroup" title="Nouveau groupe" style="font-size:1rem">👥</button>
+          <button class="conv-new" id="newConv" title="Nouvelle conversation">+</button>
+        </div>
       </div>
       <div class="conv-items" id="convItems"></div>
     </div>
@@ -70,9 +73,18 @@
   </div>
 </div>
 
+<!-- Modale groupe (créer / gérer) -->
+<div class="modal-bg" id="groupModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="gmTitle">Nouveau groupe</h3><button class="x" id="gmClose">&times;</button></div>
+    <div class="modal-body" id="gmBody"></div>
+    <div class="modal-foot" id="gmFoot"></div>
+  </div>
+</div>
+
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=47"></script>
+<script src="assets/app.supabase.js?v=48"></script>
 <script src="assets/nav.js?v=4"></script>
 <script src="assets/bell.js?v=22"></script>
 <script>
@@ -94,22 +106,22 @@
       convItems.innerHTML='<div style="padding:20px;color:var(--ink-soft);font-size:.9rem">Aucune conversation. Clique sur + pour écrire à quelqu\'un.</div>';
     } else {
       convItems.innerHTML=convs.map(c=>`
-        <div class="conv-item ${c.id===activeConv?'active':''}" data-id="${c.id}" data-name="${JP.esc(c.name)}" data-avatar="${c.avatar||''}">
+        <div class="conv-item ${c.id===activeConv?'active':''}" data-id="${c.id}" data-name="${JP.esc(c.name)}" data-avatar="${c.avatar||''}" data-group="${c.isGroup?'1':''}">
           ${JP.avatarHTML(c.name,c.avatar,'av')}
-          <div class="ci"><b>${JP.esc(c.name)}</b><span>${c.lastText?JP.esc(c.lastText):'Démarrez la discussion'}</span></div>
+          <div class="ci"><b>${c.isGroup?'👥 ':''}${JP.esc(c.name)}</b><span>${c.lastText?JP.esc(c.lastText):'Démarrez la discussion'}</span></div>
         </div>`).join('');
       convItems.querySelectorAll('.conv-item').forEach(el=>{
-        el.addEventListener('click',()=>openThread(el.dataset.id, el.dataset.name, el.dataset.avatar));
+        el.addEventListener('click',()=>openThread(el.dataset.id, el.dataset.name, el.dataset.avatar, el.dataset.group==='1'));
       });
     }
     if(selectId){
       const el=convItems.querySelector(`[data-id="${selectId}"]`);
-      if(el) openThread(selectId, el.dataset.name, el.dataset.avatar);
+      if(el) openThread(selectId, el.dataset.name, el.dataset.avatar, el.dataset.group==='1');
     }
   }
 
   /* ---- Ouvrir un fil de discussion ---- */
-  async function openThread(convId, name, avatar){
+  async function openThread(convId, name, avatar, isGroup){
     activeConv=convId;
     if(unsub){ unsub(); unsub=null; }
     convItems.querySelectorAll('.conv-item').forEach(e=>e.classList.toggle('active', e.dataset.id===convId));
@@ -119,11 +131,20 @@
     threadArea.style.flexDirection='column';
     threadArea.style.minHeight='0';
     threadArea.style.flex='1';
+
+    let membersMap={}, info=null;
+    if(isGroup){
+      info=await JP.conversationInfo(convId);
+      (info.members||[]).forEach(m=>{ membersMap[m.id]={name:m.name, avatar:m.avatar}; });
+    }
+    const sub = isGroup && info ? `<span style="font-size:.76rem;color:var(--ink-soft)">${info.members.length} membres</span>` : '';
+    const manage = isGroup ? `<button class="btn btn-ghost btn-sm" id="gmManage" style="margin-left:auto;flex:0 0 auto">Gérer</button>` : '';
     threadArea.innerHTML=`
       <div class="thread-head">
         <button class="back" id="backBtn">‹</button>
         ${JP.avatarHTML(name,avatar||null,'av')}
-        <b>${JP.esc(name)}</b>
+        <div style="min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${isGroup?'👥 ':''}${JP.esc(name)}</b>${sub}</div>
+        ${manage}
       </div>
       <div class="thread-body" id="tbody"></div>
       <div class="thread-input">
@@ -131,32 +152,28 @@
         <button class="btn btn-primary" id="sendBtn">Envoyer</button>
       </div>`;
     document.getElementById('backBtn').addEventListener('click',()=>{ layout.classList.remove('show-thread'); });
+    if(isGroup){ const gm=document.getElementById('gmManage'); if(gm) gm.addEventListener('click',()=>openManageGroup(convId)); }
 
     const tbody=document.getElementById('tbody');
-    const shown=new Set();   // ids déjà affichés (évite les doublons)
+    const shown=new Set();
     const msgs=await JP.messagesOf(convId);
     msgs.forEach(m=>shown.add(m.id));
-    tbody.innerHTML=msgs.map(bubbleHTML).join('');
+    tbody.innerHTML=msgs.map(m=>bubbleHTML(m, isGroup, membersMap)).join('');
     scrollBottom(tbody);
 
     function appendMsg(m){
-      if(m.id && shown.has(m.id)) return;   // déjà affiché
+      if(m.id && shown.has(m.id)) return;
       if(m.id) shown.add(m.id);
-      tbody.insertAdjacentHTML('beforeend', bubbleHTML(m));
+      tbody.insertAdjacentHTML('beforeend', bubbleHTML(m, isGroup, membersMap));
       scrollBottom(tbody);
     }
 
-    // Temps réel : messages des autres (et confirmation des miens)
-    unsub=JP.subscribeMessages(convId, m=>{
-      appendMsg(m);
-      loadConvs();   // rafraîchit l'aperçu dans la liste
-    });
+    unsub=JP.subscribeMessages(convId, m=>{ appendMsg(m); loadConvs(); });
 
     const input=document.getElementById('msgInput');
     const send=async()=>{
       const t=input.value.trim(); if(!t) return;
       input.value='';
-      // Affichage immédiat (optimiste), sans attendre le temps réel
       appendMsg({id:null, text:t, ts:new Date().toISOString(), mine:true});
       const r=await JP.sendMessage(convId, t);
       if(r && r.error){ JP.toast('Message non envoyé'); }
@@ -167,10 +184,75 @@
     input.focus();
   }
 
-  function bubbleHTML(m){
+  function bubbleHTML(m, group, membersMap){
     const time=new Date(m.ts).toLocaleTimeString('fr-CH',{hour:'2-digit',minute:'2-digit'});
-    return `<div class="bubble-msg ${m.mine?'me':'them'}">${JP.esc(m.text)}<span class="bubble-time">${time}</span></div>`;
+    let label='';
+    if(group && !m.mine){
+      const nm = m.senderName || (membersMap && membersMap[m.senderId] && membersMap[m.senderId].name) || 'Membre';
+      label=`<span class="bubble-sender">${JP.esc(nm)}</span>`;
+    }
+    return `<div class="bubble-msg ${m.mine?'me':'them'}">${label}${JP.esc(m.text)}<span class="bubble-time">${time}</span></div>`;
   }
+
+  /* ---- Groupes : créer / gérer ---- */
+  const groupModal=document.getElementById('groupModal');
+  document.getElementById('gmClose').addEventListener('click',()=>groupModal.classList.remove('open'));
+  groupModal.addEventListener('click',e=>{ if(e.target===groupModal) groupModal.classList.remove('open'); });
+  function friendRow(f, checkbox){
+    return `<label class="member-row" style="cursor:pointer">${checkbox?`<input type="checkbox" value="${f.id}" style="margin-right:8px">`:''}${JP.avatarHTML(f.name,f.avatar,'av')}<div><b>${JP.esc(f.name)}</b><span>${JP.esc(f.town||'')}</span></div></label>`;
+  }
+  async function openCreateGroup(){
+    document.getElementById('gmTitle').textContent='Nouveau groupe';
+    const friends=await JP.friends();
+    document.getElementById('gmBody').innerHTML=
+      `<div class="field"><label>Nom du groupe</label><input id="gmName" type="text" maxlength="60" placeholder="Sortie raquettes, Comité…"></div>`+
+      `<div class="field"><label>Ajoute des amis</label><div id="gmMembers">${friends.length?friends.map(f=>friendRow(f,true)).join(''):'<p style="color:var(--ink-soft)">Ajoute d\'abord des amis pour créer un groupe.</p>'}</div></div>`;
+    document.getElementById('gmFoot').innerHTML='<button class="btn btn-ghost btn-sm" id="gmCancel">Annuler</button><button class="btn btn-primary btn-sm" id="gmCreate">Créer le groupe</button>';
+    document.getElementById('gmCancel').addEventListener('click',()=>groupModal.classList.remove('open'));
+    document.getElementById('gmCreate').addEventListener('click',async()=>{
+      const name=document.getElementById('gmName').value.trim();
+      const ids=[...document.querySelectorAll('#gmMembers input:checked')].map(c=>c.value);
+      if(!ids.length){ JP.toast('Choisis au moins une personne'); return; }
+      const r=await JP.createGroupConversation(name, ids);
+      if(r.ok){ groupModal.classList.remove('open'); await loadConvs(); openThread(r.id, name||'Groupe', '', true); }
+      else JP.toast(r.msg||'Échec');
+    });
+    groupModal.classList.add('open');
+  }
+  async function openManageGroup(convId){
+    const info=await JP.conversationInfo(convId);
+    document.getElementById('gmTitle').textContent='Gérer le groupe';
+    const friends=await JP.friends();
+    const memberIds=new Set(info.members.map(m=>m.id));
+    const toAdd=friends.filter(f=>!memberIds.has(f.id));
+    document.getElementById('gmBody').innerHTML=
+      `<div class="field"><label>Nom du groupe</label><input id="gmName" type="text" maxlength="60" value="${JP.esc(info.title)}"></div>`+
+      `<div class="field"><label>Membres (${info.members.length})</label>${info.members.map(m=>`<div class="member-row">${JP.avatarHTML(m.name,m.avatar,'av')}<div><b>${JP.esc(m.name)}${m.mine?' (toi)':''}</b></div></div>`).join('')}</div>`+
+      (toAdd.length?`<div class="field"><label>Ajouter des amis</label><div id="gmMembers">${toAdd.map(f=>friendRow(f,true)).join('')}</div></div>`:'');
+    document.getElementById('gmFoot').innerHTML='<button class="btn btn-ghost btn-sm" id="gmLeave" style="color:var(--rouge);margin-right:auto">Quitter</button><button class="btn btn-primary btn-sm" id="gmSave">Enregistrer</button>';
+    document.getElementById('gmSave').addEventListener('click',async()=>{
+      const newName=document.getElementById('gmName').value.trim();
+      if(newName && newName!==info.title) await JP.renameConversation(convId, newName);
+      const add=[...document.querySelectorAll('#gmMembers input:checked')].map(c=>c.value);
+      if(add.length) await JP.addConversationMembers(convId, add);
+      groupModal.classList.remove('open');
+      JP.toast('Groupe mis à jour ✅');
+      await loadConvs();
+      openThread(convId, newName||info.title||'Groupe', '', true);
+    });
+    document.getElementById('gmLeave').addEventListener('click',async()=>{
+      if(!confirm('Quitter ce groupe ?')) return;
+      await JP.leaveConversation(convId);
+      groupModal.classList.remove('open');
+      activeConv=null; if(unsub){ unsub(); unsub=null; }
+      threadArea.className='thread-empty'; threadArea.style.display='';
+      threadArea.innerHTML='<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><p>Choisis une conversation, ou démarres-en une nouvelle.</p>';
+      layout.classList.remove('show-thread');
+      await loadConvs();
+    });
+    groupModal.classList.add('open');
+  }
+  document.getElementById('newGroup').addEventListener('click',openCreateGroup);
   function scrollBottom(el){ el.scrollTop=el.scrollHeight; }
 
   /* ---- Modale : nouvelle conversation ---- */

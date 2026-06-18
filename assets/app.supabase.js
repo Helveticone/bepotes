@@ -851,18 +851,18 @@ window.JP = (() => {
     return data;
   }
 
-  /* Mes conversations, avec le dernier message et l'autre interlocuteur */
+  /* Mes conversations (1-à-1 et groupes), avec dernier message */
   async function conversations(){
     if(!_me) return [];
     const { data:mine } = await sb.from('conversation_members')
       .select('conversation_id').eq('user_id', _me.id);
     const ids=(mine||[]).map(r=>r.conversation_id);
     if(!ids.length) return [];
-    // Membres de ces conversations (pour trouver l'autre personne)
+    const { data:convRows } = await sb.from('conversations').select('id, is_group, title').in('id', ids);
+    const meta={}; (convRows||[]).forEach(c=>meta[c.id]=c);
     const { data:allMembers } = await sb.from('conversation_members')
       .select('conversation_id, user_id, profiles!user_id ( name, avatar_url )')
       .in('conversation_id', ids);
-    // Dernier message de chaque conversation
     const { data:msgs } = await sb.from('messages')
       .select('conversation_id, text, created_at, sender_id')
       .in('conversation_id', ids)
@@ -870,27 +870,68 @@ window.JP = (() => {
     const lastByConv={};
     (msgs||[]).forEach(m=>{ if(!lastByConv[m.conversation_id]) lastByConv[m.conversation_id]=m; });
     return ids.map(cid=>{
-      const others=(allMembers||[]).filter(m=>m.conversation_id===cid && m.user_id!==_me.id);
-      const other=others[0];
+      const m=meta[cid]||{};
+      const others=(allMembers||[]).filter(x=>x.conversation_id===cid && x.user_id!==_me.id);
       const last=lastByConv[cid];
+      if(m.is_group){
+        const name = (m.title||'').trim() || others.map(o=>o.profiles?.name).filter(Boolean).slice(0,3).join(', ') || 'Groupe';
+        return { id:cid, isGroup:true, name, avatar:null, memberCount: others.length+1,
+                 lastText:last?.text||'', lastTs:last?.created_at||null };
+      }
+      const other=others[0];
       return {
-        id:cid,
+        id:cid, isGroup:false,
         name: other?.profiles?.name || 'Conversation',
         avatar: other?.profiles?.avatar_url || null,
-        lastText: last?.text || '',
-        lastTs: last?.created_at || null
+        lastText: last?.text || '', lastTs: last?.created_at || null
       };
     }).sort((a,b)=> new Date(b.lastTs||0)-new Date(a.lastTs||0));
   }
 
   async function messagesOf(convId){
     const { data } = await sb.from('messages')
-      .select('id, text, created_at, sender_id')
+      .select('id, text, created_at, sender_id, sender:profiles!sender_id ( name, avatar_url )')
       .eq('conversation_id', convId)
       .order('created_at', {ascending:true});
     return (data||[]).map(m=>({
-      id:m.id, text:m.text, ts:m.created_at, mine:m.sender_id===_me?.id
+      id:m.id, text:m.text, ts:m.created_at, mine:m.sender_id===_me?.id,
+      senderId:m.sender_id, senderName:m.sender?.name||'Membre', senderAvatar:m.sender?.avatar_url||null
     }));
+  }
+
+  /* ---- Conversations de groupe ---- */
+  async function createGroupConversation(title, ids){
+    if(!_me) return {ok:false};
+    const { data:conv, error } = await sb.from('conversations')
+      .insert({is_group:true, title:(title||'').trim()||'Groupe'}).select().single();
+    if(error) return {ok:false, msg:error.message};
+    const rows=[{conversation_id:conv.id, user_id:_me.id}].concat((ids||[]).map(id=>({conversation_id:conv.id, user_id:id})));
+    const { error:e2 } = await sb.from('conversation_members').insert(rows);
+    if(e2) return {ok:false, msg:e2.message};
+    return {ok:true, id:conv.id};
+  }
+  async function conversationInfo(convId){
+    const { data:c } = await sb.from('conversations').select('id, is_group, title').eq('id', convId).single();
+    const { data:mems } = await sb.from('conversation_members')
+      .select('user_id, profiles!user_id ( name, avatar_url )').eq('conversation_id', convId);
+    return {
+      id:convId, isGroup: !!c?.is_group, title: c?.title || '',
+      members: (mems||[]).map(m=>({ id:m.user_id, name:m.profiles?.name||'Membre', avatar:m.profiles?.avatar_url||null, mine:m.user_id===_me?.id }))
+    };
+  }
+  async function addConversationMembers(convId, ids){
+    if(!ids || !ids.length) return {ok:true};
+    const rows=ids.map(id=>({conversation_id:convId, user_id:id}));
+    const { error } = await sb.from('conversation_members').upsert(rows, {onConflict:'conversation_id,user_id'});
+    return error ? {ok:false, msg:error.message} : {ok:true};
+  }
+  async function leaveConversation(convId){
+    if(!_me) return;
+    await sb.from('conversation_members').delete().eq('conversation_id', convId).eq('user_id', _me.id);
+  }
+  async function renameConversation(convId, title){
+    const { error } = await sb.from('conversations').update({title:(title||'').trim()||'Groupe'}).eq('id', convId);
+    return error ? {ok:false, msg:error.message} : {ok:true};
   }
 
   async function sendMessage(convId, text){
@@ -906,7 +947,7 @@ window.JP = (() => {
         {event:'INSERT', schema:'public', table:'messages', filter:`conversation_id=eq.${convId}`},
         payload=>{
           const m=payload.new;
-          onNew({id:m.id, text:m.text, ts:m.created_at, mine:m.sender_id===_me?.id});
+          onNew({id:m.id, text:m.text, ts:m.created_at, mine:m.sender_id===_me?.id, senderId:m.sender_id});
         })
       .subscribe();
     return ()=> sb.removeChannel(ch);   // fonction de désabonnement
@@ -1565,6 +1606,7 @@ window.JP = (() => {
     notifications, unreadCount, markAllRead, notifText, subscribeNotifications,
     follow, unfollow, isFollowing, followCounts,
     members, openConversationWith, contactSeller, conversations, messagesOf, sendMessage, subscribeMessages,
+    createGroupConversation, conversationInfo, addConversationMembers, leaveConversation, renameConversation,
     searchPosts,
     friendStatus, sendFriendRequest, acceptFriend, removeFriend, pendingRequests, friends, friendCount, areFriends, friendSuggestions,
     listGroups, getGroup, createGroup, joinGroup, leaveGroup, groupPosts, addGroupPost,
