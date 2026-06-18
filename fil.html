@@ -134,7 +134,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=56"></script>
+<script src="assets/app.supabase.js?v=57"></script>
 <script src="assets/nav.js?v=5"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=22"></script>
@@ -965,9 +965,11 @@
     const r=await JP.addReel(file, caption);
     if(r && r.ok){
       JP.toast('Reel publié ! 🎬');
-      try{ _reels=await JP.reels(20); }catch(err){}
+      try{ _reels=await JP.reels(20); }catch(err){ _reels=_reels||[]; }
       renderFeed();
-    } else JP.toast((r&&r.msg)||'Échec de la publication');
+    } else {
+      JP.toast((r&&r.msg)||'Échec de la publication', r&&r.needSql?6000:3000);
+    }
   });
 
   await prefetchExtras();

@@ -1169,7 +1169,12 @@ window.JP = (() => {
       author_id:_me.id, text:(caption||'').slice(0,300), tag:'Reel', town:_me.town||null,
       images:[], video_url:videoUrl, is_reel:true
     });
-    return error ? {ok:false, msg:error.message} : {ok:true};
+    if(error){
+      if(/is_reel|column|schema cache|PGRST204/i.test(error.message||''))
+        return {ok:false, needSql:true, msg:"Reels pas encore activés : lance la section 35 du SQL dans Supabase."};
+      return {ok:false, msg:error.message};
+    }
+    return {ok:true};
   }
 
   async function listGroups(search='', kind='group'){
