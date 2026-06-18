@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=49">
+<link rel="stylesheet" href="assets/style.css?v=50">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -94,9 +94,12 @@
       </div>
     </div>
     <div id="suggestStrip"></div>
-    <div class="search-tabs" id="feedTabs" style="margin-bottom:16px">
-      <button data-s="recent" class="active">Récent</button>
-      <button data-s="pertinent">Pertinent</button>
+    <div class="feed-toolbar">
+      <div class="search-tabs" id="feedTabs">
+        <button data-s="recent" class="active">Récent</button>
+        <button data-s="pertinent">Pertinent</button>
+      </div>
+      <select id="communeFilter" class="commune-filter" aria-label="Filtrer par commune"></select>
     </div>
     <div id="feed"></div>
     <div id="feedSentinel" style="height:1px"></div>
@@ -123,7 +126,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=45"></script>
+<script src="assets/app.supabase.js?v=46"></script>
 <script src="assets/nav.js?v=4"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=22"></script>
@@ -207,6 +210,19 @@
     });
   });
 
+  /* ---- Filtre par commune ---- */
+  let feedTown = (function(){ try{ return localStorage.getItem('jp-feed-commune')||''; }catch(e){ return ''; } })();
+  const communeFilter=document.getElementById('communeFilter');
+  if(communeFilter){
+    JP.fillCommuneSelect(communeFilter, {first:'📍 Toutes les communes', selected:feedTown});
+    communeFilter.value=feedTown||'';
+    communeFilter.addEventListener('change',()=>{
+      feedTown=communeFilter.value||'';
+      try{ localStorage.setItem('jp-feed-commune', feedTown); }catch(e){}
+      render();   // recharge le fil filtré depuis la 1ère page
+    });
+  }
+
   /* ---- Photos dans le composer (multi, max 6) ---- */
   const photoFile=document.getElementById('photoFile');
   document.getElementById('photoBtn').addEventListener('click',()=>photoFile.click());
@@ -269,7 +285,7 @@
   async function render(){
     feed.innerHTML='<div class="empty"><p>Chargement…</p></div>';
     reachedEnd=false;
-    loadedPosts=await JP.posts({limit:PAGE});
+    loadedPosts=await JP.posts({limit:PAGE, town:feedTown||undefined});
     reachedEnd = loadedPosts.length<PAGE;
     renderFeed();
   }
@@ -278,7 +294,7 @@
     if(loadingMore || reachedEnd || !loadedPosts.length) return;
     loadingMore=true;
     const before=loadedPosts[loadedPosts.length-1].ts;
-    const more=await JP.posts({before, limit:PAGE});
+    const more=await JP.posts({before, limit:PAGE, town:feedTown||undefined});
     if(more.length<PAGE) reachedEnd=true;
     const have=new Set(loadedPosts.map(p=>p.id));
     loadedPosts.push(...more.filter(p=>!have.has(p.id)));

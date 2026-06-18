@@ -773,5 +773,16 @@ create policy "marquer vu" on public.story_views for insert with check ( auth.ui
 
 
 -- ============================================================
+--  30. COMMUNE SUR LES PUBLICATIONS (filtre local du fil)
+--      posts.town = commune de l'auteur (dénormalisée). Remplie à la
+--      publication côté app ; backfill des posts existants ici.
+-- ============================================================
+alter table public.posts add column if not exists town text;
+create index if not exists posts_town_idx on public.posts(town);
+update public.posts p set town = pr.town
+  from public.profiles pr where p.author_id = pr.id and p.town is null;
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================

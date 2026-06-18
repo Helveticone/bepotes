@@ -399,7 +399,7 @@ window.JP = (() => {
      ============================================================ */
   /* Fil paginé par curseur : opts.before = created_at du dernier post chargé
      (renvoie les plus anciens que `before`), opts.limit = taille de page. */
-  async function posts({before=null, limit=100}={}){
+  async function posts({before=null, limit=100, town=null}={}){
     let q = sb
       .from('posts')
       .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
@@ -408,6 +408,7 @@ window.JP = (() => {
                video_url, link_url, link_title, link_desc, link_image, link_site, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
       .is('group_id', null);
+    if(town) q = q.eq('town', town);
     if(before) q = q.lt('created_at', before);
     q = q.order('created_at', {ascending:false}).limit(limit);
     const { data, error } = await q;
@@ -493,7 +494,7 @@ window.JP = (() => {
     const poll = (pollOptions && pollOptions.length>=2) ? pollOptions.slice(0,6) : null;
     const link = await fetchLinkPreview(text, {skip: !!sharedPostId});
     const { error } = await sb.from('posts').insert({
-      author_id:_me.id, text, tag:tag||'Général',
+      author_id:_me.id, text, tag:tag||'Général', town:_me.town||null,
       image_url:urls[0]||null, images:urls, video_url:videoUrl,
       shared_post_id: sharedPostId||null,
       poll_options: poll,
