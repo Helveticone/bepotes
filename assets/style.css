@@ -34,6 +34,8 @@ nav{position:sticky;top:0;z-index:50;background:var(--paper);border-bottom:1px s
 .btn-sm{padding:8px 15px;font-size:.85rem}
 .btn-block{width:100%}
 @media(max-width:900px){.nav-links a:not(.btn){display:none}}
+/* Mobile : barre NON sticky (évite la « disparition » du logo sur Chrome Android) */
+@media(max-width:900px){nav{position:relative}}
 /* Menu mobile : hamburger + tiroir latéral gauche (v36) */
 .nav-burger{display:none;background:none;border:none;cursor:pointer;padding:6px;color:var(--ink);align-items:center}
 .nav-burger svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
