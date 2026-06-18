@@ -35,10 +35,18 @@ Auth, profils (avatar/couverture recadrables), fil (posts multi-photos, réactio
 - `panneau-hcm-7x2k9.html` = modération (ex-`admin.html`). `regie-hcm-7x2k9.html` = régie pub (ex-`admin-pub.html`).
 - **Aucun lien dans le menu** (volontaire). Vraie sécurité = RLS `is_admin()`. Devenir admin : `supabase/devenir-admin.sql` (compte `office@helveticonemedia.ch`).
 
-## Reste à faire (priorité « confort / lancement »)
-Aperçu de liens (OG), vidéos, pagination/scroll infini. (Optionnel : digest e-mail quotidien via `pg_cron` au lieu d'un mail/notif.)
+## Fil — extras récents
+- **Scroll infini** : `JP.posts({before,limit})` (curseur sur `created_at`), pages de 20 via `IntersectionObserver` (sentinelle `#feedSentinel`).
+- **Tri Récent/Pertinent** : bascule en haut du fil (`#feedTabs`), défaut Récent, mémorisé localStorage ; « Pertinent » = score client `fraîcheur+engagement+affinité(amis)+garde-fou<2h`.
+- **Vidéos** (`posts.video_url`, `JP.uploadVideo`, `<video>` inline) et **sondages** (voir plus haut) dans le composer.
+- **Aperçu de liens (OG)** : colonnes `posts.link_*` remplies à la publication par l'Edge Function `supabase/functions/og-preview` (déploiement manuel, voir guide) ; rendu carte `.link-card` (fil + post.html).
+- Pubs : plusieurs encarts espacés (1ère après 3e publi, puis ~toutes les 5), ordre mélangé, 1× chacune.
+
+## Reste à faire
+Digest e-mail quotidien (optionnel, via `pg_cron` au lieu d'un mail par notif). Sinon : peaufinage lancement.
 
 ## Pièges connus
 - Messagerie **amis-only** (RLS `cm_insert`) ; le Marché contourne via la fonction `contact_user` uniquement.
 - Liste des **communes** : centralisée dans `JP.COMMUNES` / `JP.communeOptions()` (inclut Moutier, rattaché au Jura en 2026). À utiliser partout (inscription, profil, groupes, pages, marketplace, événements).
-- **Cache-busting** : `theme.js` injecté dans le `<head>` (avant rendu, anti-flash) ; versions actuelles `app.supabase.js?v=39`, `style.css?v=43`, `nav.js?v=4`, `bell.js?v=22`, `theme.js?v=1`.
+- **Cache-busting** : `theme.js` injecté dans le `<head>` (avant rendu, anti-flash) ; versions actuelles `app.supabase.js?v=42`, `style.css?v=45`, `nav.js?v=4`, `bell.js?v=22`, `theme.js?v=1`.
+- **Edge Functions à déployer manuellement** (CLI Supabase) : `notify-email` (Resend, notifs e-mail) et `og-preview` (aperçus OG). L'app fonctionne sans, juste sans ces extras.
