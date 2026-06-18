@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=69">
+<link rel="stylesheet" href="assets/style.css?v=70">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -313,7 +313,7 @@
 
   /* ---- Fil paginé + scroll infini ---- */
   const PAGE=20;
-  let loadedPosts=[], loadingMore=false, reachedEnd=false, feedToken=0;
+  let loadedPosts=[], loadingMore=false, reachedEnd=false, feedToken=0, feedRevealed=false;
 
   function renderFeed(){
     if(!loadedPosts.length){
@@ -323,6 +323,7 @@
     const tok=++feedToken;   // jeton anti-course (insertions async)
     const list=orderPosts(loadedPosts);
     feed.innerHTML=list.map(p=>postHTML(p)).join('');
+    if(!feedRevealed){ feedRevealed=true; feed.classList.add('feed-in'); setTimeout(()=>feed.classList.remove('feed-in'),700); }
     list.forEach(p=>bind(p));
     wireFollowButtons();
     wireFriendButtons();
@@ -986,6 +987,37 @@
       JP.toast((r&&r.msg)||'Échec de la publication', r&&r.needSql?6000:3000);
     }
   });
+
+  /* ---- Bouton « retour en haut » ---- */
+  (function backToTop(){
+    const b=document.createElement('button'); b.className='to-top'; b.type='button'; b.setAttribute('aria-label','Remonter en haut');
+    b.innerHTML='<svg viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>';
+    document.body.appendChild(b);
+    b.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+    const onScroll=()=>b.classList.toggle('show', window.scrollY>700);
+    window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+  })();
+
+  /* ---- Carte de bienvenue (nouveaux membres, fermable une fois) ---- */
+  (function welcome(){
+    let dismissed=false; try{ dismissed=localStorage.getItem('jp-welcome-dismissed')==='1'; }catch(e){}
+    if(dismissed) return;
+    const main=document.querySelector('main'); const composer=main && main.querySelector('.composer');
+    if(!main || !composer) return;
+    const card=document.createElement('div'); card.className='welcome-card';
+    card.innerHTML=`<button class="wc-x" type="button" aria-label="Fermer">&times;</button>
+      <h3>Bienvenue sur Jurapotes 👋</h3>
+      <p>Trois petits pas pour bien démarrer dans le Jura :</p>
+      <div class="wc-steps">
+        <a class="wc-step" href="profil.html">🧑 Compléter mon profil (photo, à propos)</a>
+        <a class="wc-step" href="amis.html">🤝 Trouver des amis près de chez moi</a>
+        <a class="wc-step" href="#" id="wcPost">✍️ Publier mon premier message</a>
+      </div>`;
+    main.insertBefore(card, composer);
+    card.querySelector('.wc-x').addEventListener('click',()=>{ try{localStorage.setItem('jp-welcome-dismissed','1');}catch(e){} card.remove(); });
+    const wp=card.querySelector('#wcPost');
+    if(wp) wp.addEventListener('click',e=>{ e.preventDefault(); const t=document.getElementById('compText'); if(t){ t.focus(); t.scrollIntoView({behavior:'smooth',block:'center'}); } });
+  })();
 
   await prefetchExtras();
   await render();

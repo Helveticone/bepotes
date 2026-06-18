@@ -904,3 +904,39 @@ a:focus:not(:focus-visible),button:focus:not(:focus-visible){outline:none}
 .sk-av{width:42px;height:42px;border-radius:50%;flex:0 0 auto}
 .sk-line{height:11px}
 .sk-img{height:200px;border-radius:12px;margin-top:6px}
+
+/* ============================================================
+   PEAUFINAGE UI/UX — lot 2 (états vides, mobile, onboarding, apparition)
+   ============================================================ */
+@keyframes jpFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes jpFadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* États vides plus soignés (icône dans une pastille douce) */
+.empty{animation:jpFadeIn .3s ease}
+.empty svg{stroke:var(--rouge);background:var(--rouge-soft);padding:15px;border-radius:50%;box-sizing:content-box;width:42px;height:42px;margin-bottom:8px}
+.empty p{max-width:360px;margin:8px auto 0;line-height:1.55}
+
+/* Apparition douce du fil (1er rendu seulement, via .feed-in) */
+#feed.feed-in > *{animation:jpFadeUp .35s ease both}
+
+/* Bouton « retour en haut » (mobile + PC) */
+.to-top{position:fixed;right:16px;bottom:74px;width:46px;height:46px;border-radius:50%;background:var(--rouge);color:#fff;border:none;display:none;align-items:center;justify-content:center;box-shadow:var(--shadow-lg);cursor:pointer;z-index:55}
+.to-top svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2.4}
+.to-top.show{display:flex;animation:jpFadeIn .2s ease}
+@media(min-width:901px){.to-top{bottom:24px;right:24px}}
+
+/* Carte de bienvenue (onboarding, fermable) */
+.welcome-card{background:linear-gradient(135deg,var(--rouge),#ff7a45);color:#fff;border-radius:18px;padding:18px 20px;margin-bottom:16px;position:relative;box-shadow:0 8px 24px rgba(225,29,42,.25)}
+.welcome-card h3{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.18rem;margin-bottom:5px}
+.welcome-card>p{opacity:.95;font-size:.92rem;margin-bottom:13px;max-width:90%}
+.welcome-card .wc-steps{display:flex;flex-direction:column;gap:8px}
+.welcome-card .wc-step{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.16);border-radius:12px;padding:11px 13px;color:#fff;text-decoration:none;font-weight:600;font-size:.9rem;transition:background .15s ease}
+.welcome-card .wc-step:hover{background:rgba(255,255,255,.28)}
+.welcome-card .wc-x{position:absolute;top:11px;right:13px;background:none;border:none;color:#fff;font-size:1.5rem;line-height:1;cursor:pointer;opacity:.85}
+
+/* Zones tactiles plus généreuses sur mobile */
+@media(max-width:900px){
+  .mobile-nav a{min-height:50px}
+  .icon-btn{min-height:40px}
+  .nav-burger,.nav-theme,.nav-bell{min-width:42px;min-height:42px}
+}
