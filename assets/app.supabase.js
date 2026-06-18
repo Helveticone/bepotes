@@ -319,7 +319,7 @@ window.JP = (() => {
   /* Upload d'un Blob déjà préparé (ex: sortie de cropImage) */
   async function uploadBlob(bucket, blob){
     const path = `${_me.id}/${Date.now()}.jpg`;
-    const { error } = await sb.storage.from(bucket).upload(path, blob, {contentType:'image/jpeg', upsert:true});
+    const { error } = await sb.storage.from(bucket).upload(path, blob, {contentType:'image/jpeg', upsert:true, cacheControl:'31536000'});
     if(error) throw error;
     const { data } = sb.storage.from(bucket).getPublicUrl(path);
     return data.publicUrl;
@@ -333,7 +333,7 @@ window.JP = (() => {
     if(mb > MAX_VIDEO_MB) throw new Error(`Vidéo trop lourde (${Math.round(mb)} Mo). Maximum ${MAX_VIDEO_MB} Mo — raccourcis-la ou réduis la qualité.`);
     const ext=(file.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'') || 'mp4';
     const path=`${_me.id}/${Date.now()}.${ext}`;
-    const { error } = await sb.storage.from('posts').upload(path, file, {contentType:file.type||'video/mp4', upsert:true});
+    const { error } = await sb.storage.from('posts').upload(path, file, {contentType:file.type||'video/mp4', upsert:true, cacheControl:'31536000'});
     if(error){
       const m=(error.message||'').toLowerCase();
       if(m.includes('mime')||m.includes('not allowed')||m.includes('not supported'))

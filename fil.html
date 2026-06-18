@@ -134,7 +134,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=59"></script>
+<script src="assets/app.supabase.js?v=60"></script>
 <script src="assets/nav.js?v=5"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=22"></script>
@@ -844,13 +844,16 @@
     if(pollOptions && !raw){ JP.toast('Écris la question du sondage dans le texte'); return; }
     const t=JP.tokenizeMentions(raw, compText._mentions);
     compGo.disabled=true; compGo.textContent='Publication…';
+    if(pendingVideo) JP.toast('Envoi de la vidéo… (ça peut prendre un moment)');
     await JP.addPost({text:t, tag:document.getElementById('compTag').value, images:pendingImages, pollOptions, video:pendingVideo});
     compGo.disabled=false; compGo.textContent='Publier';
     compText.value=''; compText._mentions=[];
     pendingImages=[]; pendingVideo=null; renderVideoPrev();
     pollOn=false; pollEditor.style.display='none'; pollEditor.innerHTML='';
     renderPreviews();
-    JP.toast('Publié ! \u{1F389}'); await render();
+    JP.toast('Publié ! \u{1F389}');
+    await render();
+    window.scrollTo({top:0, behavior:'smooth'});   // remonte voir sa publication
   });
 
   /* Mini événements */
