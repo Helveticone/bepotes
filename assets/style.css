@@ -157,6 +157,7 @@ section.block{padding:80px 0}
 .act.liked svg{fill:var(--rouge)}
 .comments{margin-top:13px;border-top:1px solid var(--line);padding-top:13px;display:none}
 .comments.open{display:block}
+.comment-list{--cind:22px}
 .comment{display:flex;gap:9px;margin-bottom:10px}
 .comment .av{width:32px;height:32px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;color:#fff;font-weight:700;font-size:.78rem}
 .comment .bubble{background:#FBF4F4;border-radius:13px;padding:8px 13px;flex:1}
@@ -171,6 +172,7 @@ section.block{padding:80px 0}
 .cedit,.creply{background:none;border:none;cursor:pointer;color:var(--ink-soft);font-size:.76rem;font-weight:700;padding:5px 0 0 12px;font-family:inherit}
 .cedit:hover,.creply:hover{color:var(--rouge);text-decoration:underline}
 .comment.reply{margin-left:40px}
+@media(max-width:560px){.comment-list{--cind:11px}}
 .comment.reply .av{width:28px;height:28px;font-size:.7rem}
 .see-all{background:none;border:none;cursor:pointer;color:var(--ink-soft);font-weight:600;font-size:.86rem;font-family:inherit;padding:4px 0 10px}
 .see-all:hover{color:var(--rouge);text-decoration:underline}

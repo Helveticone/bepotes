@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=63">
+<link rel="stylesheet" href="assets/style.css?v=64">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -664,14 +664,15 @@
     const cCtrls=el.querySelector('.comments-controls');
     const cSel=el.querySelector('.csort');
     const cSeeAll=el.querySelector('.see-all');
-    function commentHTML(c,isReply){
+    function commentHTML(c, depth){
       const mineC=c.authorId===me.id;
-      const parentTarget=isReply?c.parentId:c.id;
-      return `<div class="comment ${isReply?'reply':''}" data-cid="${c.id}">
+      const cap=Math.min(depth||0,5);
+      const ind = depth>0 ? ` style="margin-left:calc(${cap} * var(--cind))"` : '';
+      return `<div class="comment ${depth>0?'reply':''}" data-cid="${c.id}"${ind}>
         ${JP.avatarHTML(c.author,c.avatar,'av')}
         <div class="bubble"><b>${JP.esc(c.author)}</b><p>${JP.mentionHTML(c.text)}</p>
           <button class="clike ${c.liked?'liked':''}" type="button" data-cid="${c.id}">♥ <span class="cl-count">${c.likes}</span></button>
-          <button class="creply" type="button" data-parent="${parentTarget}">Répondre</button>
+          <button class="creply" type="button" data-parent="${c.id}">Répondre</button>
           ${mineC?`<button class="cedit" type="button" data-cid="${c.id}">Modifier</button>`:''}
         </div></div>`;
     }
@@ -679,23 +680,24 @@
       const byRecent=(a,b)=>new Date(b.ts)-new Date(a.ts);
       const byOld=(a,b)=>new Date(a.ts)-new Date(b.ts);
       const sorters={ all:byOld, recent:byRecent, top:(a,b)=>(b.likes-a.likes)||byRecent(a,b) };
-      const tops=p.comments.filter(c=>!c.parentId);
-      const repliesByParent={}; p.comments.filter(c=>c.parentId).forEach(r=>{(repliesByParent[r.parentId]=repliesByParent[r.parentId]||[]).push(r);});
-      let list;
+      // Arbre de commentaires (profondeur illimitée) : enfants par parent
+      const kids={}; p.comments.forEach(c=>{ const k=c.parentId||'__root'; (kids[k]=kids[k]||[]).push(c); });
+      const tops=kids['__root']||[];
       if(cstate.expanded){
-        list=tops.slice().sort(sorters[cstate.sort]||sorters.all);
         cCtrls.style.display=''; cSeeAll.style.display='none';
         if(cSel) cSel.value=cstate.sort;
+        const ordered=tops.slice().sort(sorters[cstate.sort]||sorters.all);
+        const rows=[];
+        const walk=(parentId,depth)=>{ (kids[parentId]||[]).slice().sort(byOld).forEach(c=>{ rows.push([c,depth]); walk(c.id,depth+1); }); };
+        ordered.forEach(top=>{ rows.push([top,0]); walk(top.id,1); });
+        cList.innerHTML=rows.map(([c,d])=>commentHTML(c,d)).join('');
       } else {
-        list=tops.slice().sort(byRecent).slice(0,2).reverse();
         cCtrls.style.display='none';
         cSeeAll.textContent='Voir les '+p.comments.length+' commentaires';
         cSeeAll.style.display = p.comments.length>2 ? '' : 'none';
+        const list=tops.slice().sort(byRecent).slice(0,2).reverse();
+        cList.innerHTML=list.map(top=>commentHTML(top,0)).join('');
       }
-      cList.innerHTML=list.map(top=>{
-        const replies=cstate.expanded ? (repliesByParent[top.id]||[]).slice().sort(byOld) : [];
-        return `<div class="cthread">${commentHTML(top,false)}<div class="replies">${replies.map(r=>commentHTML(r,true)).join('')}</div></div>`;
-      }).join('');
       cList.querySelectorAll('.clike').forEach(b=>b.addEventListener('click',async()=>{
         const cid=b.dataset.cid, c=p.comments.find(x=>x.id===cid); if(!c) return;
         c.liked=!c.liked; c.likes=Math.max(0,c.likes+(c.liked?1:-1));
