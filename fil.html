@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=66">
+<link rel="stylesheet" href="assets/style.css?v=67">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -339,33 +339,34 @@
     }));
     insertFeedAds(tok);
     insertFeedExtras();
-    decorateTags(tok);
+    decorateTags();
   }
 
-  /* ---- Tags de personnes : affichage « 🏷️ Avec … » + bouton « Identifier » (auteur) ---- */
-  async function decorateTags(tok){
-    const els=[...feed.querySelectorAll('.post[data-id]')].filter(el=>el.querySelector('.post-gallery'));
-    if(!els.length) return;
-    const ids=els.map(el=>el.dataset.id);
+  /* ---- Tags de personnes : remplit « 🏷️ Avec … » dans le bloc .photo-tags
+     (le bouton « Identifier » est déjà rendu par postHTML pour mes posts). ---- */
+  async function decorateTags(){
+    const boxes=[...feed.querySelectorAll('.photo-tags[data-pid]')];
+    if(!boxes.length) return;
+    const ids=boxes.map(b=>b.dataset.pid);
     let map={}; try{ map=await JP.postTags(ids); }catch(e){ return; }
-    if(tok!==undefined && tok!==feedToken) return;   // rendu obsolète
-    els.forEach(el=>{
-      const pid=el.dataset.id;
+    feed.querySelectorAll('.photo-tags[data-pid]').forEach(box=>{
+      const pid=box.dataset.pid;
       const post=loadedPosts.find(x=>String(x.id)===String(pid));
       const mine = post && post.authorEmail===me.id;
       const tags=map[pid]||[];
-      if(!tags.length && !mine) return;
-      el.querySelector('.photo-tags')?.remove();
-      const div=document.createElement('div'); div.className='photo-tags';
-      const names=tags.map(t=>`<a href="membre.html?id=${t.id}">${JP.esc(t.name)}</a>`).join(', ');
-      div.innerHTML=(tags.length?`<span class="pt-list">🏷️ Avec ${names}</span>`:'')+
-        (mine?`<button type="button" class="pt-edit" data-id="${pid}">🏷️ Identifier</button>`:'');
-      const gal=el.querySelector('.post-gallery');
-      gal.parentNode.insertBefore(div, gal.nextSibling);
-      const btn=div.querySelector('.pt-edit');
-      if(btn) btn.addEventListener('click',()=>openTagModal(pid, tags.map(t=>t.id)));
+      const names = tags.length
+        ? `<span class="pt-list">🏷️ Avec ${tags.map(t=>`<a href="membre.html?id=${t.id}">${JP.esc(t.name)}</a>`).join(', ')}</span>`
+        : '';
+      box.innerHTML = names + (mine?`<button type="button" class="pt-edit" data-id="${pid}">🏷️ Identifier</button>`:'');
     });
   }
+  // Clic sur « Identifier » (délégation : survit aux re-rendus du fil)
+  feed.addEventListener('click', async e=>{
+    const b=e.target.closest && e.target.closest('.pt-edit'); if(!b) return;
+    const pid=b.dataset.id;
+    let ex=[]; try{ const m=await JP.postTags([pid]); ex=(m[pid]||[]).map(t=>t.id); }catch(err){}
+    openTagModal(pid, ex);
+  });
 
   async function openTagModal(postId, existingIds){
     const mates=await JP.friends();
@@ -597,6 +598,7 @@
       ${pollHTML(p.poll)}
       ${p.video?`<video class="post-video" src="${p.video}" controls preload="metadata" playsinline></video>`:''}
       ${galleryHTML(p.images)}
+      ${(p.images&&p.images.length)?`<div class="photo-tags" data-pid="${p.id}">${mine?`<button type="button" class="pt-edit" data-id="${p.id}">🏷️ Identifier</button>`:''}</div>`:''}
       ${linkCardHTML(p.linkPreview)}
       ${p.shared?sharedCardHTML(p.shared):''}
       <div class="post-actions">

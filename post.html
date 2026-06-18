@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=66">
+<link rel="stylesheet" href="assets/style.css?v=67">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -121,22 +121,23 @@
 
   let p=null, sort='all';
 
-  /* ---- Tags de personnes (affichage + identification par l'auteur) ---- */
+  /* ---- Tags de personnes : remplit « 🏷️ Avec … » (bouton déjà rendu par render) ---- */
   async function decorateTagsPost(){
+    const box=host.querySelector('.photo-tags[data-pid]'); if(!box) return;
     let map={}; try{ map=await JP.postTags([pid]); }catch(e){ return; }
     const tags=map[pid]||[];
     const mine = p && p.authorEmail===me.id;
-    if(!tags.length && !mine) return;
-    host.querySelector('.photo-tags')?.remove();
-    const gal=host.querySelector('.post-gallery'); if(!gal) return;
-    const div=document.createElement('div'); div.className='photo-tags';
-    const names=tags.map(t=>`<a href="membre.html?id=${t.id}">${JP.esc(t.name)}</a>`).join(', ');
-    div.innerHTML=(tags.length?`<span class="pt-list">🏷️ Avec ${names}</span>`:'')+
-      (mine?`<button type="button" class="pt-edit">🏷️ Identifier</button>`:'');
-    gal.parentNode.insertBefore(div, gal.nextSibling);
-    const btn=div.querySelector('.pt-edit');
-    if(btn) btn.addEventListener('click',()=>openTagModal(pid, tags.map(t=>t.id)));
+    const names = tags.length
+      ? `<span class="pt-list">🏷️ Avec ${tags.map(t=>`<a href="membre.html?id=${t.id}">${JP.esc(t.name)}</a>`).join(', ')}</span>`
+      : '';
+    box.innerHTML = names + (mine?`<button type="button" class="pt-edit" data-id="${pid}">🏷️ Identifier</button>`:'');
   }
+  // Clic « Identifier » (délégation sur le conteneur persistant)
+  host.addEventListener('click', async e=>{
+    const b=e.target.closest && e.target.closest('.pt-edit'); if(!b) return;
+    let ex=[]; try{ const m=await JP.postTags([pid]); ex=(m[pid]||[]).map(t=>t.id); }catch(err){}
+    openTagModal(pid, ex);
+  });
   async function openTagModal(postId, existingIds){
     const mates=await JP.friends();
     if(!mates.length){ JP.toast('Ajoute des amis pour pouvoir les identifier'); return; }
@@ -178,6 +179,7 @@
       ${pollHTML(p.poll)}
       ${p.video?`<video class="post-video" src="${p.video}" controls preload="metadata" playsinline></video>`:''}
       ${galleryHTML(p.images)}
+      ${(p.images&&p.images.length)?`<div class="photo-tags" data-pid="${p.id}">${p.authorEmail===me.id?`<button type="button" class="pt-edit" data-id="${p.id}">🏷️ Identifier</button>`:''}</div>`:''}
       ${linkCardHTML(p.linkPreview)}
       ${p.shared?sharedCardHTML(p.shared):''}
       <div class="post-actions">

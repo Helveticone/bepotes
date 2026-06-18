@@ -814,6 +814,7 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 .feed-extra{margin-bottom:16px}
 /* Tags de personnes sur photos */
 .photo-tags{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:-6px 0 12px;font-size:.88rem;color:var(--ink-soft)}
+.photo-tags:empty{display:none;margin:0}
 .photo-tags a{color:var(--rouge);font-weight:600;text-decoration:none}
 .photo-tags .pt-edit{background:var(--rouge-soft);color:var(--rouge-dark);border:none;border-radius:999px;padding:5px 12px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit}
 .tag-list{display:flex;flex-direction:column;gap:4px;max-height:50vh;overflow:auto}
