@@ -636,7 +636,8 @@ window.JP = (() => {
 
   /* Aperçu d'une publication repartagée (carte intégrée) */
   function mapSharedPost(s){
-    if(!s) return null;
+    if(Array.isArray(s)) s = s[0] || null;   // l'embed auto-référent peut renvoyer un tableau (vide = pas de repartage)
+    if(!s || !s.id) return null;             // pas d'id -> pas de vraie publication partagée (évite une carte vide cliquable)
     let imgs = Array.isArray(s.images) ? s.images.filter(Boolean) : [];
     if(!imgs.length && s.image_url) imgs=[s.image_url];
     return {
