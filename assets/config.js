@@ -22,5 +22,9 @@ window.JP_CONFIG = {
   // VIDE = désactivé (seule la protection honeypot/délai s'applique). Pour activer :
   // 1) créer un widget Turnstile (dashboard Cloudflare) → coller la "Site Key" ici ;
   // 2) Supabase → Authentication → Bot & Abuse Protection → activer Turnstile + coller la "Secret Key".
-  TURNSTILE_SITEKEY: ""
+  TURNSTILE_SITEKEY: "",
+
+  // GIFs dans le chat (Tenor, gratuit). VIDE = bouton GIF masqué. Pour activer :
+  // créer une clé sur Google Cloud (API « Tenor ») → la coller ici. Recherche filtrée SFW.
+  TENOR_KEY: ""
 };

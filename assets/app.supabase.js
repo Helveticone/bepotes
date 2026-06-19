@@ -1198,11 +1198,11 @@ window.JP = (() => {
 
   async function sendMessage(convId, payload){
     if(!_me) return {error:'no-user'};
-    let text='', image=null, replyTo=null;
+    let text='', image=null, replyTo=null, extUrl=null;
     if(typeof payload==='string') text=payload;
-    else if(payload){ text=payload.text||''; image=payload.image||null; replyTo=payload.replyTo||null; }
-    let imageUrl=null;
-    if(image){ try{ imageUrl=await uploadImage('posts', image, 1280, 0.82); }catch(e){ console.error(e); return {error:'image'}; } }
+    else if(payload){ text=payload.text||''; image=payload.image||null; replyTo=payload.replyTo||null; extUrl=payload.imageUrl||null; }
+    let imageUrl = extUrl || null;   // imageUrl = média déjà hébergé (ex. GIF Tenor) -> pas d'upload
+    if(!imageUrl && image){ try{ imageUrl=await uploadImage('posts', image, 1280, 0.82); }catch(e){ console.error(e); return {error:'image'}; } }
     const row={conversation_id:convId, sender_id:_me.id, text:text||''};
     if(imageUrl) row.image_url=imageUrl;
     if(replyTo) row.reply_to=replyTo;

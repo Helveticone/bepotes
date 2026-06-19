@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=77">
+<link rel="stylesheet" href="assets/style.css?v=78">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -86,7 +86,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=75"></script>
+<script src="assets/app.supabase.js?v=76"></script>
 <script src="assets/nav.js?v=6"></script>
 <script src="assets/bell.js?v=23"></script>
 <script>
@@ -167,9 +167,11 @@
         </div>
         <div class="img-preview" id="imgPreview" style="display:none"></div>
         <div class="emoji-panel" id="emojiPanel" style="display:none"></div>
+        <div class="gif-panel" id="gifPanel" style="display:none"></div>
         <div class="thread-input">
           <button class="ti-btn" id="emojiBtn" type="button" aria-label="Emoji">😊</button>
           <button class="ti-btn" id="attachBtn" type="button" aria-label="Photo">📎</button>
+          <button class="ti-btn ti-gif" id="gifBtn" type="button" aria-label="GIF" style="display:none">GIF</button>
           <input type="text" id="msgInput" placeholder="Message…" maxlength="1000" autocomplete="off">
           <button class="ti-send" id="sendBtn" type="button" aria-label="Envoyer"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
         </div>
@@ -263,8 +265,44 @@
     const EMO=['😀','😂','🤣','😍','🥰','😘','😎','😉','😜','🤗','🤔','😴','😭','😢','😡','😱','🥳','😬','😅','👍','👎','🙏','👏','🙌','💪','❤️','🔥','🎉','✨','💯','👀','🍻','☀️','🌧️','🐴','🧀','⚽','🎶'];
     const emojiPanel=document.getElementById('emojiPanel');
     emojiPanel.innerHTML=EMO.map(e=>`<button type="button">${e}</button>`).join('');
-    document.getElementById('emojiBtn').addEventListener('click',()=>{ emojiPanel.style.display = emojiPanel.style.display==='flex'?'none':'flex'; });
+    document.getElementById('emojiBtn').addEventListener('click',()=>{ emojiPanel.style.display = emojiPanel.style.display==='flex'?'none':'flex'; gifPanel.style.display='none'; });
     emojiPanel.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ input.value+=b.textContent; input.focus(); }));
+
+    /* ---- GIFs (Tenor, si clé configurée) ---- */
+    const TENOR=(window.JP_CONFIG&&JP_CONFIG.TENOR_KEY)||'';
+    const gifBtn=document.getElementById('gifBtn'), gifPanel=document.getElementById('gifPanel');
+    async function loadGifs(q, grid){
+      try{
+        const base=q?`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(q)}&`:'https://tenor.googleapis.com/v2/featured?';
+        const r=await fetch(`${base}key=${TENOR}&client_key=jurapotes&limit=24&contentfilter=high&media_filter=tinygif,gif`);
+        const d=await r.json();
+        const items=(d.results||[]).map(g=>({prev:g.media_formats&&g.media_formats.tinygif&&g.media_formats.tinygif.url, full:g.media_formats&&g.media_formats.gif&&g.media_formats.gif.url})).filter(x=>x.prev&&x.full);
+        grid.innerHTML = items.length ? items.map(g=>`<img src="${g.prev}" data-full="${g.full}" loading="lazy" alt="gif">`).join('') : '<div style="padding:10px;color:var(--ink-soft);font-size:.85rem">Aucun GIF.</div>';
+        grid.querySelectorAll('img').forEach(im=>im.addEventListener('click',()=>sendGif(im.dataset.full)));
+      }catch(e){ grid.innerHTML='<div style="padding:10px;color:var(--ink-soft);font-size:.85rem">GIF indisponible.</div>'; }
+    }
+    function sendGif(url){
+      if(!url) return;
+      gifPanel.style.display='none';
+      appendMsg({ id:null, text:'', image:url, ts:new Date().toISOString(), mine:true, reply:null });
+      pendingMine.push('');
+      JP.sendMessage(convId, { imageUrl:url }).then(r=>{ if(r&&r.error) JP.toast('GIF non envoyé', {error:true}); loadConvs(); });
+    }
+    if(TENOR){
+      gifBtn.style.display='';
+      let gifInited=false;
+      gifBtn.addEventListener('click',()=>{
+        const open = gifPanel.style.display!=='block';
+        gifPanel.style.display = open?'block':'none'; emojiPanel.style.display='none';
+        if(open && !gifInited){
+          gifInited=true;
+          gifPanel.innerHTML='<input class="gif-search" type="text" placeholder="Rechercher un GIF…"><div class="gif-grid"></div>';
+          const si=gifPanel.querySelector('.gif-search'), grid=gifPanel.querySelector('.gif-grid');
+          let t; si.addEventListener('input',()=>{ clearTimeout(t); t=setTimeout(()=>loadGifs(si.value.trim(), grid), 350); });
+          loadGifs('', grid);
+        }
+      });
+    }
 
     /* ---- Réponse / agrandir / modifier / supprimer (délégation sur le fil) ---- */
     async function editRow(row){
