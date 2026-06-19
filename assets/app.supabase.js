@@ -207,7 +207,18 @@ window.JP = (() => {
       location.href='banni.html';
       return false;
     }
+    touchLastSeen();   // marque l'activité (throttlé, non bloquant)
     return true;
+  }
+
+  /* Marque l'utilisateur actif (last_seen + activité du jour). Throttlé 1×/10 min. */
+  async function touchLastSeen(){
+    try{
+      const k='jp-last-touch', now=Date.now();
+      if(now - (+(localStorage.getItem(k)||0)) < 600000) return;
+      localStorage.setItem(k, String(now));
+      await sb.rpc('touch_last_seen');
+    }catch(e){ /* silencieux */ }
   }
 
   /* ============================================================
@@ -1492,6 +1503,14 @@ window.JP = (() => {
     await sb.from('comments').delete().eq('id', commentId);
   }
 
+  /* ---- Dashboard admin (agrégats via RPC SECURITY DEFINER admin-only) ---- */
+  async function adminOverview(){ const {data,error}=await sb.rpc('admin_stats_overview'); if(error) throw error; return data||{}; }
+  async function adminGrowth(days=30){ const {data,error}=await sb.rpc('admin_growth_daily',{days}); if(error) throw error; return data||[]; }
+  async function adminRetention(){ const {data,error}=await sb.rpc('admin_retention'); if(error) throw error; return data||{}; }
+  async function adminTopTowns(){ const {data,error}=await sb.rpc('admin_top_towns'); if(error) throw error; return data||[]; }
+  async function adminBusiness(){ const {data,error}=await sb.rpc('admin_business'); if(error) throw error; return data||{}; }
+  async function adminModeration(){ const {data,error}=await sb.rpc('admin_moderation'); if(error) throw error; return data||{}; }
+
   /* ---- Modération renforcée : mots interdits + file d'attente (section 38) ---- */
   async function listBannedWords(){
     const { data } = await sb.from('banned_words').select('id, word').order('word');
@@ -1829,6 +1848,7 @@ window.JP = (() => {
     activeAds, pickAd, adImpression, adClick, listAds, createAd, updateAd, deleteAd, reorderAds,
     report, block, unblock, isBlocked, blockedList, loadBlocked, blockedIds,
     isAdmin, listReports, resolveReport, adminDeletePost, adminDeleteComment, banUser, unbanUser,
-    listBannedWords, addBannedWord, removeBannedWord, modQueue, resolveModItem
+    listBannedWords, addBannedWord, removeBannedWord, modQueue, resolveModItem,
+    touchLastSeen, adminOverview, adminGrowth, adminRetention, adminTopTowns, adminBusiness, adminModeration
   };
 })();
