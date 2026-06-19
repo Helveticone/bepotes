@@ -541,10 +541,15 @@
     if(typeof cid==='string') await loadConvs(cid);
     // sinon (pas amis) le toast est déjà affiché ; on reste sur la liste
   } else {
-    // Pas de cible précise : on ouvre directement la discussion la plus récente
-    // (= celle avec le dernier message reçu/envoyé, la liste étant triée par activité).
-    const first=convItems.querySelector('.conv-item');
-    if(first) openThread(first.dataset.id, first.dataset.name, first.dataset.avatar, first.dataset.group==='1');
+    // Pas de cible précise :
+    //  - PC (2 colonnes visibles) : on ouvre la dernière discussion pour gagner du temps.
+    //  - Mobile (1 colonne) : on RESTE sur la liste pour voir toutes les discussions
+    //    (sinon la dernière conv masque la liste). On en ouvre une en la touchant.
+    const isMobile = window.matchMedia('(max-width:760px)').matches;
+    if(!isMobile){
+      const first=convItems.querySelector('.conv-item');
+      if(first) openThread(first.dataset.id, first.dataset.name, first.dataset.avatar, first.dataset.group==='1');
+    }
   }
 
   // cloche
