@@ -145,8 +145,11 @@ section.block{padding:80px 0}
 @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .post-head{display:flex;align-items:center;gap:11px;margin-bottom:13px}
 .post-head .av{width:46px;height:46px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;color:#fff;font-weight:700}
-.post-head .meta b{display:block;font-size:.97rem}
-.post-head .meta span{font-size:.8rem;color:var(--ink-soft)}
+.post-head .meta{flex:1 1 auto;min-width:0}
+.post-head .meta b{display:block;font-size:.97rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.post-head .meta b a{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:bottom}
+.post-head .meta span{display:block;font-size:.8rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.post-head .btn{flex:0 0 auto;white-space:nowrap}
 .post-head .tag{margin-left:auto;font-size:.72rem;background:var(--rouge-soft);color:var(--rouge-dark);padding:4px 11px;border-radius:999px;font-weight:600}
 .post-body{font-size:1rem;color:var(--ink);margin-bottom:13px;white-space:pre-wrap;word-wrap:break-word}
 .post-actions{display:flex;gap:6px;border-top:1px solid var(--line);padding-top:11px}
