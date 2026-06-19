@@ -380,7 +380,7 @@ window.JP = (() => {
   async function compressVideo(file, onProgress, targetMB=42){
     if(!file || file.size < 6*1024*1024){ _compressState='skipped'; return file; }   // déjà léger
     if(!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream){ _compressState='failed'; return file; }
-    let video, ac, raf;
+    let video, ac, raf, timer;
     try{
       video=document.createElement('video');
       video.playsInline=true; video.muted=false; video.preload='auto';
@@ -414,20 +414,15 @@ window.JP = (() => {
       const stopped=new Promise(r=>{ rec.onstop=r; });
       rec.start(1000);
       await video.play();
-      if(useRVFC){
-        const onFrame=(now, meta)=>{
-          try{ ctx.drawImage(video,0,0,w,h); }catch(e){}
-          if(vtrack.requestFrame) vtrack.requestFrame();
-          if(onProgress){ const t=(meta&&meta.mediaTime!=null)?meta.mediaTime:video.currentTime; onProgress(Math.min(99,Math.round((t/dur)*100))); }
-          if(!video.ended) video.requestVideoFrameCallback(onFrame);
-        };
-        video.requestVideoFrameCallback(onFrame);
-      } else {
-        const tick=()=>{ try{ctx.drawImage(video,0,0,w,h);}catch(e){} if(vtrack.requestFrame) vtrack.requestFrame(); if(onProgress) onProgress(Math.min(99,Math.round((video.currentTime/dur)*100))); raf=requestAnimationFrame(tick); };
-        tick();
-      }
+      // Capture à intervalle CONSTANT (espacement uniforme des images = lecture fluide).
+      const FPS=30, frameMs=1000/FPS;
+      timer=setInterval(()=>{
+        try{ ctx.drawImage(video,0,0,w,h); }catch(e){}
+        if(vtrack.requestFrame) vtrack.requestFrame();
+        if(onProgress) onProgress(Math.min(99, Math.round((video.currentTime/dur)*100)));
+      }, frameMs);
       await new Promise(r=>{ video.onended=r; });
-      if(raf) cancelAnimationFrame(raf);
+      clearInterval(timer); timer=null;
       if(rec.state!=='inactive') rec.stop();
       await stopped;
       const outMp4=mime.indexOf('mp4')>-1;
@@ -440,7 +435,7 @@ window.JP = (() => {
       return file;   // pas plus petit → on garde l'original
     }catch(e){
       console.warn('Compression vidéo échec, envoi original :', e); _compressState='failed';
-      try{ if(raf) cancelAnimationFrame(raf); if(ac) ac.close(); if(video) URL.revokeObjectURL(video.src); }catch(_){}
+      try{ if(raf) cancelAnimationFrame(raf); if(timer) clearInterval(timer); if(ac) ac.close(); if(video) URL.revokeObjectURL(video.src); }catch(_){}
       return file;
     }
   }
