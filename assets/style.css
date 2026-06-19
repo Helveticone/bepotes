@@ -242,6 +242,7 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 .foot-copy{color:#998;font-size:.82rem;text-align:center;margin-top:26px}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--ink);color:#fff;padding:13px 22px;border-radius:999px;font-size:.9rem;font-weight:500;z-index:200;opacity:0;transition:all .3s;box-shadow:var(--shadow-lg)}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.toast-err{background:var(--rouge);border-radius:14px;max-width:min(92vw,460px);white-space:normal;line-height:1.45;text-align:center;padding:14px 20px}
 
 /* ============ AVATARS & IMAGES (v2) ============ */
 .avatar{background-size:cover;background-position:center;overflow:hidden}

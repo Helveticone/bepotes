@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=71">
+<link rel="stylesheet" href="assets/style.css?v=72">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -134,12 +134,12 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=64"></script>
+<script src="assets/app.supabase.js?v=65"></script>
 <script src="assets/nav.js?v=6"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=22"></script>
 <script src="assets/install.js?v=1"></script>
-<script src="assets/stories.js?v=2"></script>
+<script src="assets/stories.js?v=3"></script>
 <script>
 (async function(){
   const okAuth = await JP.requireAuth();
@@ -988,7 +988,7 @@
       try{ _reels=await JP.reels(20); }catch(err){ _reels=_reels||[]; }
       renderFeed();
     } else {
-      JP.toast((r&&r.msg)||'Échec de la publication', r&&r.needSql?6000:3000);
+      JP.toast((r&&r.msg)||'Échec de la publication', {error:true});
     }
   });
 

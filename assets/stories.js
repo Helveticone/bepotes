@@ -41,7 +41,7 @@ window.JPStories = (function () {
       JP.toast('Publication de la story…');
       const r = await JP.addStory({ file: f, text });
       if (r.ok) { JP.toast('Story publiée ! 🎉'); await render(); }
-      else JP.toast(r.msg || 'Échec');
+      else JP.toast(r.msg || 'Échec', { error: true });
     });
   }
 

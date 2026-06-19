@@ -150,11 +150,14 @@ window.JP = (() => {
     return r.length ? '<div class="about-card">'+r.map(x=>'<div>'+x+'</div>').join('')+'</div>' : '';
   }
 
-  function toast(msg){
+  function toast(msg, opts){
+    opts=opts||{};
     let t=document.querySelector('.toast');
     if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t);}
-    t.textContent=msg; requestAnimationFrame(()=>t.classList.add('show'));
-    clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2600);
+    t.textContent=msg;
+    t.classList.toggle('toast-err', !!opts.error);
+    requestAnimationFrame(()=>t.classList.add('show'));
+    clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'), opts.ms || (opts.error?6500:2600));
   }
 
   /* ---------- Compression image -> Blob (pour upload Storage) ---------- */
@@ -337,34 +340,12 @@ window.JP = (() => {
   }
 
   /* Upload d'une vidéo (telle quelle, pas de transcodage) -> URL publique */
-  /* ---- Compression vidéo dans le navigateur (ffmpeg.wasm, mono-thread) ----
-     Chargé à la demande (1er upload vidéo). Réduit drastiquement le poids
-     (egress) et permet de publier des vidéos lourdes. Repli sur l'original
-     si indisponible/échec. */
+  /* ---- Compression vidéo dans le navigateur (MediaRecorder, SANS dépendance) ----
+     Ré-encode via canvas + MediaRecorder : aucune librairie/CDN à charger, donc
+     marche partout. Sortie MP4 (Safari) ou WebM (Chrome/Android). Repli = original. */
   const MAX_VIDEO_MB = 50;        // limite finale (après compression) = limite du bucket
-  const MAX_VIDEO_IN_MB = 300;    // taille d'entrée max acceptée pour tenter la compression
-  let _ffmpeg=null, _ffmpegLoading=null, _compressState='skipped';   // 'ok' | 'failed' | 'skipped'
-  function loadScript(src){
-    return new Promise((res,rej)=>{
-      if(document.querySelector(`script[src="${src}"]`)) return res();
-      const s=document.createElement('script'); s.src=src; s.async=true;
-      s.onload=()=>res(); s.onerror=()=>rej(new Error('Échec chargement '+src));
-      document.head.appendChild(s);
-    });
-  }
-  async function getFFmpeg(){
-    if(_ffmpeg) return _ffmpeg;
-    if(_ffmpegLoading) return _ffmpegLoading;
-    _ffmpegLoading=(async()=>{
-      await loadScript('https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js');
-      const { createFFmpeg }=window.FFmpeg;
-      const ff=createFFmpeg({ log:false, corePath:'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js' });
-      await ff.load();
-      _ffmpeg=ff; return ff;
-    })();
-    return _ffmpegLoading;
-  }
-  /* Durée d'une vidéo (s) via un <video> temporaire. 0 si inconnue. */
+  const MAX_VIDEO_IN_MB = 300;    // taille d'entrée max acceptée
+  let _compressState='skipped';   // 'ok' | 'failed' | 'skipped'
   function videoDuration(file){
     return new Promise(res=>{
       const v=document.createElement('video'); v.preload='metadata';
@@ -373,37 +354,64 @@ window.JP = (() => {
       try{ v.src=URL.createObjectURL(file); }catch(e){ res(0); }
     });
   }
-  /* Compresse en MP4 H.264/AAC avec un bitrate calculé d'après la durée pour
-     viser ~targetMB (garantit de passer sous la limite, même les vidéos longues).
-     onProgress(0..100). Repli = fichier d'origine si ffmpeg indispo/échec. */
+  function pickRecMime(){
+    const cands=['video/mp4;codecs=h264,mp4a.40.2','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+    if(!window.MediaRecorder || !MediaRecorder.isTypeSupported) return '';
+    for(const t of cands){ if(MediaRecorder.isTypeSupported(t)) return t; }
+    return '';
+  }
   async function compressVideo(file, onProgress, targetMB=42){
     if(!file || file.size < 6*1024*1024){ _compressState='skipped'; return file; }   // déjà léger
+    if(!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream){ _compressState='failed'; return file; }
+    let video, ac, raf;
     try{
-      const dur = (await videoDuration(file)) || 60;       // s (défaut 60 si inconnue)
-      const audioBps = 96000;
-      let vBps = Math.floor((targetMB*1024*1024*8)/dur) - audioBps;   // viser targetMB au total
-      vBps = Math.max(300000, Math.min(vBps, 4000000));    // borne 0,3–4 Mbit/s
-      const kbps = Math.floor(vBps/1000);
-      const width = vBps < 800000 ? 854 : 1280;            // 480p si bas débit, sinon 720p
-      const ff=await getFFmpeg();
-      const { fetchFile }=window.FFmpeg;
-      if(onProgress && ff.setProgress) ff.setProgress(({ratio})=>{ const p=Math.max(0,Math.min(99,Math.round((ratio||0)*100))); onProgress(p); });
-      ff.FS('writeFile','in.mp4', await fetchFile(file));
-      await ff.run('-i','in.mp4',
-        '-vf',`scale='min(${width},iw)':-2`,
-        '-c:v','libx264','-preset','veryfast',
-        '-b:v',`${kbps}k`,'-maxrate',`${Math.floor(kbps*1.35)}k`,'-bufsize',`${kbps*2}k`,
-        '-c:a','aac','-b:a','96k','-movflags','+faststart','out.mp4');
-      const data=ff.FS('readFile','out.mp4');
-      try{ ff.FS('unlink','in.mp4'); ff.FS('unlink','out.mp4'); }catch(e){}
-      const blob=new Blob([data.buffer],{type:'video/mp4'});
+      video=document.createElement('video');
+      video.playsInline=true; video.muted=false; video.preload='auto';
+      video.src=URL.createObjectURL(file);
+      await new Promise((res,rej)=>{ video.onloadedmetadata=()=>res(); video.onerror=()=>rej(new Error('lecture vidéo impossible')); });
+      const dur=video.duration||60;
+      let vBps=Math.floor((targetMB*1024*1024*8)/dur)-96000;
+      vBps=Math.max(300000, Math.min(vBps, 4000000));
+      let w=video.videoWidth||1280, h=video.videoHeight||720;
+      const sc=Math.min(1, 1280/w, 1280/h);
+      w=Math.max(2,Math.round(w*sc/2)*2); h=Math.max(2,Math.round(h*sc/2)*2);
+      const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
+      const ctx=canvas.getContext('2d');
+      const mime=pickRecMime();
+      const cstream=canvas.captureStream(30);
+      let tracks=[...cstream.getVideoTracks()];
+      try{   // audio capté en silence via WebAudio (pas de son audible pendant la compression)
+        ac=new (window.AudioContext||window.webkitAudioContext)();
+        try{ await ac.resume(); }catch(e){}
+        const dest=ac.createMediaStreamDestination();
+        ac.createMediaElementSource(video).connect(dest);   // -> enregistreur uniquement
+        tracks=tracks.concat(dest.stream.getAudioTracks());
+      }catch(e){ /* sans audio si indispo */ }
+      const ro={ videoBitsPerSecond:vBps, audioBitsPerSecond:96000 }; if(mime) ro.mimeType=mime;
+      const rec=new MediaRecorder(new MediaStream(tracks), ro);
+      const chunks=[]; rec.ondataavailable=e=>{ if(e.data && e.data.size) chunks.push(e.data); };
+      const stopped=new Promise(r=>{ rec.onstop=r; });
+      rec.start(1000);
+      const tick=()=>{ try{ctx.drawImage(video,0,0,w,h);}catch(e){} if(onProgress) onProgress(Math.min(99,Math.round((video.currentTime/dur)*100))); raf=requestAnimationFrame(tick); };
+      await video.play();
+      tick();
+      await new Promise(r=>{ video.onended=r; });
+      cancelAnimationFrame(raf);
+      if(rec.state!=='inactive') rec.stop();
+      await stopped;
+      const outMp4=mime.indexOf('mp4')>-1;
+      const blob=new Blob(chunks,{type: outMp4?'video/mp4':'video/webm'});
       _compressState='ok';
+      try{ if(ac) ac.close(); URL.revokeObjectURL(video.src); }catch(e){}
       if(blob.size>0 && blob.size<file.size){
-        const nm=(file.name||'video').replace(/\.[^.]+$/,'')+'.mp4';
-        return new File([blob], nm, {type:'video/mp4'});
+        return new File([blob], (file.name||'video').replace(/\.[^.]+$/,'')+(outMp4?'.mp4':'.webm'), {type: outMp4?'video/mp4':'video/webm'});
       }
-      return file;   // compressé mais pas plus petit → on garde l'original
-    }catch(e){ console.warn('Compression vidéo indisponible, envoi original :', e); _compressState='failed'; return file; }
+      return file;   // pas plus petit → on garde l'original
+    }catch(e){
+      console.warn('Compression vidéo échec, envoi original :', e); _compressState='failed';
+      try{ if(raf) cancelAnimationFrame(raf); if(ac) ac.close(); if(video) URL.revokeObjectURL(video.src); }catch(_){}
+      return file;
+    }
   }
 
   async function uploadVideo(file, onProgress){
@@ -618,7 +626,7 @@ window.JP = (() => {
     if(images && images.length) urls=await uploadImages('posts', images, 1280, 0.82);
     else if(image){ try{ urls=[await uploadImage('posts', image, 1280, 0.82)]; }catch(e){ toast('Photo trop lourde'); } }
     let videoUrl=null;
-    if(video){ try{ videoUrl=await uploadVideo(video, p=>toast('Compression de la vidéo… '+p+'%')); }catch(e){ console.error(e); toast(e.message||'Vidéo refusée.'); } }
+    if(video){ try{ videoUrl=await uploadVideo(video, p=>toast('Compression de la vidéo… '+p+'%')); }catch(e){ console.error(e); toast(e.message||'Vidéo refusée.', {error:true}); } }
     const poll = (pollOptions && pollOptions.length>=2) ? pollOptions.slice(0,6) : null;
     const link = await fetchLinkPreview(text, {skip: !!sharedPostId});
     const { error } = await sb.from('posts').insert({
