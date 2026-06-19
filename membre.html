@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=70">
+<link rel="stylesheet" href="assets/style.css?v=71">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -240,6 +240,14 @@
   const lb=document.getElementById('lightbox');
   lb.querySelector('.lb-close').addEventListener('click',()=>lb.classList.remove('open'));
   lb.addEventListener('click',e=>{ if(e.target===lb) lb.classList.remove('open'); });
+
+  // Agrandir la photo de profil / la couverture au clic
+  const openImg=src=>{ if(!src) return; document.getElementById('lbImg').src=src; lb.classList.add('open'); };
+  document.getElementById('header').addEventListener('click',e=>{
+    const av=e.target.closest && e.target.closest('.prof-av-wrap img');
+    if(av){ openImg(av.src); return; }
+    if(e.target.closest && e.target.closest('.prof-cover') && prof && prof.cover) openImg(prof.cover);
+  });
 })();
 </script>
 <script src="/assets/pwa.js?v=20"></script>
