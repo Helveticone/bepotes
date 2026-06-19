@@ -1412,6 +1412,25 @@ window.JP = (() => {
   }
 
   /* Liste de mes amis (acceptés), des deux côtés de la relation */
+  /* Amis dont c'est l'anniversaire aujourd'hui (widget convivial du fil). */
+  async function birthdaysToday(){
+    if(!_me) return [];
+    const { data, error } = await sb.from('friendships')
+      .select(`requester_id, addressee_id,
+               requester:profiles!requester_id ( id, name, avatar_url, birthday ),
+               addressee:profiles!addressee_id ( id, name, avatar_url, birthday )`)
+      .or(`requester_id.eq.${_me.id},addressee_id.eq.${_me.id}`).eq('status','accepted');
+    if(error) return [];   // colonne birthday absente / autre → pas de widget
+    const now=new Date(), mm=now.getMonth()+1, dd=now.getDate(), out=[];
+    (data||[]).forEach(f=>{
+      const o = f.requester_id===_me.id ? f.addressee : f.requester;
+      if(!o || !o.birthday) return;
+      const b=new Date(o.birthday+'T00:00:00');
+      if((b.getMonth()+1)===mm && b.getDate()===dd) out.push({ id:o.id, name:o.name, avatar:cdnUrl(o.avatar_url) });
+    });
+    return out;
+  }
+
   async function friends(profileId){
     const uid = profileId || _me?.id;
     if(!uid) return [];
@@ -2265,7 +2284,7 @@ window.JP = (() => {
     editMessage, deleteMessage, markConversationRead, unreadCounts, heartbeat, conversationPresence, presenceLabel, subscribeTyping,
     createGroupConversation, conversationInfo, addConversationMembers, leaveConversation, renameConversation,
     searchPosts,
-    friendStatus, sendFriendRequest, acceptFriend, removeFriend, pendingRequests, friends, friendCount, areFriends, friendSuggestions,
+    friendStatus, sendFriendRequest, acceptFriend, removeFriend, pendingRequests, friends, friendCount, areFriends, friendSuggestions, birthdaysToday,
     postTags, tagPeople, untagPerson,
     userStats, leaderboard, repScore, repLevel, earnedBadges, reputationHTML, REP_LEVELS, REP_BADGES,
     listGroups, suggestGroups, reels, addReel, getGroup, createGroup, joinGroup, leaveGroup, groupPosts, addGroupPost, myPages, pagePosts, pendingGroupPosts, approveGroupPost, rejectGroupPost,
