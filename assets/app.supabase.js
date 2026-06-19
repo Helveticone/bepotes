@@ -343,7 +343,7 @@ window.JP = (() => {
      si indisponible/échec. */
   const MAX_VIDEO_MB = 50;        // limite finale (après compression) = limite du bucket
   const MAX_VIDEO_IN_MB = 300;    // taille d'entrée max acceptée pour tenter la compression
-  let _ffmpeg=null, _ffmpegLoading=null;
+  let _ffmpeg=null, _ffmpegLoading=null, _compressState='skipped';   // 'ok' | 'failed' | 'skipped'
   function loadScript(src){
     return new Promise((res,rej)=>{
       if(document.querySelector(`script[src="${src}"]`)) return res();
@@ -356,15 +356,10 @@ window.JP = (() => {
     if(_ffmpeg) return _ffmpeg;
     if(_ffmpegLoading) return _ffmpegLoading;
     _ffmpegLoading=(async()=>{
-      await loadScript('https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js');
-      await loadScript('https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/util.js');
-      const { FFmpeg }=window.FFmpegWASM, { toBlobURL }=window.FFmpegUtil;
-      const base='https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
-      const ff=new FFmpeg();
-      await ff.load({
-        coreURL: await toBlobURL(`${base}/ffmpeg-core.js`,'text/javascript'),
-        wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`,'application/wasm')
-      });
+      await loadScript('https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js');
+      const { createFFmpeg }=window.FFmpeg;
+      const ff=createFFmpeg({ log:false, corePath:'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js' });
+      await ff.load();
       _ffmpeg=ff; return ff;
     })();
     return _ffmpegLoading;
@@ -382,34 +377,33 @@ window.JP = (() => {
      viser ~targetMB (garantit de passer sous la limite, même les vidéos longues).
      onProgress(0..100). Repli = fichier d'origine si ffmpeg indispo/échec. */
   async function compressVideo(file, onProgress, targetMB=42){
+    if(!file || file.size < 6*1024*1024){ _compressState='skipped'; return file; }   // déjà léger
     try{
-      if(!file || file.size < 6*1024*1024) return file;   // déjà léger → on garde
       const dur = (await videoDuration(file)) || 60;       // s (défaut 60 si inconnue)
       const audioBps = 96000;
-      // bitrate vidéo pour viser targetMB au total
-      let vBps = Math.floor((targetMB*1024*1024*8)/dur) - audioBps;
+      let vBps = Math.floor((targetMB*1024*1024*8)/dur) - audioBps;   // viser targetMB au total
       vBps = Math.max(300000, Math.min(vBps, 4000000));    // borne 0,3–4 Mbit/s
       const kbps = Math.floor(vBps/1000);
       const width = vBps < 800000 ? 854 : 1280;            // 480p si bas débit, sinon 720p
       const ff=await getFFmpeg();
-      const { fetchFile }=window.FFmpegUtil;
-      if(onProgress) ff.on('progress', ({progress})=>{ const p=Math.max(0,Math.min(99,Math.round((progress||0)*100))); onProgress(p); });
-      const inName='in_'+Date.now(), outName='out.mp4';
-      await ff.writeFile(inName, await fetchFile(file));
-      await ff.exec(['-i',inName,
+      const { fetchFile }=window.FFmpeg;
+      if(onProgress && ff.setProgress) ff.setProgress(({ratio})=>{ const p=Math.max(0,Math.min(99,Math.round((ratio||0)*100))); onProgress(p); });
+      ff.FS('writeFile','in.mp4', await fetchFile(file));
+      await ff.run('-i','in.mp4',
         '-vf',`scale='min(${width},iw)':-2`,
         '-c:v','libx264','-preset','veryfast',
         '-b:v',`${kbps}k`,'-maxrate',`${Math.floor(kbps*1.35)}k`,'-bufsize',`${kbps*2}k`,
-        '-c:a','aac','-b:a','96k','-movflags','+faststart', outName]);
-      const data=await ff.readFile(outName);
-      try{ await ff.deleteFile(inName); await ff.deleteFile(outName); }catch(e){}
+        '-c:a','aac','-b:a','96k','-movflags','+faststart','out.mp4');
+      const data=ff.FS('readFile','out.mp4');
+      try{ ff.FS('unlink','in.mp4'); ff.FS('unlink','out.mp4'); }catch(e){}
       const blob=new Blob([data.buffer],{type:'video/mp4'});
+      _compressState='ok';
       if(blob.size>0 && blob.size<file.size){
         const nm=(file.name||'video').replace(/\.[^.]+$/,'')+'.mp4';
         return new File([blob], nm, {type:'video/mp4'});
       }
-      return file;   // pas plus petit → on garde l'original
-    }catch(e){ console.warn('Compression vidéo indisponible, envoi original :', e); return file; }
+      return file;   // compressé mais pas plus petit → on garde l'original
+    }catch(e){ console.warn('Compression vidéo indisponible, envoi original :', e); _compressState='failed'; return file; }
   }
 
   async function uploadVideo(file, onProgress){
@@ -417,7 +411,11 @@ window.JP = (() => {
     if(file.size/1048576 > MAX_VIDEO_IN_MB) throw new Error(`Vidéo trop lourde (${Math.round(file.size/1048576)} Mo). Maximum ${MAX_VIDEO_IN_MB} Mo en entrée — raccourcis-la.`);
     file = await compressVideo(file, onProgress);   // compression transparente
     const mb = file.size/1048576;
-    if(mb > MAX_VIDEO_MB) throw new Error(`Vidéo encore trop lourde après compression (${Math.round(mb)} Mo, max ${MAX_VIDEO_MB}). Raccourcis-la un peu.`);
+    if(mb > MAX_VIDEO_MB){
+      if(_compressState==='failed')
+        throw new Error(`Compression indisponible (moteur non chargé). Vérifie ta connexion, réessaie, ou réduis la qualité/durée de la vidéo. (${Math.round(mb)} Mo, max ${MAX_VIDEO_MB})`);
+      throw new Error(`Vidéo encore trop lourde après compression (${Math.round(mb)} Mo, max ${MAX_VIDEO_MB}). Raccourcis-la un peu.`);
+    }
     const ext=(file.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'') || 'mp4';
     const path=`${_me.id}/${Date.now()}.${ext}`;
     const { error } = await sb.storage.from('posts').upload(path, file, {contentType:file.type||'video/mp4', upsert:true, cacheControl:'31536000'});
