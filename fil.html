@@ -134,12 +134,12 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=61"></script>
+<script src="assets/app.supabase.js?v=62"></script>
 <script src="assets/nav.js?v=5"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=22"></script>
 <script src="assets/install.js?v=1"></script>
-<script src="assets/stories.js?v=1"></script>
+<script src="assets/stories.js?v=2"></script>
 <script>
 (async function(){
   const okAuth = await JP.requireAuth();
@@ -301,7 +301,7 @@
     const f=e.target.files[0]; videoFile.value='';
     if(!f) return;
     if(!f.type.startsWith('video/')){ JP.toast('Choisis un fichier vidéo'); return; }
-    if(f.size>50*1024*1024){ JP.toast('Vidéo trop lourde (50 Mo max)'); return; }
+    if(f.size>300*1024*1024){ JP.toast('Vidéo trop lourde (300 Mo max)'); return; }
     pendingVideo=f; renderVideoPrev();
   });
   function renderVideoPrev(){

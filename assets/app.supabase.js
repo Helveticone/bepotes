@@ -337,11 +337,68 @@ window.JP = (() => {
   }
 
   /* Upload d'une vidéo (telle quelle, pas de transcodage) -> URL publique */
-  const MAX_VIDEO_MB = 50;   // limite côté client (doit rester ≤ limite du bucket Storage)
-  async function uploadVideo(file){
+  /* ---- Compression vidéo dans le navigateur (ffmpeg.wasm, mono-thread) ----
+     Chargé à la demande (1er upload vidéo). Réduit drastiquement le poids
+     (egress) et permet de publier des vidéos lourdes. Repli sur l'original
+     si indisponible/échec. */
+  const MAX_VIDEO_MB = 50;        // limite finale (après compression) = limite du bucket
+  const MAX_VIDEO_IN_MB = 300;    // taille d'entrée max acceptée pour tenter la compression
+  let _ffmpeg=null, _ffmpegLoading=null;
+  function loadScript(src){
+    return new Promise((res,rej)=>{
+      if(document.querySelector(`script[src="${src}"]`)) return res();
+      const s=document.createElement('script'); s.src=src; s.async=true;
+      s.onload=()=>res(); s.onerror=()=>rej(new Error('Échec chargement '+src));
+      document.head.appendChild(s);
+    });
+  }
+  async function getFFmpeg(){
+    if(_ffmpeg) return _ffmpeg;
+    if(_ffmpegLoading) return _ffmpegLoading;
+    _ffmpegLoading=(async()=>{
+      await loadScript('https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js');
+      await loadScript('https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/util.js');
+      const { FFmpeg }=window.FFmpegWASM, { toBlobURL }=window.FFmpegUtil;
+      const base='https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+      const ff=new FFmpeg();
+      await ff.load({
+        coreURL: await toBlobURL(`${base}/ffmpeg-core.js`,'text/javascript'),
+        wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`,'application/wasm')
+      });
+      _ffmpeg=ff; return ff;
+    })();
+    return _ffmpegLoading;
+  }
+  /* Compresse en MP4 720p H.264/AAC. onProgress(0..100). Repli = fichier d'origine. */
+  async function compressVideo(file, onProgress){
+    try{
+      if(!file || file.size < 6*1024*1024) return file;   // déjà léger → on garde
+      const ff=await getFFmpeg();
+      const { fetchFile }=window.FFmpegUtil;
+      if(onProgress) ff.on('progress', ({progress})=>{ const p=Math.max(0,Math.min(99,Math.round((progress||0)*100))); onProgress(p); });
+      const inName='in_'+Date.now(), outName='out.mp4';
+      await ff.writeFile(inName, await fetchFile(file));
+      await ff.exec(['-i',inName,
+        '-vf',"scale='min(1280,iw)':-2",   // largeur max 1280, hauteur paire auto
+        '-c:v','libx264','-preset','veryfast','-crf','28',
+        '-c:a','aac','-b:a','96k','-movflags','+faststart', outName]);
+      const data=await ff.readFile(outName);
+      try{ await ff.deleteFile(inName); await ff.deleteFile(outName); }catch(e){}
+      const blob=new Blob([data.buffer],{type:'video/mp4'});
+      if(blob.size>0 && blob.size<file.size){
+        const nm=(file.name||'video').replace(/\.[^.]+$/,'')+'.mp4';
+        return new File([blob], nm, {type:'video/mp4'});
+      }
+      return file;   // pas plus petit → on garde l'original
+    }catch(e){ console.warn('Compression vidéo indisponible, envoi original :', e); return file; }
+  }
+
+  async function uploadVideo(file, onProgress){
     if(!file || !_me) throw new Error('Vidéo invalide.');
+    if(file.size/1048576 > MAX_VIDEO_IN_MB) throw new Error(`Vidéo trop lourde (${Math.round(file.size/1048576)} Mo). Maximum ${MAX_VIDEO_IN_MB} Mo en entrée — raccourcis-la.`);
+    file = await compressVideo(file, onProgress);   // compression transparente
     const mb = file.size/1048576;
-    if(mb > MAX_VIDEO_MB) throw new Error(`Vidéo trop lourde (${Math.round(mb)} Mo). Maximum ${MAX_VIDEO_MB} Mo — raccourcis-la ou réduis la qualité.`);
+    if(mb > MAX_VIDEO_MB) throw new Error(`Vidéo encore trop lourde après compression (${Math.round(mb)} Mo, max ${MAX_VIDEO_MB}). Raccourcis-la un peu.`);
     const ext=(file.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'') || 'mp4';
     const path=`${_me.id}/${Date.now()}.${ext}`;
     const { error } = await sb.storage.from('posts').upload(path, file, {contentType:file.type||'video/mp4', upsert:true, cacheControl:'31536000'});
@@ -544,7 +601,7 @@ window.JP = (() => {
     if(images && images.length) urls=await uploadImages('posts', images, 1280, 0.82);
     else if(image){ try{ urls=[await uploadImage('posts', image, 1280, 0.82)]; }catch(e){ toast('Photo trop lourde'); } }
     let videoUrl=null;
-    if(video){ try{ videoUrl=await uploadVideo(video); }catch(e){ console.error(e); toast(e.message||'Vidéo refusée.'); } }
+    if(video){ try{ videoUrl=await uploadVideo(video, p=>toast('Compression de la vidéo… '+p+'%')); }catch(e){ console.error(e); toast(e.message||'Vidéo refusée.'); } }
     const poll = (pollOptions && pollOptions.length>=2) ? pollOptions.slice(0,6) : null;
     const link = await fetchLinkPreview(text, {skip: !!sharedPostId});
     const { error } = await sb.from('posts').insert({
@@ -1185,7 +1242,7 @@ window.JP = (() => {
   async function addReel(video, caption=''){
     if(!_me || !video) return {ok:false, msg:'Vidéo manquante'};
     let videoUrl=null;
-    try{ videoUrl=await uploadVideo(video); }catch(e){ console.error(e); return {ok:false, msg:e.message||'Vidéo refusée.'}; }
+    try{ videoUrl=await uploadVideo(video, p=>toast('Compression de la vidéo… '+p+'%')); }catch(e){ console.error(e); return {ok:false, msg:e.message||'Vidéo refusée.'}; }
     const { error } = await sb.from('posts').insert({
       author_id:_me.id, text:(caption||'').slice(0,300), tag:'Reel', town:_me.town||null,
       images:[], video_url:videoUrl, is_reel:true
@@ -1732,7 +1789,7 @@ window.JP = (() => {
     if(!_me || !file) return {ok:false};
     const isVideo=(file.type||'').startsWith('video/');
     let url;
-    try{ url = isVideo ? await uploadVideo(file) : await uploadImage('posts', file, 1280, 0.85); }
+    try{ url = isVideo ? await uploadVideo(file, p=>toast('Compression de la vidéo… '+p+'%')) : await uploadImage('posts', file, 1280, 0.85); }
     catch(e){ return {ok:false, msg:e.message||'Média trop lourd ou refusé'}; }
     const { error } = await sb.from('stories')
       .insert({author_id:_me.id, media_url:url, media_type:isVideo?'video':'image', text:text||null});

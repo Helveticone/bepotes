@@ -36,7 +36,7 @@ window.JPStories = (function () {
     fileInput.addEventListener('change', async () => {
       const f = fileInput.files[0]; fileInput.value = '';
       if (!f) return;
-      if (f.type.startsWith('video/') && f.size > 50 * 1024 * 1024) { JP.toast('Vidéo trop lourde (50 Mo max)'); return; }
+      if (f.type.startsWith('video/') && f.size > 300 * 1024 * 1024) { JP.toast('Vidéo trop lourde (300 Mo max)'); return; }
       const text = (prompt('Légende (optionnel) :', '') || '').trim();
       JP.toast('Publication de la story…');
       const r = await JP.addStory({ file: f, text });
