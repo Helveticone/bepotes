@@ -12,5 +12,7 @@
 # Service worker et manifeste : toujours frais (sinon les MAJ ne passent pas)
 /sw.js
   Cache-Control: no-cache, must-revalidate
+/sw-push.js
+  Cache-Control: no-cache, must-revalidate
 /manifest.json
   Cache-Control: no-cache, must-revalidate

@@ -7,8 +7,9 @@
    ============================================================ */
 (function () {
   if (!('serviceWorker' in navigator)) return;
+  // Purge les anciens caches (legacy sw.js) mais GARDE le cache d'assets actuel (jp-*)
   if (window.caches && caches.keys) {
-    caches.keys().then((ks) => ks.forEach((k) => caches.delete(k))).catch(() => {});
+    caches.keys().then((ks) => ks.forEach((k) => { if (!k.startsWith('jp-')) caches.delete(k); })).catch(() => {});
   }
   navigator.serviceWorker.getRegistrations().then((regs) => {
     regs.forEach((r) => {
