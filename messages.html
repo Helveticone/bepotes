@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=84">
+<link rel="stylesheet" href="assets/style.css?v=85">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -90,6 +90,7 @@
 <script src="assets/app.supabase.js?v=80"></script>
 <script src="assets/nav.js?v=8"></script>
 <script src="assets/bell.js?v=23"></script>
+<script src="assets/calls.js?v=1"></script>
 <script>
 (async function(){
   const okAuth = await JP.requireAuth();
@@ -159,12 +160,16 @@
     }
     const sub = isGroup && info ? `<span style="font-size:.76rem;color:var(--ink-soft)">${info.members.length} membres</span>` : `<span class="presence" id="presence"></span>`;
     const manage = isGroup ? `<button class="btn btn-ghost btn-sm" id="gmManage" style="margin-left:auto;flex:0 0 auto">Gérer</button>` : '';
+    const callBtns = isGroup ? '' : `<div style="margin-left:auto;display:flex;gap:4px;flex:0 0 auto">
+        <button class="call-btn" id="callAudio" title="Appel audio" aria-label="Appel audio">📞</button>
+        <button class="call-btn" id="callVideo" title="Appel vidéo" aria-label="Appel vidéo">🎥</button>
+      </div>`;
     threadArea.innerHTML=`
       <div class="thread-head">
         <button class="back" id="backBtn">‹</button>
         ${JP.avatarHTML(name,avatar||null,'av')}
         <div style="min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${isGroup?'👥 ':''}${JP.esc(name)}</b>${sub}</div>
-        ${manage}
+        ${callBtns}${manage}
       </div>
       <div class="thread-body" id="tbody"></div>
       <div class="composer-zone">
@@ -193,6 +198,12 @@
       const updatePresence=async()=>{ const ls=await JP.conversationPresence(convId); const el=document.getElementById('presence'); if(el) el.textContent=JP.presenceLabel(ls); };
       updatePresence();
       presenceTimer=setInterval(updatePresence, 45000);
+
+      // Appels audio/vidéo (WebRTC) — résout le destinataire (1-à-1) puis lance l'appel
+      const peerOf=async()=>{ const inf=await JP.conversationInfo(convId); return (inf.members||[]).find(m=>!m.mine); };
+      const ca=document.getElementById('callAudio'), cv=document.getElementById('callVideo');
+      if(ca) ca.addEventListener('click',async()=>{ if(!window.JPCall){return;} const p=await peerOf(); if(p) JPCall.start(p.id,p.name,p.avatar,false); });
+      if(cv) cv.addEventListener('click',async()=>{ if(!window.JPCall){return;} const p=await peerOf(); if(p) JPCall.start(p.id,p.name,p.avatar,true); });
     }
 
     const tbody=document.getElementById('tbody');
