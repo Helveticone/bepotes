@@ -398,7 +398,7 @@ window.JP = (() => {
       // captureStream(0) + requestVideoFrameCallback : 1 image source = 1 image
       // capturée -> durée de sortie = durée réelle (sinon effet ralenti).
       const useRVFC = typeof video.requestVideoFrameCallback === 'function';
-      const cstream=canvas.captureStream(useRVFC ? 0 : 30);
+      const cstream=canvas.captureStream(0);   // 0 = on pousse les images à la main (timing réel)
       const vtrack=cstream.getVideoTracks()[0];
       let tracks=[vtrack];
       try{   // audio capté en silence via WebAudio (pas de son audible pendant la compression)
@@ -423,7 +423,7 @@ window.JP = (() => {
         };
         video.requestVideoFrameCallback(onFrame);
       } else {
-        const tick=()=>{ try{ctx.drawImage(video,0,0,w,h);}catch(e){} if(onProgress) onProgress(Math.min(99,Math.round((video.currentTime/dur)*100))); raf=requestAnimationFrame(tick); };
+        const tick=()=>{ try{ctx.drawImage(video,0,0,w,h);}catch(e){} if(vtrack.requestFrame) vtrack.requestFrame(); if(onProgress) onProgress(Math.min(99,Math.round((video.currentTime/dur)*100))); raf=requestAnimationFrame(tick); };
         tick();
       }
       await new Promise(r=>{ video.onended=r; });
