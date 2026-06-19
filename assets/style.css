@@ -396,7 +396,7 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 .bubble-msg.me{background:var(--rouge);color:#fff;align-self:flex-end;border-bottom-right-radius:5px}
 .bubble-time{font-size:.68rem;opacity:.6;margin-top:3px;display:block}
 /* Réactions sur les messages */
-.msg-row{display:flex;flex-direction:column;max-width:78%}
+.msg-row{display:flex;flex-direction:column;max-width:78%;position:relative}
 .msg-row.me{align-self:flex-end;align-items:flex-end}
 .msg-row.them{align-self:flex-start;align-items:flex-start}
 .msg-row .bubble-msg{max-width:100%}
@@ -412,7 +412,15 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 .rx-pop{position:absolute;z-index:400;background:var(--white);border:1px solid var(--line);border-radius:999px;box-shadow:var(--shadow-lg);padding:4px 6px;display:flex;gap:2px}
 .rx-pop button{background:none;border:none;cursor:pointer;font-size:1.3rem;padding:3px 5px;border-radius:50%;line-height:1}
 .rx-pop button:hover{background:var(--rouge-soft);transform:scale(1.15)}
-@media(max-width:900px){.msg-acts button{opacity:.45}}
+@media(max-width:900px){
+  /* Mobile : pas de survol -> les actions sortent du flux (sinon elles
+     écrasent la bulle et la poussent hors écran). Révélées en touchant la bulle. */
+  .msg-acts{position:absolute;top:-16px;display:none;gap:2px;background:var(--white);border:1px solid var(--line);border-radius:999px;box-shadow:var(--shadow-lg);padding:3px 6px;z-index:6}
+  .msg-row.me .msg-acts{right:0}
+  .msg-row.them .msg-acts{left:0}
+  .msg-row.acts-open .msg-acts{display:flex}
+  .msg-acts button{opacity:1;font-size:1.05rem;padding:4px}
+}
 /* Bulle : image + citation de réponse */
 .bubble-msg{display:flex;flex-direction:column}
 .bubble-msg.has-img{padding:5px 5px 8px}

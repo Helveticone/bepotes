@@ -50,9 +50,9 @@ window.JPCall = (function () {
       '</div>';
     document.body.appendChild(ov);
     ui = ov;
-    ov.querySelector('#jpcHang').addEventListener('click', () => { signal(cur && cur.peerId, { kind: 'hangup', callId: cur && cur.callId }); endCall('Tu as raccroché'); });
+    ov.querySelector('#jpcHang').addEventListener('click', () => { if (cur) sendCur({ kind: 'hangup', callId: cur.callId }); endCall('Appel terminé'); });
     ov.querySelector('#jpcAccept').addEventListener('click', acceptIncoming);
-    ov.querySelector('#jpcDecline').addEventListener('click', () => { if (cur) signal(cur.peerId, { kind: 'decline', callId: cur.callId }); endCall('Appel refusé'); });
+    ov.querySelector('#jpcDecline').addEventListener('click', () => { if (cur) sendCur({ kind: 'decline', callId: cur.callId }); endCall('Appel refusé'); });
     ov.querySelector('#jpcMic').addEventListener('click', toggleMic);
     ov.querySelector('#jpcCam').addEventListener('click', toggleCam);
     return ov;
@@ -212,9 +212,11 @@ window.JPCall = (function () {
 
   /* ---------------- Fin ---------------- */
   function endCall(msg) {
+    if (!cur && !pc && !localStream) return;   // déjà terminé : évite un 2e toast (« Connexion perdue ») après un raccrochage propre
     if (ringTimer) { clearTimeout(ringTimer); ringTimer = null; }
     if (durTimer) { clearInterval(durTimer); durTimer = null; }
-    closeSendCh();
+    // On détache le canal d'envoi mais on le ferme un peu plus tard : laisse partir le dernier « hangup ».
+    if (sendCh) { const ch = sendCh; sendCh = null; setTimeout(() => { try { sb.removeChannel(ch); } catch (e) {} }, 500); }
     if (pc) { try { pc.ontrack = pc.onicecandidate = pc.onconnectionstatechange = null; pc.close(); } catch (e) {} pc = null; }
     if (localStream) { localStream.getTracks().forEach(t => { try { t.stop(); } catch (e) {} }); localStream = null; }
     pendingOffer = null; pendingIce = []; cur = null;
