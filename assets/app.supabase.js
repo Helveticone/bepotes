@@ -1707,12 +1707,21 @@ window.JP = (() => {
   /* Pages que je gère (owner/admin) — pour le sélecteur « publier en tant que ». */
   async function myPages(){
     if(!_me) return [];
-    const { data, error } = await sb.from('group_members')
-      .select('role, groups!inner ( id, name, cover_url, kind )')
-      .eq('user_id', _me.id).in('role', ['owner','admin']);
-    if(error) return [];
-    return (data||[]).filter(r=>r.groups && r.groups.kind==='page')
-      .map(r=>({ id:r.groups.id, name:r.groups.name, avatar:cdnUrl(r.groups.cover_url) }));
+    const out=[];
+    // 1) Pages dont je suis OWNER (fiable même sans ligne group_members)
+    try{
+      const { data:owned } = await sb.from('groups')
+        .select('id, name, cover_url, kind').eq('kind','page').eq('owner_id', _me.id);
+      (owned||[]).forEach(g=>out.push({ id:g.id, name:g.name, avatar:cdnUrl(g.cover_url) }));
+    }catch(e){}
+    // 2) Pages dont je suis ADMIN
+    try{
+      const { data } = await sb.from('group_members')
+        .select('role, groups!inner ( id, name, cover_url, kind )')
+        .eq('user_id', _me.id).eq('role','admin');
+      (data||[]).forEach(r=>{ const g=r.groups; if(g && g.kind==='page' && !out.some(p=>p.id===g.id)) out.push({ id:g.id, name:g.name, avatar:cdnUrl(g.cover_url) }); });
+    }catch(e){}
+    return out;
   }
 
   /* Mur d'une page = ses publications « en tant que page » (page_id). */
