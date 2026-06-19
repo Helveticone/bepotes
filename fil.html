@@ -134,7 +134,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=69"></script>
+<script src="assets/app.supabase.js?v=70"></script>
 <script src="assets/nav.js?v=6"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=22"></script>
@@ -621,7 +621,7 @@
         </div>
         <button class="act cbtn">
           <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          <span class="cc">${p.comments.length}</span>
+          <span class="cc">${p.commentCount||0}</span>
         </button>
         <div class="act-share">
           <button class="act share">
@@ -698,12 +698,24 @@
           ${mineC?`<button class="cedit" type="button" data-cid="${c.id}">Modifier</button>`:''}
         </div></div>`;
     }
+    // Charge les commentaires complets à la demande (fil allégé : on n'avait que le nombre)
+    async function ensureComments(){
+      if(p.commentsLoaded) return;
+      try{ p.comments=await JP.commentsOf(pid); }catch(e){ p.comments=[]; }
+      p.commentsLoaded=true; p.commentCount=p.comments.length;
+    }
     function paintComments(){
       const byRecent=(a,b)=>new Date(b.ts)-new Date(a.ts);
       const byOld=(a,b)=>new Date(a.ts)-new Date(b.ts);
       const sorters={ all:byOld, recent:byRecent, top:(a,b)=>(b.likes-a.likes)||byRecent(a,b) };
+      if(cstate.expanded && !p.commentsLoaded){
+        cCtrls.style.display='none'; cSeeAll.style.display='none';
+        cList.innerHTML='<div style="color:var(--ink-soft);font-size:.85rem;padding:6px">Chargement…</div>';
+        ensureComments().then(paintComments);
+        return;
+      }
       // Arbre de commentaires (profondeur illimitée) : enfants par parent
-      const kids={}; p.comments.forEach(c=>{ const k=c.parentId||'__root'; (kids[k]=kids[k]||[]).push(c); });
+      const kids={}; (p.comments||[]).forEach(c=>{ const k=c.parentId||'__root'; (kids[k]=kids[k]||[]).push(c); });
       const tops=kids['__root']||[];
       if(cstate.expanded){
         cCtrls.style.display=''; cSeeAll.style.display='none';
@@ -715,10 +727,10 @@
         cList.innerHTML=rows.map(([c,d])=>commentHTML(c,d)).join('');
       } else {
         cCtrls.style.display='none';
-        cSeeAll.textContent='Voir les '+p.comments.length+' commentaires';
-        cSeeAll.style.display = p.comments.length>2 ? '' : 'none';
-        const list=tops.slice().sort(byRecent).slice(0,2).reverse();
-        cList.innerHTML=list.map(top=>commentHTML(top,0)).join('');
+        const nb=p.commentCount||0;
+        cSeeAll.textContent='Voir les '+nb+' commentaire'+(nb>1?'s':'');
+        cSeeAll.style.display = nb>0 ? '' : 'none';
+        cList.innerHTML='';
       }
       cList.querySelectorAll('.clike').forEach(b=>b.addEventListener('click',async()=>{
         const cid=b.dataset.cid, c=p.comments.find(x=>x.id===cid); if(!c) return;

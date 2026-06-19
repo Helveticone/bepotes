@@ -558,11 +558,13 @@ window.JP = (() => {
   /* Fil paginé par curseur : opts.before = created_at du dernier post chargé
      (renvoie les plus anciens que `before`), opts.limit = taille de page. */
   async function posts({before=null, limit=100, town=null}={}){
+    // Fil allégé : on ne récupère QUE le nombre de commentaires (comments(count)).
+    // La liste complète est chargée à la demande (JP.commentsOf) à l'ouverture d'un post.
     const sel = `id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
                shared:posts!shared_post_id ( id, text, image_url, images, video_url, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
                video_url, link_url, link_title, link_desc, link_image, link_site, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
-               comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`;
+               comments ( count )`;
     // withReel=true → exclut les reels du fil normal (colonne is_reel ; section 35).
     const build = (withReel)=>{
       let q = sb.from('posts').select(sel).is('group_id', null);
@@ -614,6 +616,17 @@ window.JP = (() => {
     const linkPreview = p.link_url ? {
       url:p.link_url, title:p.link_title||'', desc:p.link_desc||'', image:p.link_image||null, site:p.link_site||''
     } : null;
+    // comments peut être : un agrégat [{count:N}] (fil, allégé) OU la liste complète
+    const cm = p.comments || [];
+    const isCount = cm.length===1 && cm[0] && cm[0].count!==undefined && cm[0].id===undefined;
+    const comments = isCount ? [] : cm.map(c=>({
+      id:c.id, authorId:c.author_id, parentId:c.parent_id||null,
+      author:c.author?.name||'Membre', avatar:c.author?.avatar_url||null,
+      text:c.text, ts:c.created_at,
+      likes:(c.comment_likes||[]).length,
+      liked:(c.comment_likes||[]).some(l=>l.user_id===_me?.id)
+    }));
+    const commentCount = isCount ? (cm[0].count||0) : comments.length;
     return {
       id:p.id, text:p.text, tag:p.tag, image:imgs[0]||null, images:imgs, video:p.video_url||null, linkPreview, ts:p.created_at, poll,
       authorEmail:p.author_id,
@@ -621,17 +634,9 @@ window.JP = (() => {
       likes:likedBy.length, likedBy, myReaction, reactionCounts,
       sharedId:p.shared_post_id||null,
       shared: mapSharedPost(p.shared),
-      comments:(p.comments||[]).map(c=>({
-        id:c.id,
-        authorId:c.author_id,
-        parentId:c.parent_id||null,
-        author:c.author?.name||'Membre',
-        avatar:c.author?.avatar_url||null,
-        text:c.text,
-        ts:c.created_at,
-        likes:(c.comment_likes||[]).length,
-        liked:(c.comment_likes||[]).some(l=>l.user_id===_me?.id)
-      }))
+      commentsLoaded: !isCount,   // false dans le fil (chargement à la demande)
+      commentCount,
+      comments
     };
   }
 
@@ -710,6 +715,21 @@ window.JP = (() => {
       .eq('id', pid).single();
     if(error){ console.error(error); return null; }
     return mapPost(data);
+  }
+
+  /* Commentaires complets d'une publication (chargés à la demande dans le fil) */
+  async function commentsOf(postId){
+    const { data } = await sb.from('comments')
+      .select('id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id )')
+      .eq('post_id', postId)
+      .order('created_at', {ascending:true});
+    return (data||[]).map(c=>({
+      id:c.id, authorId:c.author_id, parentId:c.parent_id||null,
+      author:c.author?.name||'Membre', avatar:c.author?.avatar_url||null,
+      text:c.text, ts:c.created_at,
+      likes:(c.comment_likes||[]).length,
+      liked:(c.comment_likes||[]).some(l=>l.user_id===_me?.id)
+    }));
   }
 
   async function deletePost(pid){
@@ -1952,7 +1972,7 @@ window.JP = (() => {
     mentionHTML, attachMentions, tokenizeMentions, COMMUNES, fillCommuneSelect, aboutHTML,
     register, login, logout, updateProfile, updateEmail, updatePassword, deleteAccount, setEmailNotifications, setEmailMode,
     savePushSubscription, deletePushSubscription,
-    posts, getPost, addPost, sharePost, deletePost, editPost, editComment, toggleLike, isLiked, reactPost, REACTIONS, reactionMeta, addComment, toggleCommentLike,
+    posts, getPost, commentsOf, addPost, sharePost, deletePost, editPost, editComment, toggleLike, isLiked, reactPost, REACTIONS, reactionMeta, addComment, toggleCommentLike,
     votePoll, removePollVote,
     events, getEvent, toggleGoing, isGoing, setEventRsvp, eventComments, addEventComment, deleteEventComment, createEvent, updateEvent, updateEventCover, deleteEvent,
     notifications, unreadCount, markAllRead, notifText, subscribeNotifications,
