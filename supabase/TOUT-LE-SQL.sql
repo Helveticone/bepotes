@@ -1395,5 +1395,32 @@ notify pgrst, 'reload schema';
 
 
 -- ============================================================
+--  50. NOTIFICATIONS D'ACTIVITÉ DE GROUPE / PAGE — détail dans notif-activite-groupe.sql
+--  Nouveau post dans un groupe rejoint / une page suivie -> notif aux
+--  membres/abonnés (sauf auteur, hors pending). Moteur de ré-engagement.
+-- ============================================================
+create or replace function public.notify_on_group_post()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare gid uuid; ptype text;
+begin
+  if coalesce(NEW.pending, false) then return NEW; end if;
+  if NEW.group_id is not null then gid := NEW.group_id; ptype := 'group_post';
+  elsif NEW.page_id is not null then gid := NEW.page_id; ptype := 'page_post';
+  else return NEW; end if;
+  insert into public.notifications (user_id, actor_id, type, post_id)
+  select m.user_id, NEW.author_id, ptype, NEW.id
+  from public.group_members m
+  where m.group_id = gid
+    and m.user_id <> NEW.author_id
+    and coalesce(m.role,'member') <> 'pending';
+  return NEW;
+end; $$;
+drop trigger if exists trg_notify_group_post on public.posts;
+create trigger trg_notify_group_post after insert on public.posts
+  for each row execute function public.notify_on_group_post();
+notify pgrst, 'reload schema';
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================

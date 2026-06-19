@@ -991,7 +991,7 @@ window.JP = (() => {
     if(type==='missed_call' || type==='missed_video') return actorId ? ('messages.html?to='+actorId) : 'messages.html';
     if(type==='message') return 'messages.html';
     if(type==='follow')  return actorId ? ('membre.html?id='+actorId) : 'fil.html';
-    if((type==='like' || type==='comment' || type==='mention') && postId) return 'post.html?id='+postId;
+    if((type==='like' || type==='comment' || type==='mention' || type==='group_post' || type==='page_post' || type==='phototag') && postId) return 'post.html?id='+postId;
     return 'fil.html';
   }
 
@@ -1059,6 +1059,8 @@ window.JP = (() => {
     if(type==='msg_reaction')   return "a réagi à ton message";
     if(type==='missed_call')    return "t'a appelé·e (appel manqué)";
     if(type==='missed_video')   return "t'a appelé·e en vidéo (appel manqué)";
+    if(type==='group_post')     return "a publié dans un groupe";
+    if(type==='page_post')      return "a publié une actualité";
     return "a interagi avec toi";
   }
 
