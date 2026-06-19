@@ -94,7 +94,10 @@
             <option>Général</option><option>Sorties</option><option>Bons plans</option>
             <option>Entraide</option><option>Vendre/Donner</option><option>Question</option>
           </select>
-          <select id="compAs" class="chip" style="border:none;cursor:pointer;display:none" title="Publier en tant que"></select>
+          <select id="compVis" class="chip" style="border:none;cursor:pointer" title="Qui peut voir cette publication">
+            <option value="all">🌍 Tout le Jura</option>
+            <option value="friends">👥 Amis seulement</option>
+          </select>
         </div>
         <button class="btn btn-primary btn-sm" id="compGo">Publier</button>
       </div>
@@ -140,7 +143,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=88"></script>
+<script src="assets/app.supabase.js?v=89"></script>
 <script src="assets/nav.js?v=8"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=23"></script>
@@ -642,7 +645,8 @@
     const mine=p.authorEmail===me.id;
     const prof = p.asPage ? `groupe.html?id=${p.pageId}` : `membre.html?id=${p.authorEmail}`;
     const showPerson = !mine && !p.asPage;   // boutons personne masqués pour un post de page
-    const meta = p.asPage ? `${JP.timeAgo(p.ts)} · 📄 Page` : `${JP.esc(p.town)} · ${JP.timeAgo(p.ts)}`;
+    const vis = p.visibility==='friends' ? ' · 👥 Amis' : '';
+    const meta = (p.asPage ? `${JP.timeAgo(p.ts)} · 📄 Page` : `${JP.esc(p.town)} · ${JP.timeAgo(p.ts)}`) + vis;
     return `<article class="post" data-id="${p.id}" data-author="${p.authorEmail}">
       <div class="post-head">
         <a href="${prof}" style="text-decoration:none">${JP.avatarHTML(p.author,p.authorAvatar,'av')}</a>
@@ -932,7 +936,8 @@
     compGo.disabled=true; compGo.textContent='Publication…';
     if(pendingVideo) JP.toast('Envoi de la vidéo… (ça peut prendre un moment)');
     const pageId = (compAs && compAs.value) ? compAs.value : null;
-    await JP.addPost({text:t, tag:document.getElementById('compTag').value, images:pendingImages, pollOptions, video:pendingVideo, pageId});
+    const visibility = (document.getElementById('compVis')||{}).value || 'all';
+    await JP.addPost({text:t, tag:document.getElementById('compTag').value, images:pendingImages, pollOptions, video:pendingVideo, pageId, visibility});
     compGo.disabled=false; compGo.textContent='Publier';
     compText.value=''; compText._mentions=[];
     pendingImages=[]; pendingVideo=null; renderVideoPrev();

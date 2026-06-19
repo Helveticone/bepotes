@@ -1422,5 +1422,25 @@ notify pgrst, 'reload schema';
 
 
 -- ============================================================
+--  51. CONFIDENTIALITÉ DES PUBLICATIONS — détail dans confidentialite-publications.sql
+--  posts.visibility 'all'|'friends'. RLS : un post 'friends' n'est visible
+--  que par l'auteur, ses amis et les admins.
+-- ============================================================
+alter table public.posts add column if not exists visibility text default 'all';
+
+drop policy if exists "publications visibles par les membres" on public.posts;
+drop policy if exists "posts_select" on public.posts;
+create policy "posts_select" on public.posts for select using (
+  auth.uid() is not null and (
+    coalesce(visibility,'all') = 'all'
+    or author_id = auth.uid()
+    or public.are_friends(author_id)
+    or public.is_admin()
+  )
+);
+notify pgrst, 'reload schema';
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================

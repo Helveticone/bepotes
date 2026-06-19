@@ -610,24 +610,23 @@ window.JP = (() => {
     // Fil allégé : on ne récupère QUE le nombre de commentaires (comments(count)).
     // La liste complète est chargée à la demande (JP.commentsOf) à l'ouverture d'un post.
     // withPage → inclut l'identité de page (posts publiés « en tant que page », section 47).
-    const cols = (withPage)=>`id, text, tag, image_url, images, created_at, author_id, shared_post_id${withPage?', page_id':''},
+    const cols = (withPage, withVis)=>`id, text, tag, image_url, images, created_at, author_id, shared_post_id${withPage?', page_id':''}${withVis?', visibility':''},
                author:profiles!author_id ( name, town, avatar_url ),${withPage?' page:groups!page_id ( id, name, cover_url ),':''}
                shared:posts!shared_post_id ( id, text, image_url, images, video_url, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
                video_url, link_url, link_title, link_desc, link_image, link_site, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( count )`;
     // withReel=true → exclut les reels du fil normal (colonne is_reel ; section 35).
-    const build = (withReel, withPage)=>{
-      let q = sb.from('posts').select(cols(withPage)).is('group_id', null);
+    const build = (withReel, withPage, withVis)=>{
+      let q = sb.from('posts').select(cols(withPage, withVis)).is('group_id', null);
       if(withReel) q = q.eq('is_reel', false);
       if(town) q = q.eq('town', town);
       if(before) q = q.lt('created_at', before);
       return q.order('created_at', {ascending:false}).limit(limit);
     };
-    let { data, error } = await build(true, true);
-    // Repli si page_id n'existe pas encore (section 47 pas lancée)
-    if(error){ ({ data, error } = await build(true, false)); }
-    // Repli si la colonne is_reel n'existe pas encore (section 35 pas lancée)
-    if(error && /is_reel|column/i.test(error.message||'')){ ({ data, error } = await build(false, false)); }
+    let { data, error } = await build(true, true, true);
+    if(error){ ({ data, error } = await build(true, false, true)); }    // page_id absent (section 47)
+    if(error){ ({ data, error } = await build(true, false, false)); }   // visibility absent (section 51)
+    if(error && /is_reel|column/i.test(error.message||'')){ ({ data, error } = await build(false, false, false)); }  // is_reel absent (section 35)
     if(error){ console.error(error); return []; }
     await loadBlocked();
     const blocked=blockedIds();
@@ -685,7 +684,7 @@ window.JP = (() => {
     return {
       id:p.id, text:p.text, tag:p.tag, image:imgs[0]||null, images:imgs, video:cdnUrl(p.video_url||null), linkPreview, ts:p.created_at, poll,
       authorEmail:p.author_id,   // auteur réel (gestionnaire) -> mine/édition/suppression
-      asPage, pageId: p.page_id||null,
+      asPage, pageId: p.page_id||null, visibility: p.visibility||'all',
       author: asPage ? (p.page.name||'Page') : (p.author?.name||'Membre'),
       authorAvatar: asPage ? (cdnUrl(p.page.cover_url)||null) : (p.author?.avatar_url||null),
       town: asPage ? '' : (p.author?.town||''),
@@ -726,7 +725,7 @@ window.JP = (() => {
     return m ? m[1]+'_t.jpg'+(m[2]||'') : u;
   }
 
-  async function addPost({text, tag, image, images, sharedPostId, pollOptions, video, pageId}){
+  async function addPost({text, tag, image, images, sharedPostId, pollOptions, video, pageId, visibility}){
     if(!_me) return;
     let urls=[];
     if(images && images.length) urls=await uploadImages('posts', images, 1280, 0.82, true);
@@ -743,7 +742,11 @@ window.JP = (() => {
       link_url:link.url, link_title:link.title, link_desc:link.desc, link_image:link.image, link_site:link.site
     };
     if(pageId) row.page_id = pageId;   // publié « en tant que page » (section 47)
-    const { error } = await sb.from('posts').insert(row);
+    if(visibility==='friends' && !pageId) row.visibility = 'friends';   // confidentialité (section 51 ; pages = public)
+    let { error } = await sb.from('posts').insert(row);
+    if(error && /visibility|column|schema/i.test(error.message||'')){   // section 51 pas encore lancée → on publie sans
+      delete row.visibility; ({ error } = await sb.from('posts').insert(row));
+    }
     if(error){ toast(error.message); return {ok:false, msg:error.message}; }
     return {ok:true};
   }
