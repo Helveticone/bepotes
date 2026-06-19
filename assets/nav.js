@@ -11,6 +11,11 @@
     const navLinks = document.querySelector('nav .nav-links');
     if (!navLinks || document.querySelector('.drawer-bg')) return;
 
+    // Connecté (nav.js n'est chargé que sur les pages connectées) : le logo ramène au fil,
+    // pas à la page d'accueil publique (évite l'impression d'être déconnecté).
+    const navLogo = document.querySelector('nav .logo');
+    if (navLogo) navLogo.setAttribute('href', 'fil.html');
+
     const I = {
       fil: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
       amis: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>',

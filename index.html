@@ -3,6 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  /* Déjà connecté ? → on va directement au fil (pas la page d'accueil publique).
+     Détection légère du jeton Supabase en localStorage, sans charger de librairie. */
+  (function(){ try{
+    for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i);
+      if(k && k.indexOf('-auth-token')>-1 && localStorage.getItem(k)){ location.replace('fil.html'); break; }
+    }
+  }catch(e){} })();
+</script>
 <title>Jurapotes — Le réseau social du Jura</title>
 <meta name="description" content="Jurapotes.ch — le réseau social local et gratuit réservé aux habitants du canton du Jura (Suisse). Retrouve tes potes, tes groupes, le marché et les événements de ta région.">
 <link rel="canonical" href="https://jurapotes.ch/">

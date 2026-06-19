@@ -135,7 +135,7 @@
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
 <script src="assets/app.supabase.js?v=64"></script>
-<script src="assets/nav.js?v=5"></script>
+<script src="assets/nav.js?v=6"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=22"></script>
 <script src="assets/install.js?v=1"></script>
@@ -163,6 +163,7 @@
     function paint(){
       if(dismissed || !isMobile()){ hide(); return; }
       const st=JPInstall.state();
+      if(st==='installed' || (JPInstall.isStandalone && JPInstall.isStandalone())){ hide(); return; }   // déjà installée → on n'invite plus
       const ICO='<span class="ib-ico">📲</span>';
       if(st==='prompt'){
         bar.innerHTML=ICO+'<span class="ib-txt">Installe l\'appli Jurapotes — accès direct + notifications</span><button class="ib-go" type="button">Installer</button><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
