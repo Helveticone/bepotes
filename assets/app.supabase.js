@@ -728,10 +728,11 @@ window.JP = (() => {
     return m ? m[1]+'_t.jpg'+(m[2]||'') : u;
   }
 
-  async function addPost({text, tag, image, images, sharedPostId, pollOptions, video, pageId, visibility}){
+  async function addPost({text, tag, image, images, imageUrls, sharedPostId, pollOptions, video, pageId, visibility}){
     if(!_me) return;
     let urls=[];
-    if(images && images.length) urls=await uploadImages('posts', images, 1280, 0.82, true);
+    if(imageUrls && imageUrls.length) urls=imageUrls.filter(Boolean);   // images déjà hébergées (ex. couverture d'événement) — pas de ré-upload
+    else if(images && images.length) urls=await uploadImages('posts', images, 1280, 0.82, true);
     else if(image){ try{ urls=[await uploadImageWithThumb('posts', image, 1280, 0.82)]; }catch(e){ toast('Photo trop lourde'); } }
     let videoUrl=null;
     if(video){ try{ videoUrl=await uploadVideo(video, videoProgress); }catch(e){ console.error(e); toast(e.message||'Vidéo refusée.', {error:true}); } finally{ hideVideoProgress(); } }

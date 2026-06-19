@@ -44,7 +44,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=91"></script>
+<script src="assets/app.supabase.js?v=92"></script>
 <script src="assets/nav.js?v=8"></script>
 <script src="assets/bell.js?v=23"></script>
 <script src="assets/calls.js?v=3"></script>
@@ -121,9 +121,8 @@
     });
     document.getElementById('evShare').addEventListener('click',async e=>{
       const b=e.currentTarget; b.disabled=true;
-      const url=location.origin+'/evenement.html?id='+eid;
-      const txt='📅 '+ev.title+'\n'+fullDate(ev.ts)+(ev.town?' · '+ev.town:'')+'\n'+url;
-      await JP.addPost({text:txt, tag:'Sorties'});
+      const txt='📅 '+ev.title+'\n'+fullDate(ev.ts)+(ev.town?' · '+ev.town:'');
+      await JP.addPost({text:txt, tag:'Sorties', imageUrls: ev.cover?[ev.cover]:[]});
       b.disabled=false;
       JP.toast('Événement partagé dans ton fil ! 🔁');
     });
