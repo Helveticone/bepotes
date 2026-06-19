@@ -16,6 +16,16 @@ window.JP = (() => {
   }
   const sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON);
 
+  /* ---------- CDN média (Cloudflare devant Supabase Storage) ----------
+     Réécrit une URL Storage publique vers le CDN si cfg.MEDIA_CDN est défini.
+     No-op tant que MEDIA_CDN est vide -> aucun impact avant le branchement du domaine. */
+  const _MEDIA_CDN = (cfg.MEDIA_CDN || '').replace(/\/$/,'');
+  function cdnUrl(u){
+    if(!_MEDIA_CDN || !u || typeof u!=='string') return u;
+    const i = u.indexOf('/storage/v1/object/public/');
+    return i<0 ? u : _MEDIA_CDN + u.slice(i);
+  }
+
   /* ---------- Helpers visuels (inchangés) ---------- */
   const COLORS = ['#E11D2A','#F2723B','#1A1416','#B01521','#C44536','#7A2E2E','#D6603A','#9C3848'];
   function colorFor(name){ let h=0; for(const c of (name||'?')) h=(h*31+c.charCodeAt(0))>>>0; return COLORS[h%COLORS.length]; }
@@ -33,7 +43,7 @@ window.JP = (() => {
   }
 
   function avatarHTML(name, avatar, cls='av', style=''){
-    if(avatar) return `<div class="${cls} avatar" style="${style}"><img src="${avatar}" alt=""></div>`;
+    if(avatar) return `<div class="${cls} avatar" style="${style}"><img src="${cdnUrl(avatar)}" alt=""></div>`;
     return `<div class="${cls}" style="background:${colorFor(name)};${style}">${initials(name)}</div>`;
   }
 
@@ -206,7 +216,7 @@ window.JP = (() => {
     const { data } = await sb.from('profiles').select('*').eq('id', user.id).single();
     _me = data ? {
       id:data.id, email:user.email, name:data.name, town:data.town,
-      bio:data.bio||'', avatar:data.avatar_url, cover:data.cover_url,
+      bio:data.bio||'', avatar:cdnUrl(data.avatar_url), cover:cdnUrl(data.cover_url),
       is_pro:data.is_pro, is_admin:data.is_admin, is_banned:data.is_banned, joined:data.created_at,
       job:data.job||'', origin:data.origin||'', website:data.website||'',
       birthday:data.birthday||null, show_birth_year:data.show_birth_year===true,
@@ -588,7 +598,7 @@ window.JP = (() => {
     let imgs = Array.isArray(s.images) ? s.images.filter(Boolean) : [];
     if(!imgs.length && s.image_url) imgs=[s.image_url];
     return {
-      id:s.id, text:s.text||'', image:imgs[0]||null, video:s.video_url||null, ts:s.created_at,
+      id:s.id, text:s.text||'', image:cdnUrl(imgs[0]||null), video:cdnUrl(s.video_url||null), ts:s.created_at,
       authorEmail:s.author_id, author:s.author?.name||'',
       authorAvatar:s.author?.avatar_url||null
     };
@@ -602,6 +612,7 @@ window.JP = (() => {
     rx.forEach(l=>{ const t=l.type||'like'; reactionCounts[t]=(reactionCounts[t]||0)+1; });
     let imgs = Array.isArray(p.images) ? p.images.filter(Boolean) : [];
     if(!imgs.length && p.image_url) imgs=[p.image_url];   // compat ancien format
+    imgs = imgs.map(cdnUrl);
     let poll=null;
     if(Array.isArray(p.poll_options) && p.poll_options.length>=2){
       const opts=p.poll_options;
@@ -628,7 +639,7 @@ window.JP = (() => {
     }));
     const commentCount = isCount ? (cm[0].count||0) : comments.length;
     return {
-      id:p.id, text:p.text, tag:p.tag, image:imgs[0]||null, images:imgs, video:p.video_url||null, linkPreview, ts:p.created_at, poll,
+      id:p.id, text:p.text, tag:p.tag, image:imgs[0]||null, images:imgs, video:cdnUrl(p.video_url||null), linkPreview, ts:p.created_at, poll,
       authorEmail:p.author_id,
       author:p.author?.name||'Membre', town:p.author?.town||'', authorAvatar:p.author?.avatar_url||null,
       likes:likedBy.length, likedBy, myReaction, reactionCounts,
@@ -795,8 +806,8 @@ window.JP = (() => {
     const d = e.starts_at ? new Date(e.starts_at) : null;
     const att=e.attendees||[];
     return {
-      id:e.id, title:e.title, town:e.town, description:e.description||'', cover:e.cover_url||null,
-      ts:e.starts_at, endTs:e.ends_at||null, images:Array.isArray(e.images)?e.images.filter(Boolean):[],
+      id:e.id, title:e.title, town:e.town, description:e.description||'', cover:cdnUrl(e.cover_url||null),
+      ts:e.starts_at, endTs:e.ends_at||null, images:(Array.isArray(e.images)?e.images.filter(Boolean):[]).map(cdnUrl),
       creatorId:e.creator_id, mine:e.creator_id===_me?.id,
       day: d? String(d.getDate()).padStart(2,'0') : '–',
       month: d? d.toLocaleDateString('fr-CH',{month:'short'}) : '',
@@ -1110,7 +1121,7 @@ window.JP = (() => {
       senderId:m.sender_id, senderName:m.sender?.name||'Membre', senderAvatar:m.sender?.avatar_url||null, reply:null
     }));
     const byId={}; arr.forEach(m=>{ byId[m.id]=m; });
-    arr.forEach(m=>{ if(m.replyToId && byId[m.replyToId]){ const s=byId[m.replyToId]; m.reply={ senderName: s.mine?'Toi':s.senderName, text:s.text, image:s.image }; } });
+    arr.forEach(m=>{ m.image=cdnUrl(m.image); if(m.replyToId && byId[m.replyToId]){ const s=byId[m.replyToId]; m.reply={ senderName: s.mine?'Toi':s.senderName, text:s.text, image:s.image }; } });
     return arr;
   }
 
@@ -1323,7 +1334,7 @@ window.JP = (() => {
       .is('group_id', null).eq('is_reel', true).not('video_url','is',null)
       .order('created_at', {ascending:false}).limit(limit);
     if(error){ /* colonne is_reel absente (SQL pas encore lancé) → pas de reels */ return []; }
-    return (data||[]).map(p=>({ id:p.id, video:p.video_url, caption:p.text||'', town:p.town||'',
+    return (data||[]).map(p=>({ id:p.id, video:cdnUrl(p.video_url), caption:p.text||'', town:p.town||'',
       authorId:p.author_id, author:p.author?.name||'Membre', avatar:p.author?.avatar_url||null }));
   }
   /* Publier un reel (vidéo verticale + légende). */
@@ -1372,7 +1383,7 @@ window.JP = (() => {
       .map(toPerson)
       .sort((a,b)=> (a.role==='owner'?-1:0) - (b.role==='owner'?-1:0));
     return {
-      id:g.id, name:g.name, description:g.description, town:g.town, cover:g.cover_url,
+      id:g.id, name:g.name, description:g.description, town:g.town, cover:cdnUrl(g.cover_url),
       rules:g.rules||'',
       ownerId:g.owner_id, isPrivate:g.is_private,
       kind:g.kind||'group', category:g.category,
@@ -1527,7 +1538,7 @@ window.JP = (() => {
     if(!data) return null;
     return {
       id:data.id, name:data.name, town:data.town, bio:data.bio||'',
-      avatar:data.avatar_url, cover:data.cover_url, is_pro:data.is_pro, joined:data.created_at,
+      avatar:cdnUrl(data.avatar_url), cover:cdnUrl(data.cover_url), is_pro:data.is_pro, joined:data.created_at,
       job:data.job||'', origin:data.origin||'', website:data.website||'',
       birthday:data.birthday||null, show_birth_year:data.show_birth_year===true,
       school:data.school||'', relationship:data.relationship||''
@@ -1557,7 +1568,7 @@ window.JP = (() => {
     for(const p of (data||[])){
       let imgs = Array.isArray(p.images) ? p.images.filter(Boolean) : [];
       if(!imgs.length && p.image_url) imgs=[p.image_url];
-      for(const u of imgs) photos.push(u);
+      for(const u of imgs) photos.push(cdnUrl(u));
     }
     return photos;
   }
@@ -1724,7 +1735,7 @@ window.JP = (() => {
      MARKETPLACE / PETITES ANNONCES
      ============================================================ */
   function mapListing(l){
-    const imgs = Array.isArray(l.images) ? l.images.filter(Boolean) : [];
+    const imgs = (Array.isArray(l.images) ? l.images.filter(Boolean) : []).map(cdnUrl);
     return {
       id:l.id, title:l.title, description:l.description||'',
       price:(l.price===null||l.price===undefined)?null:Number(l.price),
@@ -1811,7 +1822,7 @@ window.JP = (() => {
     const { data } = await sb.from('albums')
       .select('id, title, cover_url, created_at, owner_id, album_photos ( id )')
       .eq('owner_id', uid).order('created_at', {ascending:false});
-    return (data||[]).map(a=>({ id:a.id, title:a.title, cover:a.cover_url,
+    return (data||[]).map(a=>({ id:a.id, title:a.title, cover:cdnUrl(a.cover_url),
       count:(a.album_photos||[]).length, ownerId:a.owner_id, mine:a.owner_id===_me?.id }));
   }
   async function createAlbum(title){
@@ -1823,7 +1834,7 @@ window.JP = (() => {
   async function albumPhotos(albumId){
     const { data } = await sb.from('album_photos')
       .select('id, url, created_at').eq('album_id', albumId).order('created_at', {ascending:true});
-    return (data||[]).map(p=>({ id:p.id, url:p.url }));
+    return (data||[]).map(p=>({ id:p.id, url:cdnUrl(p.url) }));
   }
   async function addAlbumPhotos(albumId, files){
     if(!_me || !files || !files.length) return {ok:false};
@@ -1866,7 +1877,7 @@ window.JP = (() => {
         items:[], hasUnseen:false, mine:s.author_id===_me?.id
       });
       const g=byAuthor.get(s.author_id);
-      g.items.push({id:s.id, url:s.media_url, type:s.media_type||'image', text:s.text||'', ts:s.created_at, seen:seen.has(s.id)});
+      g.items.push({id:s.id, url:cdnUrl(s.media_url), type:s.media_type||'image', text:s.text||'', ts:s.created_at, seen:seen.has(s.id)});
       if(!seen.has(s.id)) g.hasUnseen=true;
     });
     const arr=[...byAuthor.values()];
@@ -1909,7 +1920,7 @@ window.JP = (() => {
   async function activeAds(device){
     const { data, error } = await sb.rpc('active_ads', { device: device || adDevice() });
     if(error){ console.error(error); return []; }
-    return data || [];
+    return (data || []).map(a=>({ ...a, image: cdnUrl(a.image) }));
   }
   /* Tire une pub au hasard pour l'écran courant et compte l'affichage. */
   async function pickAd(device){
