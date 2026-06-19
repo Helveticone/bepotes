@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=79">
+<link rel="stylesheet" href="assets/style.css?v=80">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -86,7 +86,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=77"></script>
+<script src="assets/app.supabase.js?v=78"></script>
 <script src="assets/nav.js?v=6"></script>
 <script src="assets/bell.js?v=23"></script>
 <script>
@@ -99,7 +99,7 @@
   const layout=document.getElementById('layout');
   const convItems=document.getElementById('convItems');
   const threadArea=document.getElementById('threadArea');
-  let activeConv=null, unsub=null, unsubReact=null, presenceTimer=null;
+  let activeConv=null, unsub=null, unsubReact=null, presenceTimer=null, typingCh=null, typingHideTimer=null;
 
   // Heartbeat de présence : tant que la messagerie est ouverte et visible
   JP.heartbeat();
@@ -142,6 +142,7 @@
     if(unsub){ unsub(); unsub=null; }
     if(unsubReact){ unsubReact(); unsubReact=null; }
     if(presenceTimer){ clearInterval(presenceTimer); presenceTimer=null; }
+    if(typingCh){ typingCh.stop(); typingCh=null; }
     convItems.querySelectorAll('.conv-item').forEach(e=>e.classList.toggle('active', e.dataset.id===convId));
     layout.classList.add('show-thread');
     threadArea.className='';
@@ -173,6 +174,7 @@
         <div class="img-preview" id="imgPreview" style="display:none"></div>
         <div class="emoji-panel" id="emojiPanel" style="display:none"></div>
         <div class="gif-panel" id="gifPanel" style="display:none"></div>
+        <div class="typing-ind" id="typingInd" style="display:none"></div>
         <div class="thread-input">
           <button class="ti-btn" id="emojiBtn" type="button" aria-label="Emoji">😊</button>
           <button class="ti-btn" id="attachBtn" type="button" aria-label="Photo">📎</button>
@@ -246,6 +248,15 @@
     unsubReact=JP.subscribeMessageReactions(()=>{ decorateReactions(); });
 
     const input=document.getElementById('msgInput');
+
+    /* ---- « En train d'écrire… » (temps réel) ---- */
+    typingCh = JP.subscribeTyping(convId, (name)=>{
+      const el=document.getElementById('typingInd'); if(!el) return;
+      el.textContent = (isGroup ? name+' ' : '') + 'écrit…';
+      el.style.display='block';
+      clearTimeout(typingHideTimer); typingHideTimer=setTimeout(()=>{ el.style.display='none'; }, 3000);
+    });
+    input.addEventListener('input', ()=>{ if(input.value.trim() && typingCh) typingCh.notify(); });
 
     /* ---- Réponse à un message ---- */
     let replyTarget=null, pendingImg=null;

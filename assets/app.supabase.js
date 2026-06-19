@@ -1247,6 +1247,21 @@ window.JP = (() => {
     return ()=> sb.removeChannel(ch);   // fonction de désabonnement
   }
 
+  /* ---- « En train d'écrire… » (Realtime broadcast, éphémère, sans écriture en base) ---- */
+  function subscribeTyping(convId, onTyping){
+    const ch = sb.channel('typing:'+convId, { config:{ broadcast:{ self:false } } })
+      .on('broadcast', { event:'typing' }, ({payload})=>{
+        if(payload && payload.uid!==_me?.id) onTyping(payload.name||'Quelqu\'un');
+      })
+      .subscribe();
+    let last=0;
+    return {
+      notify(){ const now=Date.now(); if(now-last<1600) return; last=now;
+        try{ ch.send({ type:'broadcast', event:'typing', payload:{ uid:_me?.id, name:_me?.name||'Quelqu\'un' } }); }catch(e){} },
+      stop(){ try{ sb.removeChannel(ch); }catch(e){} }
+    };
+  }
+
   /* ---- Édition / suppression de message + lus/non-lus ---- */
   async function editMessage(messageId, text){
     if(!_me) return {ok:false};
@@ -2079,7 +2094,7 @@ window.JP = (() => {
     follow, unfollow, isFollowing, followCounts,
     members, openConversationWith, contactSeller, conversations, messagesOf, sendMessage, subscribeMessages,
     MSG_REACTIONS, reactMessage, messageReactions, subscribeMessageReactions,
-    editMessage, deleteMessage, markConversationRead, unreadCounts, heartbeat, conversationPresence, presenceLabel,
+    editMessage, deleteMessage, markConversationRead, unreadCounts, heartbeat, conversationPresence, presenceLabel, subscribeTyping,
     createGroupConversation, conversationInfo, addConversationMembers, leaveConversation, renameConversation,
     searchPosts,
     friendStatus, sendFriendRequest, acceptFriend, removeFriend, pendingRequests, friends, friendCount, areFriends, friendSuggestions,
