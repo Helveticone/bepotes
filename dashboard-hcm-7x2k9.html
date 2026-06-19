@@ -69,7 +69,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=72"></script>
+<script src="assets/app.supabase.js?v=73"></script>
 <script src="assets/nav.js?v=6"></script>
 <script>
 (async function(){
@@ -103,18 +103,18 @@
 
   async function load(){
     updated.textContent='Chargement…';
-    const [ov,gr,re,tw,bz,mo]=await Promise.allSettled([
+    const [ov,gr,re,tw,bz,mo,er]=await Promise.allSettled([
       JP.adminOverview(), JP.adminGrowth(growthDays), JP.adminRetention(),
-      JP.adminTopTowns(), JP.adminBusiness(), JP.adminModeration()
+      JP.adminTopTowns(), JP.adminBusiness(), JP.adminModeration(), JP.adminErrors(40)
     ]);
     const val=r=>r.status==='fulfilled'?r.value:null;
-    render(val(ov), val(gr), val(re), val(tw), val(bz), val(mo));
+    render(val(ov), val(gr), val(re), val(tw), val(bz), val(mo), val(er));
     if(ov.status==='rejected') console.error(ov.reason);
     updated.textContent='Dernière mise à jour : '+new Date().toLocaleString('fr-CH',{dateStyle:'short',timeStyle:'short'});
   }
 
-  function render(o, g, r, towns, bz, mo){
-    o=o||{}; r=r||{}; bz=bz||{};
+  function render(o, g, r, towns, bz, mo, errs){
+    o=o||{}; r=r||{}; bz=bz||{}; errs=errs||[];
     content.innerHTML=`
     <div class="dash-sec">
       <h2>Vue d'ensemble</h2>
@@ -183,6 +183,13 @@
         ${card('Signalements traités', n(mo?mo.reports_done:null), '')}
         ${card("File d'attente (mots)", n(mo?mo.queue_open:null), 'auto-détection')}
       </div>
+    </div>
+
+    <div class="dash-sec">
+      <h2>Erreurs récentes ${errs.length?`<span style="font-size:.6em;color:var(--rouge)">(${errs.length})</span>`:''}</h2>
+      ${errs.length ? `<table class="dash-table"><thead><tr><th>Quand</th><th>Page</th><th>Erreur</th><th>Membre</th></tr></thead><tbody>`+
+        errs.map(e=>`<tr><td>${new Date(e.ts).toLocaleString('fr-CH',{dateStyle:'short',timeStyle:'short'})}</td><td>${JP.esc(e.source||'')}</td><td style="max-width:340px"><span title="${JP.esc(e.detail||'')}">${JP.esc((e.message||'').slice(0,120))}</span></td><td>${JP.esc(e.who||'—')}</td></tr>`).join('')+
+        `</tbody></table>` : '<div class="empty"><p>Aucune erreur signalée 🎉</p></div>'}
     </div>`;
 
     // Sélecteur de période

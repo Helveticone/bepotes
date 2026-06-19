@@ -26,6 +26,26 @@ window.JP = (() => {
     return i<0 ? u : _MEDIA_CDN + u.slice(i);
   }
 
+  /* ---------- Monitoring : journalise les erreurs JS (admin les voit) ----------
+     Throttlé (max ~8/session, dédoublonné) pour éviter tout spam de la table. */
+  let _errCount=0; const _errSeen=new Set();
+  async function logError(message, detail){
+    try{
+      if(!_me || _errCount>=8) return;
+      const key=(''+(message||'')).slice(0,120);
+      if(_errSeen.has(key)) return; _errSeen.add(key); _errCount++;
+      await sb.from('client_errors').insert({
+        user_id:_me.id, message:(''+(message||'')).slice(0,500),
+        source:location.pathname, detail:(''+(detail||'')).slice(0,2000),
+        ua:(navigator.userAgent||'').slice(0,300)
+      });
+    }catch(e){ /* silencieux : le monitoring ne doit jamais casser l'app */ }
+  }
+  if(typeof window!=='undefined'){
+    window.addEventListener('error', ev=>{ try{ logError(ev.message, (ev.error&&ev.error.stack)||((ev.filename||'')+':'+(ev.lineno||''))); }catch(e){} });
+    window.addEventListener('unhandledrejection', ev=>{ try{ const r=ev.reason; logError('promise: '+((r&&r.message)||r), (r&&r.stack)||''); }catch(e){} });
+  }
+
   /* ---------- Helpers visuels (inchangés) ---------- */
   const COLORS = ['#E11D2A','#F2723B','#1A1416','#B01521','#C44536','#7A2E2E','#D6603A','#9C3848'];
   function colorFor(name){ let h=0; for(const c of (name||'?')) h=(h*31+c.charCodeAt(0))>>>0; return COLORS[h%COLORS.length]; }
@@ -1683,6 +1703,13 @@ window.JP = (() => {
   async function adminTopTowns(){ const {data,error}=await sb.rpc('admin_top_towns'); if(error) throw error; return data||[]; }
   async function adminBusiness(){ const {data,error}=await sb.rpc('admin_business'); if(error) throw error; return data||{}; }
   async function adminModeration(){ const {data,error}=await sb.rpc('admin_moderation'); if(error) throw error; return data||{}; }
+  async function adminErrors(limit=50){
+    const { data, error } = await sb.from('client_errors')
+      .select('id, message, source, detail, ua, created_at, author:profiles!user_id ( name )')
+      .order('created_at',{ascending:false}).limit(limit);
+    if(error) return [];
+    return (data||[]).map(e=>({ id:e.id, message:e.message, source:e.source, detail:e.detail, ua:e.ua, ts:e.created_at, who:e.author?.name||'—' }));
+  }
 
   /* ---- Modération renforcée : mots interdits + file d'attente (section 38) ---- */
   async function listBannedWords(){
@@ -2023,6 +2050,6 @@ window.JP = (() => {
     report, block, unblock, isBlocked, blockedList, loadBlocked, blockedIds,
     isAdmin, listReports, resolveReport, adminDeletePost, adminDeleteComment, banUser, unbanUser,
     listBannedWords, addBannedWord, removeBannedWord, modQueue, resolveModItem,
-    touchLastSeen, adminOverview, adminGrowth, adminRetention, adminTopTowns, adminBusiness, adminModeration
+    touchLastSeen, adminOverview, adminGrowth, adminRetention, adminTopTowns, adminBusiness, adminModeration, adminErrors, logError
   };
 })();
