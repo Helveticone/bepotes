@@ -1305,5 +1305,23 @@ notify pgrst, 'reload schema';
 
 
 -- ============================================================
+--  46. APPELS MANQUÉS (notification) — détail dans appels-manques.sql
+--  Notification au destinataire quand un appel n'est pas décroché.
+--  Le message « 📞 Appel manqué » dans la conversation est inséré
+--  côté client par l'appelant. Réservé aux amis. SECURITY DEFINER.
+-- ============================================================
+create or replace function public.log_missed_call(other uuid, video boolean default false)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null or other is null or other = auth.uid() then return; end if;
+  if not public.are_friends(other) then return; end if;
+  insert into public.notifications (user_id, actor_id, type)
+  values (other, auth.uid(), case when video then 'missed_video' else 'missed_call' end);
+end; $$;
+grant execute on function public.log_missed_call(uuid, boolean) to authenticated;
+notify pgrst, 'reload schema';
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================

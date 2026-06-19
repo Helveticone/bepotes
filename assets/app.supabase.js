@@ -977,6 +977,7 @@ window.JP = (() => {
   /* Où mène une notification quand on clique dessus (lien profond) */
   function notifLink(type, postId, actorId){
     if(type==='friend_request' || type==='friend_accept') return 'amis.html';
+    if(type==='missed_call' || type==='missed_video') return actorId ? ('messages.html?to='+actorId) : 'messages.html';
     if(type==='message') return 'messages.html';
     if(type==='follow')  return actorId ? ('membre.html?id='+actorId) : 'fil.html';
     if((type==='like' || type==='comment' || type==='mention') && postId) return 'post.html?id='+postId;
@@ -1045,6 +1046,8 @@ window.JP = (() => {
     if(type==='mention')        return "t'a mentionné·e";
     if(type==='phototag')       return "t'a identifié·e sur une photo";
     if(type==='msg_reaction')   return "a réagi à ton message";
+    if(type==='missed_call')    return "t'a appelé·e (appel manqué)";
+    if(type==='missed_video')   return "t'a appelé·e en vidéo (appel manqué)";
     return "a interagi avec toi";
   }
 
@@ -1117,6 +1120,15 @@ window.JP = (() => {
       {conversation_id:conv.id, user_id:otherId}
     ]);
     return conv.id;
+  }
+
+  /* Appel manqué : trace un message « 📞 Appel manqué » dans la conversation
+     (remonte la conv + non-lu) ET une notification pour le destinataire (RPC). */
+  async function logMissedCall(other, video){
+    if(!_me || !other) return;
+    const label = video ? '🎥 Appel vidéo manqué' : '📞 Appel manqué';
+    try{ const conv = await openConversationWith(other); if(typeof conv === 'string') await sendMessage(conv, { text: label }); }catch(e){}
+    try{ await sb.rpc('log_missed_call', { other, video: !!video }); }catch(e){}
   }
 
   /* Contacter quelqu'un SANS être amis (Marché) : crée/retrouve la
@@ -2159,7 +2171,7 @@ window.JP = (() => {
     events, getEvent, toggleGoing, isGoing, setEventRsvp, eventComments, addEventComment, deleteEventComment, createEvent, updateEvent, updateEventCover, deleteEvent,
     notifications, unreadCount, markAllRead, notifText, subscribeNotifications,
     follow, unfollow, isFollowing, followCounts,
-    members, openConversationWith, contactSeller, conversations, messagesOf, sendMessage, subscribeMessages,
+    members, openConversationWith, logMissedCall, contactSeller, conversations, messagesOf, sendMessage, subscribeMessages,
     MSG_REACTIONS, reactMessage, messageReactions, subscribeMessageReactions,
     editMessage, deleteMessage, markConversationRead, unreadCounts, heartbeat, conversationPresence, presenceLabel, subscribeTyping,
     createGroupConversation, conversationInfo, addConversationMembers, leaveConversation, renameConversation,

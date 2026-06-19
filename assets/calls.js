@@ -132,7 +132,7 @@ window.JPCall = (function () {
     };
     pc.onconnectionstatechange = () => {
       if (!pc) return;
-      if (pc.connectionState === 'connected') { setStatus('Connecté'); if (!durTimer) startTimer(); }
+      if (pc.connectionState === 'connected') { if (cur) cur.connected = true; setStatus('Connecté'); if (!durTimer) startTimer(); }
       if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') endCall('Connexion perdue');
     };
     (localStream.getTracks() || []).forEach(t => pc.addTrack(t, localStream));
@@ -158,6 +158,7 @@ window.JPCall = (function () {
       const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: !!video });
       await pc.setLocalDescription(offer);
       sendCur({ kind: 'ring', callId, video: !!video, sdp: offer });
+      cur.rang = true;   // l'appel a sonné -> s'il n'aboutit pas, ce sera un « appel manqué »
     } catch (e) { endCall(); return; }
     ringTimer = setTimeout(() => { if (cur && cur.role === 'caller' && (!pc || pc.connectionState !== 'connected')) { sendCur({ kind: 'hangup', callId }); endCall('Pas de réponse'); } }, 35000);
   }
@@ -213,6 +214,7 @@ window.JPCall = (function () {
   /* ---------------- Fin ---------------- */
   function endCall(msg) {
     if (!cur && !pc && !localStream) return;   // déjà terminé : évite un 2e toast (« Connexion perdue ») après un raccrochage propre
+    const c = cur;   // capturé avant remise à zéro (pour journaliser un appel manqué)
     if (ringTimer) { clearTimeout(ringTimer); ringTimer = null; }
     if (durTimer) { clearInterval(durTimer); durTimer = null; }
     // On détache le canal d'envoi mais on le ferme un peu plus tard : laisse partir le dernier « hangup ».
@@ -226,6 +228,11 @@ window.JPCall = (function () {
       if (rv) rv.srcObject = null; if (lv) lv.srcObject = null;
     }
     if (msg && window.JP) JP.toast(msg);
+    // Appel non abouti côté appelant (sans réponse / refusé / annulé pendant la sonnerie)
+    // -> message « Appel manqué » dans la conversation + notification pour le destinataire.
+    if (c && c.role === 'caller' && c.rang && !c.connected && window.JP && JP.logMissedCall) {
+      JP.logMissedCall(c.peerId, c.video);
+    }
   }
 
   /* ---------------- Init ---------------- */
