@@ -5,9 +5,15 @@
 /
   Cache-Control: no-cache, must-revalidate
 
-# Fichiers JS/CSS : ils ont déjà un ?v= pour casser le cache, on peut les garder
+# Fichiers JS/CSS : ils ont TOUS un ?v= pour casser le cache -> on peut les garder très longtemps.
+# « immutable » dit au navigateur de ne jamais revalider ; un bump de ?v= sert une nouvelle URL.
 /assets/*
-  Cache-Control: public, max-age=3600
+  Cache-Control: public, max-age=31536000, immutable
+
+# EXCEPTION : config.js n'a PAS de ?v= (il porte les clés activées au lancement) -> toujours frais.
+# Règle plus spécifique + placée après : sa valeur l'emporte sur /assets/*.
+/assets/config.js
+  Cache-Control: no-cache, must-revalidate
 
 # Service worker et manifeste : toujours frais (sinon les MAJ ne passent pas)
 /sw.js
