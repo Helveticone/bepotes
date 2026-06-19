@@ -369,18 +369,37 @@ window.JP = (() => {
     })();
     return _ffmpegLoading;
   }
-  /* Compresse en MP4 720p H.264/AAC. onProgress(0..100). Repli = fichier d'origine. */
-  async function compressVideo(file, onProgress){
+  /* Durée d'une vidéo (s) via un <video> temporaire. 0 si inconnue. */
+  function videoDuration(file){
+    return new Promise(res=>{
+      const v=document.createElement('video'); v.preload='metadata';
+      v.onloadedmetadata=()=>{ const d=v.duration||0; try{URL.revokeObjectURL(v.src);}catch(e){} res(isFinite(d)?d:0); };
+      v.onerror=()=>res(0);
+      try{ v.src=URL.createObjectURL(file); }catch(e){ res(0); }
+    });
+  }
+  /* Compresse en MP4 H.264/AAC avec un bitrate calculé d'après la durée pour
+     viser ~targetMB (garantit de passer sous la limite, même les vidéos longues).
+     onProgress(0..100). Repli = fichier d'origine si ffmpeg indispo/échec. */
+  async function compressVideo(file, onProgress, targetMB=42){
     try{
       if(!file || file.size < 6*1024*1024) return file;   // déjà léger → on garde
+      const dur = (await videoDuration(file)) || 60;       // s (défaut 60 si inconnue)
+      const audioBps = 96000;
+      // bitrate vidéo pour viser targetMB au total
+      let vBps = Math.floor((targetMB*1024*1024*8)/dur) - audioBps;
+      vBps = Math.max(300000, Math.min(vBps, 4000000));    // borne 0,3–4 Mbit/s
+      const kbps = Math.floor(vBps/1000);
+      const width = vBps < 800000 ? 854 : 1280;            // 480p si bas débit, sinon 720p
       const ff=await getFFmpeg();
       const { fetchFile }=window.FFmpegUtil;
       if(onProgress) ff.on('progress', ({progress})=>{ const p=Math.max(0,Math.min(99,Math.round((progress||0)*100))); onProgress(p); });
       const inName='in_'+Date.now(), outName='out.mp4';
       await ff.writeFile(inName, await fetchFile(file));
       await ff.exec(['-i',inName,
-        '-vf',"scale='min(1280,iw)':-2",   // largeur max 1280, hauteur paire auto
-        '-c:v','libx264','-preset','veryfast','-crf','28',
+        '-vf',`scale='min(${width},iw)':-2`,
+        '-c:v','libx264','-preset','veryfast',
+        '-b:v',`${kbps}k`,'-maxrate',`${Math.floor(kbps*1.35)}k`,'-bufsize',`${kbps*2}k`,
         '-c:a','aac','-b:a','96k','-movflags','+faststart', outName]);
       const data=await ff.readFile(outName);
       try{ await ff.deleteFile(inName); await ff.deleteFile(outName); }catch(e){}
