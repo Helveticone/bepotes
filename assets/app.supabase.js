@@ -1456,6 +1456,68 @@ window.JP = (() => {
     return {ok:true};
   }
 
+  /* ---------- Gamification : réputation, niveaux, badges ----------
+     Scores calculés à la demande (RPC user_stats / leaderboard).      */
+  async function userStats(uid){
+    if(!uid) return null;
+    try{ const { data, error } = await sb.rpc('user_stats', { uid }); if(error) return null; return data; }
+    catch(e){ return null; }
+  }
+  async function leaderboard(period='all', lim=20){
+    try{
+      const { data, error } = await sb.rpc('leaderboard', { period, lim });
+      if(error) return [];
+      return (data||[]).map(r=>({ ...r, avatar:cdnUrl(r.avatar) }));
+    }catch(e){ return []; }
+  }
+  const REP_LEVELS=[
+    {min:0,    name:'Nouveau',         emoji:'🌱'},
+    {min:50,   name:'Habitué',         emoji:'🧀'},
+    {min:150,  name:'Régional',        emoji:'⛰️'},
+    {min:350,  name:'Pilier',          emoji:'🏛️'},
+    {min:700,  name:'Ambassadeur',     emoji:'🎖️'},
+    {min:1500, name:'Légende du Jura', emoji:'👑'}
+  ];
+  function repScore(s){
+    if(!s) return 0;
+    return (s.posts||0)*5 + (s.reels||0)*8 + (s.comments||0)*2 + (s.likes_received||0)*1
+         + (s.friends||0)*3 + (s.events||0)*10 + (s.photos||0)*1;
+  }
+  function repLevel(score){
+    let lvl=REP_LEVELS[0], next=null;
+    for(let i=0;i<REP_LEVELS.length;i++){ if(score>=REP_LEVELS[i].min){ lvl=REP_LEVELS[i]; next=REP_LEVELS[i+1]||null; } }
+    return { name:lvl.name, emoji:lvl.emoji, min:lvl.min, index:REP_LEVELS.indexOf(lvl), next,
+      toNext: next ? next.min-score : 0,
+      pct: next ? Math.max(0, Math.min(100, Math.round((score-lvl.min)/(next.min-lvl.min)*100))) : 100 };
+  }
+  const REP_BADGES=[
+    {key:'first',     emoji:'📝', name:'Premier post',      test:s=>(s.posts||0)>=1},
+    {key:'writer',    emoji:'✍️', name:'Plume jurassienne', test:s=>(s.posts||0)>=25},
+    {key:'talker',    emoji:'💬', name:'Beau parleur',      test:s=>(s.comments||0)>=50},
+    {key:'loved',     emoji:'❤️', name:'Apprécié',          test:s=>(s.likes_received||0)>=50},
+    {key:'star',      emoji:'🌟', name:'Star locale',       test:s=>(s.likes_received||0)>=250},
+    {key:'creator',   emoji:'🎬', name:'Créateur de reels', test:s=>(s.reels||0)>=3},
+    {key:'social',    emoji:'🤝', name:'Sociable',          test:s=>(s.friends||0)>=10},
+    {key:'butterfly', emoji:'🦋', name:'Papillon social',   test:s=>(s.friends||0)>=50},
+    {key:'host',      emoji:'📅', name:'Organisateur',      test:s=>(s.events||0)>=1},
+    {key:'photo',     emoji:'📸', name:'Photographe',       test:s=>(s.photos||0)>=20}
+  ];
+  function earnedBadges(s){ return REP_BADGES.filter(b=>{ try{ return b.test(s||{}); }catch(e){ return false; } }); }
+  function reputationHTML(stats){
+    if(!stats) return '';
+    const score=repScore(stats), lvl=repLevel(score), badges=earnedBadges(stats);
+    const bar = lvl.next
+      ? `<div class="rep-bar"><i style="width:${lvl.pct}%"></i></div><div class="rep-next">Plus que <b>${lvl.toNext}</b> pts pour ${lvl.next.emoji} ${esc(lvl.next.name)}</div>`
+      : `<div class="rep-next">Niveau maximum atteint 👑</div>`;
+    const badgeHTML = badges.length
+      ? `<div class="rep-badges">${badges.map(b=>`<span class="rep-badge" title="${esc(b.name)}">${b.emoji}<small>${esc(b.name)}</small></span>`).join('')}</div>`
+      : `<div class="rep-empty">Pas encore de badge — publie, commente, ajoute des amis pour en gagner !</div>`;
+    return `<div class="rep-card">
+      <div class="rep-head"><span class="rep-lvl">${lvl.emoji} ${esc(lvl.name)}</span><span class="rep-score">${score} pts</span></div>
+      ${bar}${badgeHTML}
+    </div>`;
+  }
+
   async function listGroups(search='', kind='group'){
     let q = sb.from('groups')
       .select(`id, name, description, town, cover_url, owner_id, is_private, kind, category, members:group_members ( user_id, role )`)
@@ -2104,6 +2166,7 @@ window.JP = (() => {
     searchPosts,
     friendStatus, sendFriendRequest, acceptFriend, removeFriend, pendingRequests, friends, friendCount, areFriends, friendSuggestions,
     postTags, tagPeople, untagPerson,
+    userStats, leaderboard, repScore, repLevel, earnedBadges, reputationHTML, REP_LEVELS, REP_BADGES,
     listGroups, suggestGroups, reels, addReel, getGroup, createGroup, joinGroup, leaveGroup, groupPosts, addGroupPost,
     uploadImages, pendingMembers, approveMember, rejectMember, updateGroupCover,
     updateGroupRules, updateGroupInfo, groupMembers, setMemberRole, removeMember,

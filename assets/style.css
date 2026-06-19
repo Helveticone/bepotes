@@ -1003,6 +1003,37 @@ a:focus:not(:focus-visible),button:focus:not(:focus-visible){outline:none}
 .to-top.show{display:flex;animation:jpFadeIn .2s ease}
 @media(min-width:901px){.to-top{bottom:24px;right:24px}}
 
+/* Réputation / gamification (profil + classement) */
+.rep-card{margin-top:14px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+.rep-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.rep-lvl{font-weight:800;font-family:'Plus Jakarta Sans',sans-serif}
+.rep-score{font-weight:700;color:var(--rouge);font-size:.9rem;white-space:nowrap}
+.rep-bar{height:8px;border-radius:999px;background:var(--rouge-soft);overflow:hidden}
+.rep-bar i{display:block;height:100%;background:var(--rouge);border-radius:999px;transition:width .5s ease}
+.rep-next{font-size:.78rem;color:var(--ink-soft);margin-top:6px}
+.rep-badges{display:flex;flex-wrap:wrap;gap:10px;margin-top:13px}
+.rep-badge{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:1.5rem;width:66px;text-align:center}
+.rep-badge small{font-size:.62rem;color:var(--ink-soft);line-height:1.15;font-weight:600}
+.rep-empty{font-size:.8rem;color:var(--ink-soft);margin-top:10px;font-style:italic}
+/* Page classement */
+.lb-tabs{display:flex;gap:8px;margin-bottom:16px}
+.lb-tabs button{flex:1;padding:10px;border:1px solid var(--line);background:var(--paper);border-radius:999px;font-family:inherit;font-weight:700;font-size:.9rem;cursor:pointer;color:var(--ink-soft)}
+.lb-tabs button.active{background:var(--rouge);color:#fff;border-color:var(--rouge)}
+.lb-hero{background:linear-gradient(135deg,#f5b50a,#e1881d);color:#fff;border-radius:18px;padding:18px 20px;margin-bottom:18px;display:flex;align-items:center;gap:14px;box-shadow:0 8px 24px rgba(225,136,29,.28)}
+.lb-hero .av{width:58px;height:58px;border:3px solid rgba(255,255,255,.6)}
+.lb-hero .lh-txt b{display:block;font-size:1.15rem;font-family:'Plus Jakarta Sans',sans-serif}
+.lb-hero .lh-txt span{font-size:.82rem;opacity:.95}
+.lb-hero .lh-crown{font-size:1.8rem;margin-left:auto}
+.lb-list{display:flex;flex-direction:column;gap:8px}
+.lb-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--line);border-radius:13px;background:var(--paper);text-decoration:none;color:inherit}
+.lb-row.top{border-color:var(--rouge-soft);background:var(--rouge-soft)}
+.lb-rank{width:34px;text-align:center;font-weight:800;font-size:1.05rem;flex:0 0 auto}
+.lb-row .av{width:42px;height:42px;flex:0 0 auto}
+.lb-meta{flex:1;min-width:0}
+.lb-meta b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-meta span{font-size:.78rem;color:var(--ink-soft)}
+.lb-score{font-weight:800;color:var(--rouge);white-space:nowrap}
+
 /* Carte de bienvenue (onboarding, fermable) */
 .welcome-card{background:linear-gradient(135deg,var(--rouge),#ff7a45);color:#fff;border-radius:18px;padding:18px 20px;margin-bottom:16px;position:relative;box-shadow:0 8px 24px rgba(225,29,42,.25)}
 .welcome-card h3{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.18rem;margin-bottom:5px}

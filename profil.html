@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=83">
+<link rel="stylesheet" href="assets/style.css?v=84">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -77,6 +77,7 @@
         <div><b id="sFollowing">0</b><span>abonnements</span></div>
         <div><b id="sLikes">0</b><span>j'aime reçus</span></div>
       </div>
+      <div id="rep"></div>
     </div>
   </div>
 
@@ -157,8 +158,8 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=79"></script>
-<script src="assets/nav.js?v=7"></script>
+<script src="assets/app.supabase.js?v=80"></script>
+<script src="assets/nav.js?v=8"></script>
 <script src="assets/bell.js?v=23"></script>
 <script>
 (async function(){
@@ -191,6 +192,7 @@
     if(me.bio){ bio.textContent=me.bio; bio.classList.remove('empty-bio'); }
     else { bio.textContent="Aucune bio pour l'instant. Clique sur « Modifier le profil » pour te présenter."; bio.classList.add('empty-bio'); }
     document.getElementById('about').innerHTML=JP.aboutHTML(me);
+    JP.userStats(me.id).then(s=>{ const el=document.getElementById('rep'); if(el && s) el.innerHTML=JP.reputationHTML(s); });
     document.getElementById('sPosts').textContent=myPosts.length;
     document.getElementById('sLikes').textContent=myPosts.reduce((s,p)=>s+p.likes,0);
     renderMine(myPosts);
