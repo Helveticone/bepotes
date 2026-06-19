@@ -70,7 +70,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=85"></script>
+<script src="assets/app.supabase.js?v=86"></script>
 <script src="assets/nav.js?v=8"></script>
 <script>
 (async function(){
@@ -102,6 +102,17 @@
 
   const card=(lbl,num,sub)=>`<div class="stat"><div class="lbl">${lbl}</div><div class="num">${num}</div><div class="sub">${sub||''}</div></div>`;
 
+  async function topTownsFallback(){
+    const sb=JP.sb;
+    const [pr,po]=await Promise.all([ sb.from('profiles').select('town'), sb.from('posts').select('town') ]);
+    const u={}, p={};
+    (pr.data||[]).forEach(r=>{ const t=(r.town||'').trim(); if(t) u[t]=(u[t]||0)+1; });
+    (po.data||[]).forEach(r=>{ const t=(r.town||'').trim(); if(t) p[t]=(p[t]||0)+1; });
+    const all=new Set([...Object.keys(u),...Object.keys(p)]);
+    return [...all].map(t=>({ town:t, users:u[t]||0, posts:p[t]||0 }))
+      .sort((a,b)=> (b.users-a.users) || (b.posts-a.posts)).slice(0,15);
+  }
+
   async function load(){
     updated.textContent='Chargement…';
     const [ov,gr,re,tw,bz,mo,er,ads]=await Promise.allSettled([
@@ -110,7 +121,10 @@
       JP.adminAdsActive ? JP.adminAdsActive() : Promise.resolve(0)
     ]);
     const val=r=>r.status==='fulfilled'?r.value:null;
-    render(val(ov), val(gr), val(re), val(tw), val(bz), val(mo), val(er), val(ads)||0);
+    // Top communes : repli côté client si la RPC renvoie vide (agrège profils + posts par commune)
+    let towns = val(tw);
+    if(!towns || !towns.length){ try{ towns = await topTownsFallback(); }catch(e){ towns = towns||[]; } }
+    render(val(ov), val(gr), val(re), towns, val(bz), val(mo), val(er), val(ads)||0);
     if(ov.status==='rejected') console.error(ov.reason);
     updated.textContent='Dernière mise à jour : '+new Date().toLocaleString('fr-CH',{dateStyle:'short',timeStyle:'short'});
   }

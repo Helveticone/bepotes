@@ -56,7 +56,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=85"></script>
+<script src="assets/app.supabase.js?v=86"></script>
 <script src="assets/nav.js?v=8"></script>
 <script src="assets/bell.js?v=23"></script>
 <script src="assets/calls.js?v=3"></script>
@@ -298,11 +298,25 @@
     const mems=await JP.groupMembers(groupId);
     const order={owner:0,admin:1,member:2};
     mems.sort((a,b)=>((order[a.role]??3)-(order[b.role]??3)) || a.name.localeCompare(b.name));
+    const isGrp = group.kind!=='page';
+    const setRow=(id,checked,title,desc)=>`<label style="display:flex;gap:10px;align-items:flex-start;padding:9px 0;cursor:pointer">
+        <input type="checkbox" id="${id}" ${checked?'checked':''} style="margin-top:3px;width:18px;height:18px;flex:0 0 auto">
+        <span style="display:flex;flex-direction:column"><b style="font-size:.9rem">${title}</b><small style="color:var(--ink-soft);font-size:.78rem;line-height:1.3">${desc}</small></span>
+      </label>`;
+    const settingsHTML = `
+      <p style="color:var(--ink-soft);font-size:.82rem;margin:0 0 8px;line-height:1.4">En tant qu'administrateur, tu peux modifier la couverture, les infos${isGrp?', les règles':' (catégorie, adresse, téléphone, site)'}, les membres et les administrateurs${isGrp?', et les réglages ci-dessous.':'. Seuls les administrateurs publient en tant que page.'}</p>
+      ${isGrp ? `<div style="border:1px solid var(--line);border-radius:12px;padding:6px 12px;margin-bottom:14px">
+        ${setRow('setPrivate', group.isPrivate, "Valider les demandes d'adhésion", "Les nouveaux membres doivent être acceptés par un admin avant de rejoindre.")}
+        ${setRow('setAdminsOnly', group.postPolicy==='admins', "Seuls les admins peuvent publier", "Les membres peuvent lire et commenter, mais pas créer de publication.")}
+        ${setRow('setApproval', group.postApproval, "Valider les publications avant parution", "Les posts des membres passent en file d'attente jusqu'à validation par un admin.")}
+      </div>` : ''}`;
     area.innerHTML=`<div class="side-card" style="margin-bottom:18px">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
-        <h3 style="font-family:'Plus Jakarta Sans';font-size:1rem;margin:0">Gérer les membres (${mems.length})</h3>
+        <h3 style="font-family:'Plus Jakarta Sans';font-size:1.05rem;margin:0">⚙️ Paramètres ${isGrp?'du groupe':'de la page'}</h3>
         <button class="btn btn-ghost btn-sm" id="closeManage">Fermer</button>
       </div>
+      ${settingsHTML}
+      <h3 style="font-family:'Plus Jakarta Sans';font-size:.95rem;margin:4px 0 10px">Membres & administrateurs (${mems.length})</h3>
       ${mems.map(m=>{
         const isOwnerRow=m.role==='owner';
         const tag=isOwnerRow?'👑 Créateur':(m.role==='admin'?'🛡️ Admin':'Membre');
@@ -321,6 +335,17 @@
       }).join('')}
     </div>`;
     document.getElementById('closeManage').addEventListener('click',toggleManage);
+    // Réglages (groupe) : enregistrement immédiat à chaque changement
+    const wireSet=(id, field, val)=>{ const el=document.getElementById(id); if(!el) return;
+      el.addEventListener('change',async()=>{
+        const r=await JP.updateGroupInfo(groupId, {[field]: val(el.checked)});
+        if(r.ok){ JP.toast('Paramètre enregistré ✓'); await loadHeader(); }
+        else { JP.toast(r.msg||'Échec'); el.checked=!el.checked; }
+      });
+    };
+    wireSet('setPrivate','is_private', c=>c);
+    wireSet('setAdminsOnly','post_policy', c=>c?'admins':'all');
+    wireSet('setApproval','post_approval', c=>c);
     area.querySelectorAll('.setrole').forEach(b=>b.addEventListener('click',async()=>{
       b.disabled=true;
       const r=await JP.setMemberRole(groupId, b.dataset.uid, b.dataset.role);
@@ -342,8 +367,13 @@
     if(group.kind==='page'){
       // Sur une page, seuls les gestionnaires (owner/admin) publient — et en tant que page.
       if(!group.isManager){ area.innerHTML=''; return; }
-    } else if(!group.isMember){
-      area.innerHTML='<div class="side-card" style="text-align:center;color:var(--ink-soft);margin-bottom:20px">'+(group.isPending?'Ta demande est en attente de validation.':'Rejoins le groupe pour publier.')+'</div>'; return;
+    } else {
+      if(!group.isMember){
+        area.innerHTML='<div class="side-card" style="text-align:center;color:var(--ink-soft);margin-bottom:20px">'+(group.isPending?'Ta demande est en attente de validation.':'Rejoins le groupe pour publier.')+'</div>'; return;
+      }
+      if(group.postPolicy==='admins' && !group.isManager){
+        area.innerHTML='<div class="side-card" style="text-align:center;color:var(--ink-soft);margin-bottom:20px">📢 Seuls les administrateurs peuvent publier dans ce groupe.</div>'; return;
+      }
     }
     area.innerHTML=`
       <div class="composer">
@@ -370,10 +400,13 @@
       const raw=compText.value.trim();
       if(!raw && !pendingImages.length){ JP.toast('Écris un mot ou ajoute une photo'); return; }
       const t=JP.tokenizeMentions(raw, compText._mentions);
-      if(group.kind==='page') await JP.addPost({text:t, tag:'Page', images:pendingImages, pageId:groupId});
-      else                     await JP.addGroupPost(groupId, {text:t, tag:'Groupe', images:pendingImages});
-      pendingImages=[];
-      JP.toast('Publié ! 🎉'); await render();
+      let pendingFlag=false;
+      if(group.kind==='page'){ await JP.addPost({text:t, tag:'Page', images:pendingImages, pageId:groupId}); }
+      else { pendingFlag = !!(group.postApproval && !group.isManager);
+             await JP.addGroupPost(groupId, {text:t, tag:'Groupe', images:pendingImages, pending:pendingFlag}); }
+      pendingImages=[]; compText.value=''; compText._mentions=[];
+      JP.toast(pendingFlag?'Envoyé ! En attente de validation par un admin ⏳':'Publié ! 🎉');
+      await render();
     });
   }
   function renderPreviews(){
@@ -384,10 +417,29 @@
 
   async function render(){
     feed.innerHTML='<div class="empty"><p>Chargement…</p></div>';
+    // File d'attente de validation (gestionnaires, groupes avec approbation)
+    let pendingHTML='';
+    if(group && group.kind!=='page' && group.isManager){
+      let pend=[]; try{ pend=await JP.pendingGroupPosts(groupId); }catch(e){}
+      if(pend.length){
+        pendingHTML=`<div class="side-card" style="margin-bottom:16px;border:1.5px solid var(--rouge-soft)">
+          <h3 style="font-family:'Plus Jakarta Sans';font-size:1rem;margin:0 0 10px">⏳ Publications à valider (${pend.length})</h3>`
+          + pend.map(p=>`<div class="pending-row" style="flex-wrap:wrap;row-gap:8px;margin-bottom:10px">
+              ${JP.avatarHTML(p.author,p.authorAvatar,'av')}
+              <div class="pi" style="min-width:0;flex:1 1 55%"><b>${JP.esc(p.author)}</b><span style="display:block;font-size:.85rem;color:var(--ink-soft)">${JP.esc((p.text||'(photo)').slice(0,160))}</span></div>
+              <div style="display:flex;gap:8px;flex:1 1 100%">
+                <button class="btn btn-primary btn-sm appr" data-pid="${p.id}">Approuver</button>
+                <button class="btn btn-ghost btn-sm rej" data-pid="${p.id}" style="color:var(--rouge)">Refuser</button>
+              </div></div>`).join('')
+          + `</div>`;
+      }
+    }
     const posts = group && group.kind==='page' ? await JP.pagePosts(groupId) : await JP.groupPosts(groupId);
-    if(!posts.length){ feed.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><p>Aucune publication dans ce groupe. Lance la discussion !</p></div>'; return; }
-    feed.innerHTML=posts.map(postHTML).join('');
+    if(!posts.length && !pendingHTML){ feed.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><p>Aucune publication dans ce groupe. Lance la discussion !</p></div>'; return; }
+    feed.innerHTML=pendingHTML + posts.map(postHTML).join('');
     posts.forEach(p=>bind(p));
+    feed.querySelectorAll('.appr').forEach(b=>b.addEventListener('click',async()=>{ b.disabled=true; const r=await JP.approveGroupPost(b.dataset.pid); if(r.ok){ JP.toast('Publication validée ✅'); await render(); } else { JP.toast(r.msg||'Échec'); b.disabled=false; } }));
+    feed.querySelectorAll('.rej').forEach(b=>b.addEventListener('click',async()=>{ if(!confirm('Refuser et supprimer cette publication ?'))return; b.disabled=true; const r=await JP.rejectGroupPost(b.dataset.pid); if(r.ok){ JP.toast('Refusée'); await render(); } else { JP.toast(r.msg||'Échec'); b.disabled=false; } }));
   }
 
   function galleryHTML(images){

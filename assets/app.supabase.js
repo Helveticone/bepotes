@@ -1573,6 +1573,7 @@ window.JP = (() => {
       id:g.id, name:g.name, description:g.description, town:g.town, cover:cdnUrl(g.cover_url),
       rules:g.rules||'',
       ownerId:g.owner_id, isPrivate:g.is_private,
+      postPolicy: g.post_policy || 'all', postApproval: !!g.post_approval,
       kind:g.kind||'group', category:g.category,
       address:g.address, phone:g.phone, website:g.website,
       memberCount:members.length,
@@ -1587,9 +1588,15 @@ window.JP = (() => {
   }
 
   async function getGroup(groupId){
-    const { data } = await sb.from('groups')
-      .select(`id, name, description, town, cover_url, owner_id, is_private, kind, category, address, phone, website, rules, members:group_members ( user_id, role, profiles!user_id ( name, avatar_url, town ) )`)
+    // select('*') -> récupère aussi post_policy/post_approval (section 48) sans casser si absentes.
+    let { data, error } = await sb.from('groups')
+      .select(`*, members:group_members ( user_id, role, profiles!user_id ( name, avatar_url, town ) )`)
       .eq('id', groupId).single();
+    if(error){ // repli ultra-prudent
+      ({ data } = await sb.from('groups')
+        .select(`id, name, description, town, cover_url, owner_id, is_private, kind, category, address, phone, website, rules, members:group_members ( user_id, role, profiles!user_id ( name, avatar_url, town ) )`)
+        .eq('id', groupId).single());
+    }
     if(!data) return null;
     return mapGroup(data);
   }
@@ -1693,16 +1700,32 @@ window.JP = (() => {
   }
 
   /* Publications d'un groupe */
-  async function groupPosts(groupId){
-    const { data } = await sb.from('posts')
-      .select(`id, text, tag, image_url, images, created_at, author_id,
+  const GROUP_POST_COLS = `id, text, tag, image_url, images, created_at, author_id,
                author:profiles!author_id ( name, town, avatar_url ),
                video_url, link_url, link_title, link_desc, link_image, link_site, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
-               comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
-      .eq('group_id', groupId)
-      .order('created_at', {ascending:false})
-      .limit(100);
+               comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`;
+  async function groupPosts(groupId){
+    // Exclut les posts en attente de validation (section 48) ; repli si la colonne n'existe pas.
+    let res = await sb.from('posts').select(GROUP_POST_COLS).eq('group_id', groupId).eq('pending', false)
+      .order('created_at', {ascending:false}).limit(100);
+    if(res.error) res = await sb.from('posts').select(GROUP_POST_COLS).eq('group_id', groupId)
+      .order('created_at', {ascending:false}).limit(100);
+    return (res.data||[]).map(mapPost);
+  }
+  /* Posts d'un groupe en attente de validation (file admin). */
+  async function pendingGroupPosts(groupId){
+    const { data, error } = await sb.from('posts').select(GROUP_POST_COLS)
+      .eq('group_id', groupId).eq('pending', true).order('created_at', {ascending:false}).limit(50);
+    if(error) return [];
     return (data||[]).map(mapPost);
+  }
+  async function approveGroupPost(postId){
+    const { error } = await sb.from('posts').update({pending:false}).eq('id', postId);
+    return error ? {ok:false, msg:error.message} : {ok:true};
+  }
+  async function rejectGroupPost(postId){
+    const { error } = await sb.from('posts').delete().eq('id', postId);
+    return error ? {ok:false, msg:error.message} : {ok:true};
   }
 
   /* Pages que je gère (owner/admin) — pour le sélecteur « publier en tant que ». */
@@ -1739,16 +1762,17 @@ window.JP = (() => {
     return (data||[]).map(mapPost);
   }
 
-  async function addGroupPost(groupId, {text, tag, image, images}){
+  async function addGroupPost(groupId, {text, tag, image, images, pending}){
     if(!_me) return;
     let urls=[];
     if(images && images.length) urls=await uploadImages('posts', images, 1280, 0.82, true);
     else if(image){ try{ urls=[await uploadImageWithThumb('posts', image, 1280, 0.82)]; }catch(e){ toast('Photo trop lourde'); } }
-    const { error } = await sb.from('posts').insert({
-      author_id:_me.id, text, tag:tag||'Général',
-      image_url:urls[0]||null, images:urls, group_id:groupId
-    });
-    if(error) toast(error.message);
+    const row={ author_id:_me.id, text, tag:tag||'Général',
+      image_url:urls[0]||null, images:urls, group_id:groupId };
+    if(pending) row.pending = true;   // validation des posts activée (section 48)
+    const { error } = await sb.from('posts').insert(row);
+    if(error){ toast(error.message); return {ok:false, msg:error.message}; }
+    return {ok:true};
   }
 
   /* Profil public de n'importe quel membre (par id) */
@@ -2231,7 +2255,7 @@ window.JP = (() => {
     friendStatus, sendFriendRequest, acceptFriend, removeFriend, pendingRequests, friends, friendCount, areFriends, friendSuggestions,
     postTags, tagPeople, untagPerson,
     userStats, leaderboard, repScore, repLevel, earnedBadges, reputationHTML, REP_LEVELS, REP_BADGES,
-    listGroups, suggestGroups, reels, addReel, getGroup, createGroup, joinGroup, leaveGroup, groupPosts, addGroupPost, myPages, pagePosts,
+    listGroups, suggestGroups, reels, addReel, getGroup, createGroup, joinGroup, leaveGroup, groupPosts, addGroupPost, myPages, pagePosts, pendingGroupPosts, approveGroupPost, rejectGroupPost,
     uploadImages, pendingMembers, approveMember, rejectMember, updateGroupCover,
     updateGroupRules, updateGroupInfo, groupMembers, setMemberRole, removeMember,
     publicProfile, userPosts, userPhotos,
