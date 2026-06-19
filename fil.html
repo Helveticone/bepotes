@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=75">
+<link rel="stylesheet" href="assets/style.css?v=76">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -955,7 +955,7 @@
       const mine = me && r.authorId===me.id;
       stage.innerHTML=`<video src="${r.video}" playsinline autoplay loop preload="auto"></video>
         <div class="rv-grad"></div>
-        ${mine?'<button class="rv-del" type="button" aria-label="Supprimer ce reel">🗑</button>':''}
+        ${mine?'<button class="rv-del" type="button" aria-label="Supprimer ce reel">🗑 Supprimer</button>':''}
         <div class="rv-info"><div class="rv-author">${JP.avatarHTML(r.author,r.avatar,'av')}<b>${JP.esc(r.author)}</b></div>${r.caption?`<div class="rv-cap">${JP.esc(r.caption)}</div>`:''}</div>`;
       const v=stage.querySelector('video');
       v.muted=false;

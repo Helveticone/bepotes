@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=75">
+<link rel="stylesheet" href="assets/style.css?v=76">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -434,6 +434,11 @@
     const cid=await JP.openConversationWith(to);
     if(typeof cid==='string') await loadConvs(cid);
     // sinon (pas amis) le toast est déjà affiché ; on reste sur la liste
+  } else {
+    // Pas de cible précise : on ouvre directement la discussion la plus récente
+    // (= celle avec le dernier message reçu/envoyé, la liste étant triée par activité).
+    const first=convItems.querySelector('.conv-item');
+    if(first) openThread(first.dataset.id, first.dataset.name, first.dataset.avatar, first.dataset.group==='1');
   }
 
   // cloche
