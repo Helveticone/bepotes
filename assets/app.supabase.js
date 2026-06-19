@@ -70,8 +70,11 @@ window.JP = (() => {
   /* ---------- @mentions ----------
      Stockage : @[Nom](uuid). Affichage : lien vers le profil. */
   function mentionHTML(text){
-    return esc(text).replace(/@\[([^\]]+)\]\(([0-9a-fA-F-]{36})\)/g,
-      (m,name,id)=>`<a class="mention" href="membre.html?id=${id}">@${name}</a>`);
+    return esc(text)
+      .replace(/@\[([^\]]+)\]\(([0-9a-fA-F-]{36})\)/g,
+        (m,name,id)=>`<a class="mention" href="membre.html?id=${id}">@${name}</a>`)
+      .replace(/(https?:\/\/[^\s<]+)/g,
+        (m,url)=>`<a href="${url}" target="_blank" rel="noopener" style="color:var(--rouge);text-decoration:underline;overflow-wrap:anywhere">${url}</a>`);
   }
   // Convertit les "@Nom" choisis dans l'autocomplétion en jetons @[Nom](uuid)
   function tokenizeMentions(text, mentions){

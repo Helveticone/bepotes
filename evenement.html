@@ -44,7 +44,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=90"></script>
+<script src="assets/app.supabase.js?v=91"></script>
 <script src="assets/nav.js?v=8"></script>
 <script src="assets/bell.js?v=23"></script>
 <script src="assets/calls.js?v=3"></script>
@@ -94,6 +94,7 @@
           <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
             <button class="btn ${ev.myStatus==='going'?'btn-primary':'btn-ghost'} btn-sm" id="goBtn">${ev.myStatus==='going'?'✓ Je participe':'Je participe'}</button>
             <button class="btn ${ev.myStatus==='interested'?'btn-primary':'btn-ghost'} btn-sm" id="intBtn">${ev.myStatus==='interested'?'✓ Intéressé·e':'Intéressé·e'}</button>
+            <button class="btn btn-ghost btn-sm" id="evShare">↗ Partager dans mon fil</button>
             ${ev.mine?`<button class="btn btn-ghost btn-sm" id="evDel" style="color:var(--rouge)">Supprimer l'événement</button>`:''}
           </div>
           <div class="gh-meta" style="margin-top:12px"><b>${ev.going}</b> participent · <b>${ev.interested}</b> intéressé·e·s</div>
@@ -117,6 +118,14 @@
     document.getElementById('intBtn').addEventListener('click',async()=>{
       await JP.setEventRsvp(eid, ev.myStatus==='interested'?null:'interested');
       JP.toast(ev.myStatus==='interested'?'Retiré':'Marqué intéressé·e ✨'); await load();
+    });
+    document.getElementById('evShare').addEventListener('click',async e=>{
+      const b=e.currentTarget; b.disabled=true;
+      const url=location.origin+'/evenement.html?id='+eid;
+      const txt='📅 '+ev.title+'\n'+fullDate(ev.ts)+(ev.town?' · '+ev.town:'')+'\n'+url;
+      await JP.addPost({text:txt, tag:'Sorties'});
+      b.disabled=false;
+      JP.toast('Événement partagé dans ton fil ! 🔁');
     });
 
     const cb=document.getElementById('evCoverBtn');
