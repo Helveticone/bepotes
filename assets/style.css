@@ -970,3 +970,13 @@ a:focus:not(:focus-visible),button:focus:not(:focus-visible){outline:none}
   .icon-btn{min-height:40px}
   .nav-burger,.nav-theme,.nav-bell{min-width:42px;min-height:42px}
 }
+
+/* Overlay « préparation vidéo » (compression + envoi) */
+.vid-progress{position:fixed;inset:0;background:rgba(26,20,22,.55);z-index:660;display:none;align-items:center;justify-content:center;padding:24px}
+.vp-card{background:var(--white);border-radius:20px;padding:26px 28px;max-width:340px;width:100%;text-align:center;box-shadow:var(--shadow-lg)}
+.vp-emoji{font-size:2.4rem;line-height:1}
+.vp-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.15rem;margin:8px 0 14px;color:var(--ink)}
+.vp-bar{height:10px;border-radius:999px;background:var(--rouge-soft);overflow:hidden}
+.vp-bar i{display:block;height:100%;width:0;background:var(--rouge);transition:width .25s ease}
+.vp-pct{font-weight:700;color:var(--rouge-dark);margin-top:8px}
+.vp-hint{color:var(--ink-soft);font-size:.88rem;margin-top:10px;line-height:1.45}

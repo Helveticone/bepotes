@@ -160,6 +160,23 @@ window.JP = (() => {
     clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'), opts.ms || (opts.error?6500:2600));
   }
 
+  /* Overlay « préparation vidéo » (compression + envoi) — invite à ne pas rafraîchir */
+  function videoProgress(p){
+    let el=document.getElementById('jp-vidprog');
+    if(!el){
+      el=document.createElement('div'); el.id='jp-vidprog'; el.className='vid-progress';
+      el.innerHTML='<div class="vp-card"><div class="vp-emoji">🎬</div><div class="vp-title">On prépare ta vidéo…</div>'
+        +'<div class="vp-bar"><i></i></div><div class="vp-pct">0%</div>'
+        +'<div class="vp-hint">Encore quelques secondes — <b>reste sur la page</b>, on s\'occupe de tout 🙌</div></div>';
+      document.body.appendChild(el);
+    }
+    el.style.display='flex';
+    const pp=Math.max(0,Math.min(100,Math.round(p||0)));
+    el.querySelector('.vp-bar i').style.width=pp+'%';
+    el.querySelector('.vp-pct').textContent=pp+'%';
+  }
+  function hideVideoProgress(){ const el=document.getElementById('jp-vidprog'); if(el) el.style.display='none'; }
+
   /* ---------- Compression image -> Blob (pour upload Storage) ---------- */
   function fileToBlob(file, maxW=1280, quality=0.82){
     return new Promise((resolve,reject)=>{
@@ -378,8 +395,12 @@ window.JP = (() => {
       const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
       const ctx=canvas.getContext('2d');
       const mime=pickRecMime();
-      const cstream=canvas.captureStream(30);
-      let tracks=[...cstream.getVideoTracks()];
+      // captureStream(0) + requestVideoFrameCallback : 1 image source = 1 image
+      // capturée -> durée de sortie = durée réelle (sinon effet ralenti).
+      const useRVFC = typeof video.requestVideoFrameCallback === 'function';
+      const cstream=canvas.captureStream(useRVFC ? 0 : 30);
+      const vtrack=cstream.getVideoTracks()[0];
+      let tracks=[vtrack];
       try{   // audio capté en silence via WebAudio (pas de son audible pendant la compression)
         ac=new (window.AudioContext||window.webkitAudioContext)();
         try{ await ac.resume(); }catch(e){}
@@ -392,11 +413,21 @@ window.JP = (() => {
       const chunks=[]; rec.ondataavailable=e=>{ if(e.data && e.data.size) chunks.push(e.data); };
       const stopped=new Promise(r=>{ rec.onstop=r; });
       rec.start(1000);
-      const tick=()=>{ try{ctx.drawImage(video,0,0,w,h);}catch(e){} if(onProgress) onProgress(Math.min(99,Math.round((video.currentTime/dur)*100))); raf=requestAnimationFrame(tick); };
       await video.play();
-      tick();
+      if(useRVFC){
+        const onFrame=(now, meta)=>{
+          try{ ctx.drawImage(video,0,0,w,h); }catch(e){}
+          if(vtrack.requestFrame) vtrack.requestFrame();
+          if(onProgress){ const t=(meta&&meta.mediaTime!=null)?meta.mediaTime:video.currentTime; onProgress(Math.min(99,Math.round((t/dur)*100))); }
+          if(!video.ended) video.requestVideoFrameCallback(onFrame);
+        };
+        video.requestVideoFrameCallback(onFrame);
+      } else {
+        const tick=()=>{ try{ctx.drawImage(video,0,0,w,h);}catch(e){} if(onProgress) onProgress(Math.min(99,Math.round((video.currentTime/dur)*100))); raf=requestAnimationFrame(tick); };
+        tick();
+      }
       await new Promise(r=>{ video.onended=r; });
-      cancelAnimationFrame(raf);
+      if(raf) cancelAnimationFrame(raf);
       if(rec.state!=='inactive') rec.stop();
       await stopped;
       const outMp4=mime.indexOf('mp4')>-1;
@@ -626,7 +657,7 @@ window.JP = (() => {
     if(images && images.length) urls=await uploadImages('posts', images, 1280, 0.82);
     else if(image){ try{ urls=[await uploadImage('posts', image, 1280, 0.82)]; }catch(e){ toast('Photo trop lourde'); } }
     let videoUrl=null;
-    if(video){ try{ videoUrl=await uploadVideo(video, p=>toast('Compression de la vidéo… '+p+'%')); }catch(e){ console.error(e); toast(e.message||'Vidéo refusée.', {error:true}); } }
+    if(video){ try{ videoUrl=await uploadVideo(video, videoProgress); }catch(e){ console.error(e); toast(e.message||'Vidéo refusée.', {error:true}); } finally{ hideVideoProgress(); } }
     const poll = (pollOptions && pollOptions.length>=2) ? pollOptions.slice(0,6) : null;
     const link = await fetchLinkPreview(text, {skip: !!sharedPostId});
     const { error } = await sb.from('posts').insert({
@@ -1053,15 +1084,19 @@ window.JP = (() => {
   }
 
   async function messagesOf(convId){
-    const rich='id, text, image_url, reply_to, created_at, sender_id, sender:profiles!sender_id ( name, avatar_url ), replied:messages!reply_to ( id, text, image_url, sender_id, sender:profiles!sender_id ( name ) )';
+    // On NE fait PAS d'embed auto-référent (messages!reply_to) : PostgREST peut
+    // renvoyer un tableau vide => fausse citation. On résout la réponse dans le lot.
+    const rich='id, text, image_url, reply_to, created_at, sender_id, sender:profiles!sender_id ( name, avatar_url )';
     const basic='id, text, created_at, sender_id, sender:profiles!sender_id ( name, avatar_url )';
     let { data, error } = await sb.from('messages').select(rich).eq('conversation_id', convId).order('created_at', {ascending:true});
     if(error){ ({ data, error } = await sb.from('messages').select(basic).eq('conversation_id', convId).order('created_at', {ascending:true})); }
-    return (data||[]).map(m=>({
-      id:m.id, text:m.text||'', image:m.image_url||null, ts:m.created_at, mine:m.sender_id===_me?.id,
-      senderId:m.sender_id, senderName:m.sender?.name||'Membre', senderAvatar:m.sender?.avatar_url||null,
-      reply: m.replied ? { id:m.replied.id, text:m.replied.text||'', image:m.replied.image_url||null, senderName:m.replied.sender?.name||'Membre' } : null
+    const arr=(data||[]).map(m=>({
+      id:m.id, text:m.text||'', image:m.image_url||null, replyToId:m.reply_to||null, ts:m.created_at, mine:m.sender_id===_me?.id,
+      senderId:m.sender_id, senderName:m.sender?.name||'Membre', senderAvatar:m.sender?.avatar_url||null, reply:null
     }));
+    const byId={}; arr.forEach(m=>{ byId[m.id]=m; });
+    arr.forEach(m=>{ if(m.replyToId && byId[m.replyToId]){ const s=byId[m.replyToId]; m.reply={ senderName: s.mine?'Toi':s.senderName, text:s.text, image:s.image }; } });
+    return arr;
   }
 
   /* ---- Conversations de groupe ---- */
@@ -1280,7 +1315,7 @@ window.JP = (() => {
   async function addReel(video, caption=''){
     if(!_me || !video) return {ok:false, msg:'Vidéo manquante'};
     let videoUrl=null;
-    try{ videoUrl=await uploadVideo(video, p=>toast('Compression de la vidéo… '+p+'%')); }catch(e){ console.error(e); return {ok:false, msg:e.message||'Vidéo refusée.'}; }
+    try{ videoUrl=await uploadVideo(video, videoProgress); }catch(e){ console.error(e); hideVideoProgress(); return {ok:false, msg:e.message||'Vidéo refusée.'}; } finally{ hideVideoProgress(); }
     const { error } = await sb.from('posts').insert({
       author_id:_me.id, text:(caption||'').slice(0,300), tag:'Reel', town:_me.town||null,
       images:[], video_url:videoUrl, is_reel:true
@@ -1827,8 +1862,9 @@ window.JP = (() => {
     if(!_me || !file) return {ok:false};
     const isVideo=(file.type||'').startsWith('video/');
     let url;
-    try{ url = isVideo ? await uploadVideo(file, p=>toast('Compression de la vidéo… '+p+'%')) : await uploadImage('posts', file, 1280, 0.85); }
+    try{ url = isVideo ? await uploadVideo(file, videoProgress) : await uploadImage('posts', file, 1280, 0.85); }
     catch(e){ return {ok:false, msg:e.message||'Média trop lourd ou refusé'}; }
+    finally{ hideVideoProgress(); }
     const { error } = await sb.from('stories')
       .insert({author_id:_me.id, media_url:url, media_type:isVideo?'video':'image', text:text||null});
     return error ? {ok:false, msg:error.message} : {ok:true};
