@@ -45,7 +45,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=71"></script>
+<script src="assets/app.supabase.js?v=72"></script>
 <script src="assets/nav.js?v=6"></script>
 <script src="assets/bell.js?v=22"></script>
 <script>
@@ -65,8 +65,9 @@
     const show=Math.min(imgs.length,5), extra=imgs.length-show;
     let tiles='';
     for(let i=0;i<show;i++){
+      const full=imgs[i], thumb=JP.thumbUrl(full);
       const more=(i===show-1 && extra>0)?`<div class="more">+${extra}</div>`:'';
-      tiles+=`<div class="gtile"><img src="${imgs[i]}" alt="" class="gimg" loading="lazy">${more}</div>`;
+      tiles+=`<div class="gtile"><img src="${thumb}" data-full="${full}" alt="" class="gimg" loading="lazy" onerror="this.onerror=null;this.src=this.dataset.full">${more}</div>`;
     }
     return `<div class="post-gallery g${show}">${tiles}</div>`;
   }
@@ -249,8 +250,9 @@
     }
     host.querySelector('.cbtn').addEventListener('click',()=>host.querySelector('.comment-form input').focus());
     host.querySelectorAll('.gimg').forEach(img=>img.addEventListener('click',()=>{
-      const imgs=(p && p.images && p.images.length) ? p.images.filter(Boolean) : [img.src];
-      JPLightbox.open(imgs, Math.max(0, imgs.indexOf(img.src)));
+      const full=img.dataset.full||img.src;
+      const imgs=(p && p.images && p.images.length) ? p.images.filter(Boolean) : [full];
+      JPLightbox.open(imgs, Math.max(0, imgs.indexOf(full)));
     }));
     if(p.images && p.images.length) decorateTagsPost();
     const menu=host.querySelector('.post-menu');

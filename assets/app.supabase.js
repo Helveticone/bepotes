@@ -652,21 +652,38 @@ window.JP = (() => {
   }
 
   /* Upload de plusieurs images -> tableau d'URLs (max 6) */
-  async function uploadImages(bucket, files, maxW=1280, quality=0.82){
+  async function uploadImages(bucket, files, maxW=1280, quality=0.82, withThumb=false){
     const list=[...files].slice(0,6);
     const urls=[];
     for(const f of list){
-      try{ urls.push(await uploadImage(bucket, f, maxW, quality)); }
+      try{ urls.push(withThumb ? await uploadImageWithThumb(bucket, f, maxW, quality) : await uploadImage(bucket, f, maxW, quality)); }
       catch(e){ console.error(e); }
     }
     return urls;
+  }
+  /* Upload image + vignette (~600px) au même emplacement (suffixe _t) pour un fil léger.
+     Renvoie l'URL de l'image complète ; la vignette se déduit via thumbUrl(). */
+  async function uploadImageWithThumb(bucket, file, maxW=1280, quality=0.82){
+    const base = `${_me.id}/${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
+    const full  = await fileToBlob(file, maxW, quality);
+    const thumb = await fileToBlob(file, 600, 0.7);
+    const { error } = await sb.storage.from(bucket).upload(base+'.jpg', full, {contentType:'image/jpeg', upsert:true, cacheControl:'31536000'});
+    if(error) throw error;
+    try{ await sb.storage.from(bucket).upload(base+'_t.jpg', thumb, {contentType:'image/jpeg', upsert:true, cacheControl:'31536000'}); }catch(e){ /* vignette best-effort */ }
+    return sb.storage.from(bucket).getPublicUrl(base+'.jpg').data.publicUrl;
+  }
+  /* Déduit l'URL de la vignette (_t) à partir de l'URL complète (.jpg). */
+  function thumbUrl(u){
+    if(!u || typeof u!=='string') return u;
+    const m = u.match(/^(.*)\.jpg(\?.*)?$/i);
+    return m ? m[1]+'_t.jpg'+(m[2]||'') : u;
   }
 
   async function addPost({text, tag, image, images, sharedPostId, pollOptions, video}){
     if(!_me) return;
     let urls=[];
-    if(images && images.length) urls=await uploadImages('posts', images, 1280, 0.82);
-    else if(image){ try{ urls=[await uploadImage('posts', image, 1280, 0.82)]; }catch(e){ toast('Photo trop lourde'); } }
+    if(images && images.length) urls=await uploadImages('posts', images, 1280, 0.82, true);
+    else if(image){ try{ urls=[await uploadImageWithThumb('posts', image, 1280, 0.82)]; }catch(e){ toast('Photo trop lourde'); } }
     let videoUrl=null;
     if(video){ try{ videoUrl=await uploadVideo(video, videoProgress); }catch(e){ console.error(e); toast(e.message||'Vidéo refusée.', {error:true}); } finally{ hideVideoProgress(); } }
     const poll = (pollOptions && pollOptions.length>=2) ? pollOptions.slice(0,6) : null;
@@ -1521,8 +1538,8 @@ window.JP = (() => {
   async function addGroupPost(groupId, {text, tag, image, images}){
     if(!_me) return;
     let urls=[];
-    if(images && images.length) urls=await uploadImages('posts', images, 1280, 0.82);
-    else if(image){ try{ urls=[await uploadImage('posts', image, 1280, 0.82)]; }catch(e){ toast('Photo trop lourde'); } }
+    if(images && images.length) urls=await uploadImages('posts', images, 1280, 0.82, true);
+    else if(image){ try{ urls=[await uploadImageWithThumb('posts', image, 1280, 0.82)]; }catch(e){ toast('Photo trop lourde'); } }
     const { error } = await sb.from('posts').insert({
       author_id:_me.id, text, tag:tag||'Général',
       image_url:urls[0]||null, images:urls, group_id:groupId
@@ -1979,7 +1996,7 @@ window.JP = (() => {
      ============================================================ */
   return {
     sb, loadMe, requireAuth, user, toast, avatarHTML,
-    colorFor, initials, esc, timeAgo, uploadImage, uploadBlob, uploadVideo, cropImage, fileToBlob,
+    colorFor, initials, esc, timeAgo, uploadImage, uploadBlob, uploadVideo, cropImage, fileToBlob, thumbUrl, cdnUrl,
     mentionHTML, attachMentions, tokenizeMentions, COMMUNES, fillCommuneSelect, aboutHTML,
     register, login, logout, updateProfile, updateEmail, updatePassword, deleteAccount, setEmailNotifications, setEmailMode,
     savePushSubscription, deletePushSubscription,
