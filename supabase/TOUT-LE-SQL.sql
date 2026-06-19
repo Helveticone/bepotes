@@ -1384,5 +1384,16 @@ notify pgrst, 'reload schema';
 
 
 -- ============================================================
+--  49. AJOUT D'ADMINISTRATEUR / DE MEMBRE par un gestionnaire
+--  Permet à un owner/admin d'AJOUTER une personne (comme membre ou admin)
+--  à son groupe/page — en plus de « rejoindre » (auth.uid()=user_id).
+-- ============================================================
+drop policy if exists "gestionnaire ajoute un membre" on public.group_members;
+create policy "gestionnaire ajoute un membre" on public.group_members for insert
+  with check ( public.is_group_manager(group_id) and role in ('member','admin') );
+notify pgrst, 'reload schema';
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================

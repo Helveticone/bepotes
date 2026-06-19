@@ -56,7 +56,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=86"></script>
+<script src="assets/app.supabase.js?v=87"></script>
 <script src="assets/nav.js?v=8"></script>
 <script src="assets/bell.js?v=23"></script>
 <script src="assets/calls.js?v=3"></script>
@@ -316,6 +316,13 @@
         <button class="btn btn-ghost btn-sm" id="closeManage">Fermer</button>
       </div>
       ${settingsHTML}
+      <div style="margin-bottom:14px">
+        <button class="btn btn-ghost btn-sm" id="addAdminToggle">➕ Ajouter un administrateur</button>
+        <div id="addAdminPanel" style="display:none;margin-top:10px">
+          <input id="adminSearch" type="text" placeholder="Chercher une personne par son nom…" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font-family:inherit;background:var(--paper);color:inherit">
+          <div id="adminResults" style="margin-top:8px"></div>
+        </div>
+      </div>
       <h3 style="font-family:'Plus Jakarta Sans';font-size:.95rem;margin:4px 0 10px">Membres & administrateurs (${mems.length})</h3>
       ${mems.map(m=>{
         const isOwnerRow=m.role==='owner';
@@ -346,6 +353,33 @@
     wireSet('setPrivate','is_private', c=>c);
     wireSet('setAdminsOnly','post_policy', c=>c?'admins':'all');
     wireSet('setApproval','post_approval', c=>c);
+    // Ajouter un administrateur (recherche d'une personne par nom)
+    const addAdminToggle=document.getElementById('addAdminToggle');
+    if(addAdminToggle){
+      const panel=document.getElementById('addAdminPanel');
+      const inp=document.getElementById('adminSearch');
+      const res=document.getElementById('adminResults');
+      addAdminToggle.addEventListener('click',()=>{ const show=panel.style.display==='none'; panel.style.display=show?'':'none'; if(show) inp.focus(); });
+      let t=null;
+      inp.addEventListener('input',()=>{ clearTimeout(t); const q=inp.value.trim();
+        t=setTimeout(async()=>{
+          if(q.length<2){ res.innerHTML=''; return; }
+          let people=[]; try{ people=await JP.members(q); }catch(e){}
+          const existing=new Set((group.managers||[]).map(m=>m.userId));
+          res.innerHTML = people.slice(0,8).map(p=>`<div class="pending-row" style="margin-bottom:6px;flex-wrap:wrap;row-gap:6px">
+              ${JP.avatarHTML(p.name,p.avatar,'av')}
+              <div class="pi" style="flex:1;min-width:0"><b>${JP.esc(p.name)}</b><span style="font-size:.76rem;color:var(--ink-soft)">${JP.esc(p.town||'')}</span></div>
+              ${existing.has(p.id)?'<span style="font-size:.78rem;color:var(--ink-soft)">Déjà admin</span>':`<button class="btn btn-primary btn-sm addadm" data-uid="${p.id}" data-name="${JP.esc(p.name)}">Nommer admin</button>`}
+            </div>`).join('') || '<div style="color:var(--ink-soft);font-size:.85rem;padding:6px">Aucun résultat.</div>';
+          res.querySelectorAll('.addadm').forEach(b=>b.addEventListener('click',async()=>{
+            b.disabled=true;
+            const r=await JP.addGroupAdmin(groupId, b.dataset.uid);
+            if(r.ok){ JP.toast(b.dataset.name+' est administrateur ✅'); await loadHeader(); }
+            else { JP.toast(r.msg||'Échec'); b.disabled=false; }
+          }));
+        }, 300);
+      });
+    }
     area.querySelectorAll('.setrole').forEach(b=>b.addEventListener('click',async()=>{
       b.disabled=true;
       const r=await JP.setMemberRole(groupId, b.dataset.uid, b.dataset.role);

@@ -1691,6 +1691,14 @@ window.JP = (() => {
     if(error) return {ok:false, msg:error.message};
     return {ok:true};
   }
+  /* Ajouter une personne comme administrateur (membre existant promu, ou ajout direct).
+     upsert : insert si non-membre (policy gestionnaire) OU update du rôle si déjà membre. */
+  async function addGroupAdmin(groupId, userId){
+    if(!_me || !userId) return {ok:false, msg:'Utilisateur manquant'};
+    const { error } = await sb.from('group_members')
+      .upsert({group_id:groupId, user_id:userId, role:'admin'}, {onConflict:'group_id,user_id'});
+    return error ? {ok:false, msg:error.message} : {ok:true};
+  }
 
   /* Retirer un membre du groupe (owner/admin ; jamais l'owner). */
   async function removeMember(groupId, userId){
@@ -2257,7 +2265,7 @@ window.JP = (() => {
     userStats, leaderboard, repScore, repLevel, earnedBadges, reputationHTML, REP_LEVELS, REP_BADGES,
     listGroups, suggestGroups, reels, addReel, getGroup, createGroup, joinGroup, leaveGroup, groupPosts, addGroupPost, myPages, pagePosts, pendingGroupPosts, approveGroupPost, rejectGroupPost,
     uploadImages, pendingMembers, approveMember, rejectMember, updateGroupCover,
-    updateGroupRules, updateGroupInfo, groupMembers, setMemberRole, removeMember,
+    updateGroupRules, updateGroupInfo, groupMembers, setMemberRole, addGroupAdmin, removeMember,
     publicProfile, userPosts, userPhotos,
     listListings, getListing, createListing, markListingSold, deleteListing,
     pageReviews, saveReview, deleteMyReview,
