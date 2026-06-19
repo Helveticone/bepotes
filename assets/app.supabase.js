@@ -1148,12 +1148,12 @@ window.JP = (() => {
   async function messagesOf(convId){
     // On NE fait PAS d'embed auto-référent (messages!reply_to) : PostgREST peut
     // renvoyer un tableau vide => fausse citation. On résout la réponse dans le lot.
-    const rich='id, text, image_url, reply_to, created_at, sender_id, sender:profiles!sender_id ( name, avatar_url )';
+    const rich='id, text, image_url, reply_to, edited_at, created_at, sender_id, sender:profiles!sender_id ( name, avatar_url )';
     const basic='id, text, created_at, sender_id, sender:profiles!sender_id ( name, avatar_url )';
     let { data, error } = await sb.from('messages').select(rich).eq('conversation_id', convId).order('created_at', {ascending:true});
     if(error){ ({ data, error } = await sb.from('messages').select(basic).eq('conversation_id', convId).order('created_at', {ascending:true})); }
     const arr=(data||[]).map(m=>({
-      id:m.id, text:m.text||'', image:m.image_url||null, replyToId:m.reply_to||null, ts:m.created_at, mine:m.sender_id===_me?.id,
+      id:m.id, text:m.text||'', image:m.image_url||null, replyToId:m.reply_to||null, edited:!!m.edited_at, ts:m.created_at, mine:m.sender_id===_me?.id,
       senderId:m.sender_id, senderName:m.sender?.name||'Membre', senderAvatar:m.sender?.avatar_url||null, reply:null
     }));
     const byId={}; arr.forEach(m=>{ byId[m.id]=m; });
@@ -1225,6 +1225,32 @@ window.JP = (() => {
         })
       .subscribe();
     return ()=> sb.removeChannel(ch);   // fonction de désabonnement
+  }
+
+  /* ---- Édition / suppression de message + lus/non-lus ---- */
+  async function editMessage(messageId, text){
+    if(!_me) return {ok:false};
+    const { error } = await sb.from('messages')
+      .update({ text:(text||'').slice(0,1000), edited_at:new Date().toISOString() })
+      .eq('id', messageId).eq('sender_id', _me.id);
+    return error ? {ok:false, msg:error.message} : {ok:true};
+  }
+  async function deleteMessage(messageId){
+    if(!_me) return {ok:false};
+    const { error } = await sb.from('messages').delete().eq('id', messageId).eq('sender_id', _me.id);
+    return error ? {ok:false, msg:error.message} : {ok:true};
+  }
+  async function markConversationRead(convId){
+    try{ await sb.rpc('mark_conversation_read', { conv:convId }); }catch(e){}
+  }
+  async function unreadCounts(){
+    try{
+      const { data, error } = await sb.rpc('unread_by_conversation');
+      if(error) return { byConv:{}, total:0 };
+      const byConv={}; let total=0;
+      (data||[]).forEach(r=>{ byConv[r.conversation_id]=r.n; total+=r.n; });
+      return { byConv, total };
+    }catch(e){ return { byConv:{}, total:0 }; }
   }
 
   /* ---- Réactions sur les messages (👍❤️😆😮😢🙏) ---- */
@@ -2033,6 +2059,7 @@ window.JP = (() => {
     follow, unfollow, isFollowing, followCounts,
     members, openConversationWith, contactSeller, conversations, messagesOf, sendMessage, subscribeMessages,
     MSG_REACTIONS, reactMessage, messageReactions, subscribeMessageReactions,
+    editMessage, deleteMessage, markConversationRead, unreadCounts,
     createGroupConversation, conversationInfo, addConversationMembers, leaveConversation, renameConversation,
     searchPosts,
     friendStatus, sendFriendRequest, acceptFriend, removeFriend, pendingRequests, friends, friendCount, areFriends, friendSuggestions,

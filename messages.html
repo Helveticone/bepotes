@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=76">
+<link rel="stylesheet" href="assets/style.css?v=77">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -86,9 +86,9 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=74"></script>
+<script src="assets/app.supabase.js?v=75"></script>
 <script src="assets/nav.js?v=6"></script>
-<script src="assets/bell.js?v=22"></script>
+<script src="assets/bell.js?v=23"></script>
 <script>
 (async function(){
   const okAuth = await JP.requireAuth();
@@ -110,14 +110,18 @@
   /* ---- Liste des conversations ---- */
   async function loadConvs(selectId){
     const convs=await JP.conversations();
+    let unread={byConv:{},total:0}; try{ unread=await JP.unreadCounts(); }catch(e){}
     if(!convs.length){
       convItems.innerHTML='<div style="padding:20px;color:var(--ink-soft);font-size:.9rem">Aucune conversation. Clique sur + pour écrire à quelqu\'un.</div>';
     } else {
-      convItems.innerHTML=convs.map(c=>`
-        <div class="conv-item ${c.id===activeConv?'active':''}" data-id="${c.id}" data-name="${JP.esc(c.name)}" data-avatar="${c.avatar||''}" data-group="${c.isGroup?'1':''}">
+      convItems.innerHTML=convs.map(c=>{
+        const n=(c.id===activeConv)?0:(unread.byConv[c.id]||0);   // conv ouverte = lue
+        return `
+        <div class="conv-item ${c.id===activeConv?'active':''} ${n?'unread':''}" data-id="${c.id}" data-name="${JP.esc(c.name)}" data-avatar="${c.avatar||''}" data-group="${c.isGroup?'1':''}">
           ${JP.avatarHTML(c.name,c.avatar,'av')}
           <div class="ci"><b>${c.isGroup?'👥 ':''}${JP.esc(c.name)}</b><span>${c.lastText?JP.esc(c.lastText):'Démarrez la discussion'}</span></div>
-        </div>`).join('');
+          ${n?`<span class="conv-unread">${n>9?'9+':n}</span>`:''}
+        </div>`;}).join('');
       convItems.querySelectorAll('.conv-item').forEach(el=>{
         el.addEventListener('click',()=>openThread(el.dataset.id, el.dataset.name, el.dataset.avatar, el.dataset.group==='1'));
       });
@@ -183,6 +187,7 @@
     tbody.innerHTML=msgs.map(m=>bubbleHTML(m, isGroup, membersMap)).join('');
     scrollBottom(tbody);
     decorateReactions();
+    JP.markConversationRead(convId); document.dispatchEvent(new Event('jp-msg-read'));
 
     function appendMsg(m){
       if(m.id && shown.has(m.id)) return;
@@ -223,7 +228,7 @@
     // expose pour le menu d'emojis
     tbody._react = async (mid, emoji)=>{ await JP.reactMessage(mid, emoji); decorateReactions(); };
 
-    unsub=JP.subscribeMessages(convId, m=>{ appendMsg(m); loadConvs(); });
+    unsub=JP.subscribeMessages(convId, m=>{ appendMsg(m); if(!m.mine){ JP.markConversationRead(convId); document.dispatchEvent(new Event('jp-msg-read')); } loadConvs(); });
     unsubReact=JP.subscribeMessageReactions(()=>{ decorateReactions(); });
 
     const input=document.getElementById('msgInput');
@@ -261,10 +266,29 @@
     document.getElementById('emojiBtn').addEventListener('click',()=>{ emojiPanel.style.display = emojiPanel.style.display==='flex'?'none':'flex'; });
     emojiPanel.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ input.value+=b.textContent; input.focus(); }));
 
-    /* ---- Réponse / agrandir image (délégation sur le fil) ---- */
+    /* ---- Réponse / agrandir / modifier / supprimer (délégation sur le fil) ---- */
+    async function editRow(row){
+      const mid=row && row.dataset.mid, m=msgsById[mid]; if(!m) return;
+      const v=(prompt('Modifier ton message :', m.text||'')||'').trim();
+      if(!v || v===m.text) return;
+      const r=await JP.editMessage(mid, v);
+      if(r.ok){ m.text=v; m.edited=true; row.outerHTML=bubbleHTML(m, isGroup, membersMap); decorateReactions(); }
+      else JP.toast(r.msg||'Échec', {error:true});
+    }
+    async function delRow(row){
+      const mid=row && row.dataset.mid; if(!mid) return;
+      if(!confirm('Supprimer ce message ?')) return;
+      const r=await JP.deleteMessage(mid);
+      if(r.ok){ delete msgsById[mid]; row.remove(); }
+      else JP.toast(r.msg||'Échec', {error:true});
+    }
     tbody.addEventListener('click',e=>{
       const rb=e.target.closest && e.target.closest('.msg-reply-btn');
       if(rb){ const row=rb.closest('.msg-row'); if(row) setReply(row.dataset.mid); return; }
+      const eb=e.target.closest && e.target.closest('.msg-edit-btn');
+      if(eb){ editRow(eb.closest('.msg-row')); return; }
+      const db=e.target.closest && e.target.closest('.msg-del-btn');
+      if(db){ delRow(db.closest('.msg-row')); return; }
       const im=e.target.closest && e.target.closest('.bubble-img');
       if(im) openLightbox(im.src);
     });
@@ -298,10 +322,11 @@
     if(m.reply){ const rt=(m.reply.image && !m.reply.text)?'📷 Photo':(m.reply.text||''); rq=`<div class="bubble-reply"><b>${JP.esc(m.reply.senderName||'')}</b><span>${JP.esc(rt.slice(0,90))}</span></div>`; }
     const img = m.image ? `<img class="bubble-img" src="${m.image}" alt="photo">` : '';
     const txt = m.text ? `<span class="bubble-txt">${JP.esc(m.text)}</span>` : '';
-    const acts = mid ? `<button type="button" class="msg-react-btn" aria-label="Réagir">🙂</button><button type="button" class="msg-reply-btn" aria-label="Répondre">↩</button>` : '';
+    const acts = mid ? `<button type="button" class="msg-react-btn" aria-label="Réagir">🙂</button><button type="button" class="msg-reply-btn" aria-label="Répondre">↩</button>`
+      + (m.mine ? `<button type="button" class="msg-edit-btn" aria-label="Modifier">✏️</button><button type="button" class="msg-del-btn" aria-label="Supprimer">🗑</button>` : '') : '';
     return `<div class="msg-row ${m.mine?'me':'them'}" data-mid="${mid}">
       <div class="msg-line">
-        <div class="bubble-msg ${m.mine?'me':'them'} ${m.image?'has-img':''}">${label}${rq}${img}${txt}<span class="bubble-time">${time}</span></div>
+        <div class="bubble-msg ${m.mine?'me':'them'} ${m.image?'has-img':''}">${label}${rq}${img}${txt}<span class="bubble-time">${time}${m.edited?' · modifié':''}</span></div>
         <div class="msg-acts">${acts}</div>
       </div>
       <div class="msg-reactions"></div>
