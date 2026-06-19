@@ -24,6 +24,7 @@
       marche: '<path d="M3 9l1-5h16l1 5M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9M9 13h6"/>',
       events: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
       messages: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+      reels: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 8h18M8 3v5M10 12l5 3-5 3z"/>',
       notif: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
       profil: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/>',
       search: '<circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>',
@@ -46,6 +47,7 @@
         '<button class="drawer-x" type="button" aria-label="Fermer">&times;</button></div>' +
         '<nav class="drawer-links">' +
           link('fil.html', 'Le fil', I.fil) +
+          link('reels.html', 'Reels', I.reels) +
           link('recherche.html', 'Recherche', I.search) +
           link('amis.html', 'Amis', I.amis) +
           link('groupes.html', 'Groupes', I.groupes) +

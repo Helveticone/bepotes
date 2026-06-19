@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reels — Jurapotes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=83">
+<script src="assets/theme.js?v=1"></script>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#E11D2A">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jurapotes">
+</head>
+<body>
+<nav><div class="wrap nav-inner">
+  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">J</span><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <div class="nav-links">
+    <a href="fil.html">Le fil</a>
+    <a href="amis.html">Amis</a>
+    <a href="groupes.html">Groupes</a>
+    <a href="pages.html">Pages</a>
+    <a href="marketplace.html">Marché</a>
+    <a href="evenements.html">Événements</a>
+    <a href="messages.html">Messages</a>
+    <a href="profil.html">Profil</a>
+    <a href="notifications.html" class="nav-bell" id="bell" aria-label="Notifications">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="badge-count" id="bellCount">0</span>
+    </a>
+    <a href="#" id="logout" class="btn btn-ghost btn-sm">Déconnexion</a>
+  </div>
+</div></nav>
+
+<button class="rp-back" id="rpBack" type="button">‹ Retour</button>
+<button class="rp-create" id="rpCreate" type="button" title="Publier un reel">+</button>
+<input type="file" id="reelFile" accept="video/*" style="display:none">
+
+<div class="reels-page" id="rpFeed"></div>
+
+<script src="/assets/supabase.min.js?v=18"></script>
+<script src="assets/config.js"></script>
+<script src="assets/app.supabase.js?v=79"></script>
+<script src="assets/nav.js?v=7"></script>
+<script src="assets/bell.js?v=23"></script>
+<script>
+(async function(){
+  const okAuth = await JP.requireAuth();
+  if(!okAuth) return;
+  const me=JP.user();
+  document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
+
+  const feed=document.getElementById('rpFeed');
+  let list=[], muted=true;   // démarre en sourdine (autoplay autorisé), le son s'active au 1er geste
+
+  function slideHTML(r,i){
+    const mine = me && r.authorId===me.id;
+    return `<div class="rp-slide" data-i="${i}" data-id="${r.id}">
+      <video src="${r.video}" loop playsinline preload="metadata" muted></video>
+      <div class="rp-grad"></div>
+      <div class="rp-actions">
+        <button class="rp-like ${r.likedByMe?'on':''}" type="button" aria-label="J'aime">
+          <span class="em">${r.likedByMe?'❤️':'🤍'}</span><span class="rp-lc">${r.likes||0}</span>
+        </button>
+        <button class="rp-mute" type="button" aria-label="Son"><span class="em">🔇</span></button>
+        ${mine?`<button class="rp-del" type="button" aria-label="Supprimer"><span class="em">🗑</span></button>`:''}
+      </div>
+      <div class="rp-info">
+        <a class="rp-author" href="membre.html?id=${r.authorId}">${JP.avatarHTML(r.author,r.avatar,'av')}<b>${JP.esc(r.author)}</b></a>
+        ${r.caption?`<div class="rp-cap">${JP.esc(r.caption)}</div>`:''}
+        ${r.town?`<div class="rp-town">📍 ${JP.esc(r.town)}</div>`:''}
+      </div>
+    </div>`;
+  }
+
+  function paintMuteButtons(){
+    feed.querySelectorAll('.rp-mute .em').forEach(s=>s.textContent = muted?'🔇':'🔊');
+  }
+
+  function render(){
+    if(!list.length){
+      feed.innerHTML='<div class="rp-empty"><div><div style="font-size:2.4rem">🎬</div>'
+        +'<h2 style="font-family:\'Plus Jakarta Sans\',sans-serif">Pas encore de reels</h2>'
+        +'<p style="opacity:.8;max-width:280px;margin:8px auto 0">Sois le premier à publier une vidéo verticale courte pour le Jura&nbsp;!</p>'
+        +'<button class="btn btn-primary" id="rpCreate2">+ Publier un reel</button></div></div>';
+      document.getElementById('rpCreate2').addEventListener('click',()=>document.getElementById('reelFile').click());
+      return;
+    }
+    feed.innerHTML=list.map(slideHTML).join('');
+    const vids=[...feed.querySelectorAll('video')];
+
+    // Autoplay de la vignette visible, pause des autres
+    if('IntersectionObserver' in window){
+      const io=new IntersectionObserver(es=>es.forEach(en=>{
+        const v=en.target;
+        if(en.isIntersecting && en.intersectionRatio>0.6){ v.muted=muted; v.play().catch(()=>{ v.muted=true; v.play().catch(()=>{}); }); }
+        else { v.pause(); }
+      }),{threshold:[0,0.6,1]});
+      vids.forEach(v=>io.observe(v));
+    } else if(vids[0]){ vids[0].muted=muted; vids[0].play().catch(()=>{}); }
+
+    // Tap sur la vidéo = lecture / pause
+    vids.forEach(v=>v.addEventListener('click',()=>{ if(v.paused) v.play().catch(()=>{}); else v.pause(); }));
+
+    // Son (global) : 1er clic = active le son partout
+    feed.querySelectorAll('.rp-mute').forEach(b=>b.addEventListener('click',e=>{
+      e.stopPropagation();
+      muted=!muted; paintMuteButtons();
+      vids.forEach(v=>{ v.muted=muted; });
+    }));
+
+    // J'aime
+    feed.querySelectorAll('.rp-like').forEach(b=>b.addEventListener('click',async e=>{
+      e.stopPropagation();
+      const slide=b.closest('.rp-slide'); const r=list[+slide.dataset.i];
+      const on=!r.likedByMe; r.likedByMe=on; r.likes=(r.likes||0)+(on?1:-1);
+      b.classList.toggle('on',on);
+      b.querySelector('.em').textContent=on?'❤️':'🤍';
+      b.querySelector('.rp-lc').textContent=r.likes;
+      try{ await JP.toggleLike(r.id); }catch(err){}
+    }));
+
+    // Supprimer mon reel
+    feed.querySelectorAll('.rp-del').forEach(b=>b.addEventListener('click',async e=>{
+      e.stopPropagation();
+      const slide=b.closest('.rp-slide'); const r=list[+slide.dataset.i];
+      if(!confirm('Supprimer ce reel ?')) return;
+      await JP.deletePost(r.id);
+      JP.toast('Reel supprimé');
+      await load();
+    }));
+
+    paintMuteButtons();
+  }
+
+  async function load(){
+    try{ list=await JP.reels(40); }catch(e){ list=[]; }
+    render();
+  }
+
+  document.getElementById('rpBack').addEventListener('click',()=>{ location.href='fil.html'; });
+  document.getElementById('rpCreate').addEventListener('click',()=>document.getElementById('reelFile').click());
+  document.getElementById('reelFile').addEventListener('change', async e=>{
+    const file=e.target.files && e.target.files[0]; e.target.value='';
+    if(!file) return;
+    const caption=prompt('Une légende pour ton reel ? (optionnel)')||'';
+    JP.toast('Publication du reel…');
+    const r=await JP.addReel(file, caption);
+    if(r && r.ok){ JP.toast('Reel publié ! 🎬'); await load(); }
+    else if(r && r.needSql){ JP.toast(r.msg, {error:true, ms:7000}); }
+    else { JP.toast((r&&r.msg)||'Échec de la publication', {error:true}); }
+  });
+
+  await load();
+})();
+</script>
+</body>
+</html>

@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=82">
+<link rel="stylesheet" href="assets/style.css?v=83">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -134,8 +134,8 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=78"></script>
-<script src="assets/nav.js?v=6"></script>
+<script src="assets/app.supabase.js?v=79"></script>
+<script src="assets/nav.js?v=7"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=23"></script>
 <script src="assets/install.js?v=1"></script>
@@ -201,7 +201,7 @@
   function reelsCardEl(){
     const d=document.createElement('div'); d.className='side-card feed-extra';
     const tiles=(_reels||[]).map((r,i)=>`<a class="reel" data-i="${i}"><video src="${r.video}" loop muted playsinline preload="metadata" data-rv></video><div class="reel-grad"></div><button type="button" class="reel-sound" aria-label="Écouter l'aperçu">🔇</button><span class="reel-name">${JP.esc(r.author)}</span></a>`).join('');
-    d.innerHTML=`<h3 class="rs-title">🎬 Reels du Jura</h3><div class="reels-row">`+
+    d.innerHTML=`<h3 class="rs-title">🎬 Reels du Jura <a href="reels.html" class="rs-all">Voir tout ›</a></h3><div class="reels-row">`+
       `<button type="button" class="reel reel-create" id="reelCreate"><span class="rc-plus">+</span><span class="rc-lbl">Ton reel</span></button>`+
       tiles+`</div>`;
     d.querySelector('#reelCreate').addEventListener('click',()=>document.getElementById('reelFile').click());
@@ -1012,8 +1012,22 @@
       stage.innerHTML=`<video src="${r.video}" playsinline autoplay loop preload="auto"></video>
         <div class="rv-grad"></div>
         ${mine?'<button class="rv-del" type="button" aria-label="Supprimer ce reel">🗑 Supprimer</button>':''}
+        <div class="rv-actions">
+          <button class="rv-like ${r.likedByMe?'on':''}" type="button" aria-label="J'aime">
+            <span class="rv-heart">${r.likedByMe?'❤️':'🤍'}</span><span class="rv-lc">${r.likes||0}</span>
+          </button>
+        </div>
         <div class="rv-info"><div class="rv-author">${JP.avatarHTML(r.author,r.avatar,'av')}<b>${JP.esc(r.author)}</b></div>${r.caption?`<div class="rv-cap">${JP.esc(r.caption)}</div>`:''}</div>`;
       const v=stage.querySelector('video');
+      const likeBtn=stage.querySelector('.rv-like');
+      if(likeBtn) likeBtn.addEventListener('click',async ev=>{
+        ev.stopPropagation();
+        const on=!r.likedByMe; r.likedByMe=on; r.likes=(r.likes||0)+(on?1:-1);
+        likeBtn.classList.toggle('on',on);
+        likeBtn.querySelector('.rv-heart').textContent=on?'❤️':'🤍';
+        likeBtn.querySelector('.rv-lc').textContent=r.likes;
+        try{ await JP.toggleLike(r.id); }catch(e){}
+      });
       v.muted=false;
       v.play().catch(()=>{ v.muted=true; v.play().catch(()=>{}); });
       v.addEventListener('click',()=>{ if(v.paused) v.play(); else v.pause(); });

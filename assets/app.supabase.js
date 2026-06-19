@@ -1427,12 +1427,17 @@ window.JP = (() => {
   /* Reels = publications verticales is_reel=true (vidéo courte, type FB/Insta) */
   async function reels(limit=20){
     const { data, error } = await sb.from('posts')
-      .select('id, video_url, text, town, created_at, author_id, author:profiles!author_id ( name, avatar_url )')
+      .select('id, video_url, text, town, created_at, author_id, author:profiles!author_id ( name, avatar_url ), likes ( user_id ), comments ( count )')
       .is('group_id', null).eq('is_reel', true).not('video_url','is',null)
       .order('created_at', {ascending:false}).limit(limit);
     if(error){ /* colonne is_reel absente (SQL pas encore lancé) → pas de reels */ return []; }
-    return (data||[]).map(p=>({ id:p.id, video:cdnUrl(p.video_url), caption:p.text||'', town:p.town||'',
-      authorId:p.author_id, author:p.author?.name||'Membre', avatar:p.author?.avatar_url||null }));
+    return (data||[]).map(p=>{
+      const likedBy=(p.likes||[]).map(l=>l.user_id);
+      return { id:p.id, video:cdnUrl(p.video_url), caption:p.text||'', town:p.town||'',
+        authorId:p.author_id, author:p.author?.name||'Membre', avatar:p.author?.avatar_url||null,
+        likes:likedBy.length, likedByMe: !!_me && likedBy.includes(_me.id),
+        commentCount: p.comments?.[0]?.count ?? 0 };
+    });
   }
   /* Publier un reel (vidéo verticale + légende). */
   async function addReel(video, caption=''){
