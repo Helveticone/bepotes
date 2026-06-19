@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=78">
+<link rel="stylesheet" href="assets/style.css?v=79">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -86,7 +86,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=76"></script>
+<script src="assets/app.supabase.js?v=77"></script>
 <script src="assets/nav.js?v=6"></script>
 <script src="assets/bell.js?v=23"></script>
 <script>
@@ -99,7 +99,11 @@
   const layout=document.getElementById('layout');
   const convItems=document.getElementById('convItems');
   const threadArea=document.getElementById('threadArea');
-  let activeConv=null, unsub=null, unsubReact=null;
+  let activeConv=null, unsub=null, unsubReact=null, presenceTimer=null;
+
+  // Heartbeat de présence : tant que la messagerie est ouverte et visible
+  JP.heartbeat();
+  setInterval(()=>{ if(!document.hidden) JP.heartbeat(); }, 60000);
 
   // Agrandir une image envoyée dans le chat
   const _lb=document.getElementById('lightbox');
@@ -137,6 +141,7 @@
     activeConv=convId;
     if(unsub){ unsub(); unsub=null; }
     if(unsubReact){ unsubReact(); unsubReact=null; }
+    if(presenceTimer){ clearInterval(presenceTimer); presenceTimer=null; }
     convItems.querySelectorAll('.conv-item').forEach(e=>e.classList.toggle('active', e.dataset.id===convId));
     layout.classList.add('show-thread');
     threadArea.className='';
@@ -150,7 +155,7 @@
       info=await JP.conversationInfo(convId);
       (info.members||[]).forEach(m=>{ membersMap[m.id]={name:m.name, avatar:m.avatar}; });
     }
-    const sub = isGroup && info ? `<span style="font-size:.76rem;color:var(--ink-soft)">${info.members.length} membres</span>` : '';
+    const sub = isGroup && info ? `<span style="font-size:.76rem;color:var(--ink-soft)">${info.members.length} membres</span>` : `<span class="presence" id="presence"></span>`;
     const manage = isGroup ? `<button class="btn btn-ghost btn-sm" id="gmManage" style="margin-left:auto;flex:0 0 auto">Gérer</button>` : '';
     threadArea.innerHTML=`
       <div class="thread-head">
@@ -179,6 +184,13 @@
       <input type="file" id="chatImg" accept="image/*" style="display:none">`;
     document.getElementById('backBtn').addEventListener('click',()=>{ layout.classList.remove('show-thread'); });
     if(isGroup){ const gm=document.getElementById('gmManage'); if(gm) gm.addEventListener('click',()=>openManageGroup(convId)); }
+
+    // Présence (1-à-1) : « en ligne » / « Vu il y a … », rafraîchi régulièrement
+    if(!isGroup){
+      const updatePresence=async()=>{ const ls=await JP.conversationPresence(convId); const el=document.getElementById('presence'); if(el) el.textContent=JP.presenceLabel(ls); };
+      updatePresence();
+      presenceTimer=setInterval(updatePresence, 45000);
+    }
 
     const tbody=document.getElementById('tbody');
     const shown=new Set();

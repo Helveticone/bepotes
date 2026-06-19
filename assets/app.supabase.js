@@ -261,6 +261,26 @@ window.JP = (() => {
     return true;
   }
 
+  /* Heartbeat de présence (NON throttlé) — utilisé sur la messagerie pour « en ligne ». */
+  async function heartbeat(){ try{ await sb.rpc('touch_last_seen'); }catch(e){} }
+  /* last_seen de l'autre membre d'une conversation 1-à-1 (null si groupe). */
+  async function conversationPresence(convId){
+    try{
+      const { data } = await sb.from('conversation_members')
+        .select('user_id, profiles!user_id ( last_seen_at )').eq('conversation_id', convId);
+      const others=(data||[]).filter(m=>m.user_id!==_me?.id);
+      if(others.length!==1) return null;
+      return others[0].profiles?.last_seen_at || null;
+    }catch(e){ return null; }
+  }
+  /* Libellé de présence à partir d'un last_seen. */
+  function presenceLabel(ls){
+    if(!ls) return '';
+    const diff = Date.now() - new Date(ls).getTime();
+    if(diff < 120000) return '🟢 en ligne';
+    return 'Vu ' + timeAgo(ls);
+  }
+
   /* Marque l'utilisateur actif (last_seen + activité du jour). Throttlé 1×/10 min. */
   async function touchLastSeen(){
     try{
@@ -2059,7 +2079,7 @@ window.JP = (() => {
     follow, unfollow, isFollowing, followCounts,
     members, openConversationWith, contactSeller, conversations, messagesOf, sendMessage, subscribeMessages,
     MSG_REACTIONS, reactMessage, messageReactions, subscribeMessageReactions,
-    editMessage, deleteMessage, markConversationRead, unreadCounts,
+    editMessage, deleteMessage, markConversationRead, unreadCounts, heartbeat, conversationPresence, presenceLabel,
     createGroupConversation, conversationInfo, addConversationMembers, leaveConversation, renameConversation,
     searchPosts,
     friendStatus, sendFriendRequest, acceptFriend, removeFriend, pendingRequests, friends, friendCount, areFriends, friendSuggestions,
