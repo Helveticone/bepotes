@@ -1174,5 +1174,14 @@ grant execute on function public.admin_moderation() to authenticated;
 
 
 -- ============================================================
+--  42. MESSAGERIE : images + réponse à un message
+-- ============================================================
+alter table public.messages add column if not exists image_url text;
+alter table public.messages add column if not exists reply_to uuid references public.messages(id) on delete set null;
+create index if not exists messages_reply_idx on public.messages(reply_to);
+notify pgrst, 'reload schema';
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================

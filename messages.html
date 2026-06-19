@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=72">
+<link rel="stylesheet" href="assets/style.css?v=73">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -82,9 +82,11 @@
   </div>
 </div>
 
+<div class="lightbox" id="lightbox"><button class="lb-close" aria-label="Fermer">&times;</button><img id="lbImg" alt=""></div>
+
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=65"></script>
+<script src="assets/app.supabase.js?v=66"></script>
 <script src="assets/nav.js?v=6"></script>
 <script src="assets/bell.js?v=22"></script>
 <script>
@@ -98,6 +100,12 @@
   const convItems=document.getElementById('convItems');
   const threadArea=document.getElementById('threadArea');
   let activeConv=null, unsub=null, unsubReact=null;
+
+  // Agrandir une image envoyée dans le chat
+  const _lb=document.getElementById('lightbox');
+  function openLightbox(src){ if(!src) return; document.getElementById('lbImg').src=src; _lb.classList.add('open'); }
+  _lb.querySelector('.lb-close').addEventListener('click',()=>_lb.classList.remove('open'));
+  _lb.addEventListener('click',e=>{ if(e.target===_lb) _lb.classList.remove('open'); });
 
   /* ---- Liste des conversations ---- */
   async function loadConvs(selectId){
@@ -148,18 +156,30 @@
         ${manage}
       </div>
       <div class="thread-body" id="tbody"></div>
-      <div class="thread-input">
-        <input type="text" id="msgInput" placeholder="Écris ton message…" maxlength="1000" autocomplete="off">
-        <button class="btn btn-primary" id="sendBtn">Envoyer</button>
-      </div>`;
+      <div class="composer-zone">
+        <div class="reply-bar" id="replyBar" style="display:none">
+          <div class="rb-text"><b id="rbName"></b><span id="rbSnippet"></span></div>
+          <button class="rb-x" id="rbClose" type="button" aria-label="Annuler">&times;</button>
+        </div>
+        <div class="img-preview" id="imgPreview" style="display:none"></div>
+        <div class="emoji-panel" id="emojiPanel" style="display:none"></div>
+        <div class="thread-input">
+          <button class="ti-btn" id="emojiBtn" type="button" aria-label="Emoji">😊</button>
+          <button class="ti-btn" id="attachBtn" type="button" aria-label="Photo">📎</button>
+          <input type="text" id="msgInput" placeholder="Message…" maxlength="1000" autocomplete="off">
+          <button class="ti-send" id="sendBtn" type="button" aria-label="Envoyer"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
+        </div>
+      </div>
+      <input type="file" id="chatImg" accept="image/*" style="display:none">`;
     document.getElementById('backBtn').addEventListener('click',()=>{ layout.classList.remove('show-thread'); });
     if(isGroup){ const gm=document.getElementById('gmManage'); if(gm) gm.addEventListener('click',()=>openManageGroup(convId)); }
 
     const tbody=document.getElementById('tbody');
     const shown=new Set();
     const pendingMine=[];   // textes envoyés en optimiste, en attente de l'écho temps réel
+    const msgsById={};      // cache pour résoudre les réponses (temps réel)
     const msgs=await JP.messagesOf(convId);
-    msgs.forEach(m=>shown.add(m.id));
+    msgs.forEach(m=>{ shown.add(m.id); if(m.id) msgsById[m.id]=m; });
     tbody.innerHTML=msgs.map(m=>bubbleHTML(m, isGroup, membersMap)).join('');
     scrollBottom(tbody);
     decorateReactions();
@@ -167,12 +187,13 @@
     function appendMsg(m){
       if(m.id && shown.has(m.id)) return;
       // Réconciliation : mon propre message qui revient par le temps réel
-      // (déjà affiché en optimiste) -> on ne le ré-affiche pas.
       if(m.id && m.mine){
-        const i=pendingMine.indexOf(m.text);
-        if(i>=0){ pendingMine.splice(i,1); shown.add(m.id); return; }
+        const i=pendingMine.indexOf(m.text||'');
+        if(i>=0){ pendingMine.splice(i,1); shown.add(m.id); msgsById[m.id]=m; return; }
       }
-      if(m.id) shown.add(m.id);
+      // Résout l'aperçu de réponse depuis le cache local (messages temps réel)
+      if(m.replyToId && !m.reply){ const s=msgsById[m.replyToId]; if(s) m.reply={ senderName: s.mine?'Toi':(s.senderName||'Membre'), text:s.text, image:s.image }; }
+      if(m.id){ shown.add(m.id); msgsById[m.id]=m; }
       tbody.insertAdjacentHTML('beforeend', bubbleHTML(m, isGroup, membersMap));
       scrollBottom(tbody);
     }
@@ -206,13 +227,58 @@
     unsubReact=JP.subscribeMessageReactions(()=>{ decorateReactions(); });
 
     const input=document.getElementById('msgInput');
+
+    /* ---- Réponse à un message ---- */
+    let replyTarget=null, pendingImg=null;
+    const replyBar=document.getElementById('replyBar'), rbName=document.getElementById('rbName'), rbSnippet=document.getElementById('rbSnippet');
+    function setReply(mid){
+      const m=msgsById[mid]; if(!m) return;
+      replyTarget={ id:mid, name:m.mine?'Toi':(m.senderName||'Membre'), snippet:(m.image&&!m.text)?'📷 Photo':(m.text||'') };
+      rbName.textContent=replyTarget.name; rbSnippet.textContent=replyTarget.snippet.slice(0,90);
+      replyBar.style.display='flex'; input.focus();
+    }
+    function clearReply(){ replyTarget=null; replyBar.style.display='none'; }
+    document.getElementById('rbClose').addEventListener('click',clearReply);
+
+    /* ---- Image ---- */
+    const chatImg=document.getElementById('chatImg'), imgPreview=document.getElementById('imgPreview');
+    function clearImg(){ pendingImg=null; imgPreview.style.display='none'; imgPreview.innerHTML=''; }
+    document.getElementById('attachBtn').addEventListener('click',()=>chatImg.click());
+    chatImg.addEventListener('change',()=>{
+      const f=chatImg.files[0]; chatImg.value=''; if(!f) return;
+      if(!f.type.startsWith('image/')){ JP.toast('Choisis une image'); return; }
+      if(f.size>15*1024*1024){ JP.toast('Image trop lourde (15 Mo max)', {error:true}); return; }
+      pendingImg=f;
+      imgPreview.innerHTML=`<img src="${URL.createObjectURL(f)}" alt=""><button class="ip-x" type="button" aria-label="Retirer">&times;</button>`;
+      imgPreview.style.display='flex';
+      imgPreview.querySelector('.ip-x').addEventListener('click',clearImg);
+    });
+
+    /* ---- Emojis (composer) ---- */
+    const EMO=['😀','😂','🤣','😍','🥰','😘','😎','😉','😜','🤗','🤔','😴','😭','😢','😡','😱','🥳','😬','😅','👍','👎','🙏','👏','🙌','💪','❤️','🔥','🎉','✨','💯','👀','🍻','☀️','🌧️','🐴','🧀','⚽','🎶'];
+    const emojiPanel=document.getElementById('emojiPanel');
+    emojiPanel.innerHTML=EMO.map(e=>`<button type="button">${e}</button>`).join('');
+    document.getElementById('emojiBtn').addEventListener('click',()=>{ emojiPanel.style.display = emojiPanel.style.display==='flex'?'none':'flex'; });
+    emojiPanel.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ input.value+=b.textContent; input.focus(); }));
+
+    /* ---- Réponse / agrandir image (délégation sur le fil) ---- */
+    tbody.addEventListener('click',e=>{
+      const rb=e.target.closest && e.target.closest('.msg-reply-btn');
+      if(rb){ const row=rb.closest('.msg-row'); if(row) setReply(row.dataset.mid); return; }
+      const im=e.target.closest && e.target.closest('.bubble-img');
+      if(im) openLightbox(im.src);
+    });
+
     const send=async()=>{
-      const t=input.value.trim(); if(!t) return;
-      input.value='';
-      appendMsg({id:null, text:t, ts:new Date().toISOString(), mine:true});
+      const t=input.value.trim();
+      if(!t && !pendingImg) return;
+      const rt=replyTarget, img=pendingImg;
+      input.value=''; emojiPanel.style.display='none'; clearReply(); clearImg();
+      appendMsg({ id:null, text:t, image: img?URL.createObjectURL(img):null, ts:new Date().toISOString(), mine:true,
+                  reply: rt?{ senderName:rt.name, text:rt.snippet.indexOf('📷')===0?'':rt.snippet, image: rt.snippet.indexOf('📷')===0 } : null });
       pendingMine.push(t);
-      const r=await JP.sendMessage(convId, t);
-      if(r && r.error){ JP.toast('Message non envoyé'); }
+      const r=await JP.sendMessage(convId, { text:t, image:img, replyTo: rt?rt.id:null });
+      if(r && r.error){ JP.toast(img?'Photo non envoyée':'Message non envoyé', {error:true}); }
       loadConvs();
     };
     document.getElementById('sendBtn').addEventListener('click',send);
@@ -228,11 +294,15 @@
       label=`<span class="bubble-sender">${JP.esc(nm)}</span>`;
     }
     const mid=m.id||'';
-    const reactBtn = mid ? `<button type="button" class="msg-react-btn" aria-label="Réagir">🙂</button>` : '';
+    let rq='';
+    if(m.reply){ const rt=(m.reply.image && !m.reply.text)?'📷 Photo':(m.reply.text||''); rq=`<div class="bubble-reply"><b>${JP.esc(m.reply.senderName||'')}</b><span>${JP.esc(rt.slice(0,90))}</span></div>`; }
+    const img = m.image ? `<img class="bubble-img" src="${m.image}" alt="photo">` : '';
+    const txt = m.text ? `<span class="bubble-txt">${JP.esc(m.text)}</span>` : '';
+    const acts = mid ? `<button type="button" class="msg-react-btn" aria-label="Réagir">🙂</button><button type="button" class="msg-reply-btn" aria-label="Répondre">↩</button>` : '';
     return `<div class="msg-row ${m.mine?'me':'them'}" data-mid="${mid}">
       <div class="msg-line">
-        <div class="bubble-msg ${m.mine?'me':'them'}">${label}${JP.esc(m.text)}<span class="bubble-time">${time}</span></div>
-        ${reactBtn}
+        <div class="bubble-msg ${m.mine?'me':'them'} ${m.image?'has-img':''}">${label}${rq}${img}${txt}<span class="bubble-time">${time}</span></div>
+        <div class="msg-acts">${acts}</div>
       </div>
       <div class="msg-reactions"></div>
     </div>`;

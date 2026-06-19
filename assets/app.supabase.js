@@ -1053,13 +1053,14 @@ window.JP = (() => {
   }
 
   async function messagesOf(convId){
-    const { data } = await sb.from('messages')
-      .select('id, text, created_at, sender_id, sender:profiles!sender_id ( name, avatar_url )')
-      .eq('conversation_id', convId)
-      .order('created_at', {ascending:true});
+    const rich='id, text, image_url, reply_to, created_at, sender_id, sender:profiles!sender_id ( name, avatar_url ), replied:messages!reply_to ( id, text, image_url, sender_id, sender:profiles!sender_id ( name ) )';
+    const basic='id, text, created_at, sender_id, sender:profiles!sender_id ( name, avatar_url )';
+    let { data, error } = await sb.from('messages').select(rich).eq('conversation_id', convId).order('created_at', {ascending:true});
+    if(error){ ({ data, error } = await sb.from('messages').select(basic).eq('conversation_id', convId).order('created_at', {ascending:true})); }
     return (data||[]).map(m=>({
-      id:m.id, text:m.text, ts:m.created_at, mine:m.sender_id===_me?.id,
-      senderId:m.sender_id, senderName:m.sender?.name||'Membre', senderAvatar:m.sender?.avatar_url||null
+      id:m.id, text:m.text||'', image:m.image_url||null, ts:m.created_at, mine:m.sender_id===_me?.id,
+      senderId:m.sender_id, senderName:m.sender?.name||'Membre', senderAvatar:m.sender?.avatar_url||null,
+      reply: m.replied ? { id:m.replied.id, text:m.replied.text||'', image:m.replied.image_url||null, senderName:m.replied.sender?.name||'Membre' } : null
     }));
   }
 
@@ -1098,9 +1099,21 @@ window.JP = (() => {
     return error ? {ok:false, msg:error.message} : {ok:true};
   }
 
-  async function sendMessage(convId, text){
+  async function sendMessage(convId, payload){
     if(!_me) return {error:'no-user'};
-    const { error } = await sb.from('messages').insert({conversation_id:convId, sender_id:_me.id, text});
+    let text='', image=null, replyTo=null;
+    if(typeof payload==='string') text=payload;
+    else if(payload){ text=payload.text||''; image=payload.image||null; replyTo=payload.replyTo||null; }
+    let imageUrl=null;
+    if(image){ try{ imageUrl=await uploadImage('posts', image, 1280, 0.82); }catch(e){ console.error(e); return {error:'image'}; } }
+    const row={conversation_id:convId, sender_id:_me.id, text:text||''};
+    if(imageUrl) row.image_url=imageUrl;
+    if(replyTo) row.reply_to=replyTo;
+    let { error } = await sb.from('messages').insert(row);
+    // repli si les colonnes image_url/reply_to n'existent pas encore (SQL section 42)
+    if(error && /image_url|reply_to|column|schema cache/i.test(error.message||'')){
+      ({ error } = await sb.from('messages').insert({conversation_id:convId, sender_id:_me.id, text:text||''}));
+    }
     return { error };
   }
 
@@ -1111,7 +1124,7 @@ window.JP = (() => {
         {event:'INSERT', schema:'public', table:'messages', filter:`conversation_id=eq.${convId}`},
         payload=>{
           const m=payload.new;
-          onNew({id:m.id, text:m.text, ts:m.created_at, mine:m.sender_id===_me?.id, senderId:m.sender_id});
+          onNew({id:m.id, text:m.text, image:m.image_url||null, replyToId:m.reply_to||null, ts:m.created_at, mine:m.sender_id===_me?.id, senderId:m.sender_id});
         })
       .subscribe();
     return ()=> sb.removeChannel(ch);   // fonction de désabonnement
