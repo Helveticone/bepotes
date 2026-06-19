@@ -613,23 +613,25 @@ window.JP = (() => {
     // Fil allégé : on ne récupère QUE le nombre de commentaires (comments(count)).
     // La liste complète est chargée à la demande (JP.commentsOf) à l'ouverture d'un post.
     // withPage → inclut l'identité de page (posts publiés « en tant que page », section 47).
-    const cols = (withPage, withVis)=>`id, text, tag, image_url, images, created_at, author_id, shared_post_id${withPage?', page_id':''}${withVis?', visibility, event_id':''},
+    const cols = (withPage, withVis, withEvent)=>`id, text, tag, image_url, images, created_at, author_id, shared_post_id${withPage?', page_id':''}${withVis?', visibility':''}${withEvent?', event_id':''},
                author:profiles!author_id ( name, town, avatar_url ),${withPage?' page:groups!page_id ( id, name, cover_url ),':''}
                shared:posts!shared_post_id ( id, text, image_url, images, video_url, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
                video_url, link_url, link_title, link_desc, link_image, link_site, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( count )`;
     // withReel=true → exclut les reels du fil normal (colonne is_reel ; section 35).
-    const build = (withReel, withPage, withVis)=>{
-      let q = sb.from('posts').select(cols(withPage, withVis)).is('group_id', null);
+    const build = (withReel, withPage, withVis, withEvent)=>{
+      let q = sb.from('posts').select(cols(withPage, withVis, withEvent)).is('group_id', null);
       if(withReel) q = q.eq('is_reel', false);
       if(town) q = q.eq('town', town);
       if(before) q = q.lt('created_at', before);
       return q.order('created_at', {ascending:false}).limit(limit);
     };
-    let { data, error } = await build(true, true, true);
-    if(error){ ({ data, error } = await build(true, false, true)); }    // page_id absent (section 47)
-    if(error){ ({ data, error } = await build(true, false, false)); }   // visibility absent (section 51)
-    if(error && /is_reel|column/i.test(error.message||'')){ ({ data, error } = await build(false, false, false)); }  // is_reel absent (section 35)
+    // Colonnes récentes indépendantes (sections 47/51/52) : on retire chacune si absente.
+    let { data, error } = await build(true, true, true, true);
+    if(error){ ({ data, error } = await build(true, false, true, true)); }    // page_id absent (47)
+    if(error){ ({ data, error } = await build(true, false, false, true)); }   // visibility absent (51)
+    if(error){ ({ data, error } = await build(true, false, false, false)); }  // event_id absent (52)
+    if(error && /is_reel|column/i.test(error.message||'')){ ({ data, error } = await build(false, false, false, false)); }  // is_reel absent (35)
     if(error){ console.error(error); return []; }
     await loadBlocked();
     const blocked=blockedIds();
