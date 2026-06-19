@@ -51,6 +51,9 @@
       <label for="pw">Mot de passe</label>
       <input id="pw" type="password" placeholder="••••••••" autocomplete="new-password">
     </div>
+    <!-- piège anti-bot : invisible aux humains, rempli par les robots -->
+    <input id="hp_site" name="site_web" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+    <div id="cfTurnstile" style="margin:6px 0"></div>
     <button class="btn btn-primary btn-block" id="go">Créer mon compte</button>
     <div class="auth-foot">Déjà un compte ? <a href="connexion.html">Se connecter</a></div>
   </div>
@@ -58,27 +61,47 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=73"></script>
+<script src="assets/app.supabase.js?v=74"></script>
 <script>
   (async()=>{ await JP.loadMe(); if(JP.user()) location.href='fil.html'; })();
   JP.fillCommuneSelect(document.getElementById('town'), {first:'Choisis ta commune…'});
   const err=document.getElementById('err');
   function showErr(m){err.textContent=m;err.style.display='block';err.style.background='var(--rouge-soft)';err.style.color='var(--rouge-dark)';}
   function showOk(m){err.textContent=m;err.style.display='block';err.style.background='#E6F4EA';err.style.color='#1E5631';}
+
+  /* ---- Anti-bot : honeypot + délai mini + Turnstile (si configuré) ---- */
+  const formLoadedAt = Date.now();
+  let cfToken = '';
+  const CF_KEY = (window.JP_CONFIG && JP_CONFIG.TURNSTILE_SITEKEY) || '';
+  if(CF_KEY){
+    window.onCfVerify = t => { cfToken = t; };
+    const s=document.createElement('script');
+    s.src='https://challenges.cloudflare.com/turnstile/v0/api.js'; s.async=true; s.defer=true;
+    document.head.appendChild(s);
+    const box=document.getElementById('cfTurnstile');
+    box.className='cf-turnstile';
+    box.setAttribute('data-sitekey', CF_KEY);
+    box.setAttribute('data-callback', 'onCfVerify');
+  }
+
   const btn=document.getElementById('go');
   btn.addEventListener('click',async()=>{
     const name=document.getElementById('name').value.trim();
     const town=document.getElementById('town').value;
     const email=document.getElementById('email').value.trim();
     const password=document.getElementById('pw').value;
+    // pièges anti-bot
+    if(document.getElementById('hp_site').value){ return; }                 // honeypot rempli = bot
+    if(Date.now()-formLoadedAt < 2500){ return showErr("Petite seconde… réessaie 🙂"); } // trop rapide
     if(!name) return showErr("Indique ton nom.");
     if(!town) return showErr("Choisis ta commune.");
     if(!/^\S+@\S+\.\S+$/.test(email)) return showErr("E-mail invalide.");
     if(password.length<6) return showErr("Mot de passe trop court (min. 6 caractères).");
+    if(CF_KEY && !cfToken) return showErr("Confirme que tu n'es pas un robot 🤖");
     btn.disabled=true; btn.textContent='Création…';
-    const r=await JP.register({name,town,email,password});
+    const r=await JP.register({name,town,email,password,captchaToken:cfToken||undefined});
     btn.disabled=false; btn.textContent='Créer mon compte';
-    if(!r.ok) return showErr(r.msg);
+    if(!r.ok){ if(window.turnstile&&CF_KEY){ try{turnstile.reset();}catch(e){} cfToken=''; } return showErr(r.msg); }
     if(r.confirm){ showOk("Compte créé ! Vérifie ta boîte mail pour confirmer ton adresse, puis connecte-toi."); return; }
     location.href='fil.html';
   });

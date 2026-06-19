@@ -274,11 +274,10 @@ window.JP = (() => {
   /* ============================================================
      AUTH
      ============================================================ */
-  async function register({name, town, email, password}){
-    const { data, error } = await sb.auth.signUp({
-      email, password,
-      options:{ data:{ name, town } }   // récupérés par le trigger handle_new_user
-    });
+  async function register({name, town, email, password, captchaToken}){
+    const options={ data:{ name, town } };   // récupérés par le trigger handle_new_user
+    if(captchaToken) options.captchaToken=captchaToken;   // vérifié par Supabase si CAPTCHA activé
+    const { data, error } = await sb.auth.signUp({ email, password, options });
     if(error) return {ok:false, msg: traduireErreur(error.message)};
     // Selon les réglages Supabase, la session peut être directe ou demander confirmation e-mail
     if(data.session){ await loadMe(); return {ok:true, confirm:false}; }

@@ -16,5 +16,11 @@ window.JP_CONFIG = {
   // CDN média (Cloudflare devant Supabase Storage). VIDE = désactivé (médias servis
   // directement par Supabase). Au lancement, mets ex. "https://cdn.jurapotes.ch"
   // (voir cloudflare/cdn-worker.js + cloudflare/CDN-GUIDE.md). Aucun autre changement requis.
-  MEDIA_CDN: ""
+  MEDIA_CDN: "",
+
+  // Anti-bot à l'inscription : clé PUBLIQUE Cloudflare Turnstile (gratuit).
+  // VIDE = désactivé (seule la protection honeypot/délai s'applique). Pour activer :
+  // 1) créer un widget Turnstile (dashboard Cloudflare) → coller la "Site Key" ici ;
+  // 2) Supabase → Authentication → Bot & Abuse Protection → activer Turnstile + coller la "Secret Key".
+  TURNSTILE_SITEKEY: ""
 };
