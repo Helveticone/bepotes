@@ -1887,6 +1887,13 @@ window.JP = (() => {
   async function adminTopTowns(){ const {data,error}=await sb.rpc('admin_top_towns'); if(error) throw error; return data||[]; }
   async function adminBusiness(){ const {data,error}=await sb.rpc('admin_business'); if(error) throw error; return data||{}; }
   async function adminModeration(){ const {data,error}=await sb.rpc('admin_moderation'); if(error) throw error; return data||{}; }
+  /* Nombre de publicités (régie) actuellement actives — lecture directe (RLS admin-only). */
+  async function adminAdsActive(){
+    const today=new Date().toISOString().slice(0,10);
+    const { data, error } = await sb.from('ads').select('id, starts_on, ends_on').eq('active', true);
+    if(error) return 0;
+    return (data||[]).filter(a => (!a.starts_on || a.starts_on<=today) && (!a.ends_on || a.ends_on>=today)).length;
+  }
   async function adminErrors(limit=50){
     const { data, error } = await sb.from('client_errors')
       .select('id, message, source, detail, ua, created_at, author:profiles!user_id ( name )')
@@ -2236,6 +2243,6 @@ window.JP = (() => {
     report, block, unblock, isBlocked, blockedList, loadBlocked, blockedIds,
     isAdmin, listReports, resolveReport, adminDeletePost, adminDeleteComment, banUser, unbanUser,
     listBannedWords, addBannedWord, removeBannedWord, modQueue, resolveModItem,
-    touchLastSeen, adminOverview, adminGrowth, adminRetention, adminTopTowns, adminBusiness, adminModeration, adminErrors, logError
+    touchLastSeen, adminOverview, adminGrowth, adminRetention, adminTopTowns, adminBusiness, adminModeration, adminAdsActive, adminErrors, logError
   };
 })();

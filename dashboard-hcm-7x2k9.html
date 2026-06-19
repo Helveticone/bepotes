@@ -70,7 +70,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=84"></script>
+<script src="assets/app.supabase.js?v=85"></script>
 <script src="assets/nav.js?v=8"></script>
 <script>
 (async function(){
@@ -104,18 +104,19 @@
 
   async function load(){
     updated.textContent='Chargement…';
-    const [ov,gr,re,tw,bz,mo,er]=await Promise.allSettled([
+    const [ov,gr,re,tw,bz,mo,er,ads]=await Promise.allSettled([
       JP.adminOverview(), JP.adminGrowth(growthDays), JP.adminRetention(),
-      JP.adminTopTowns(), JP.adminBusiness(), JP.adminModeration(), JP.adminErrors(40)
+      JP.adminTopTowns(), JP.adminBusiness(), JP.adminModeration(), JP.adminErrors(40),
+      JP.adminAdsActive ? JP.adminAdsActive() : Promise.resolve(0)
     ]);
     const val=r=>r.status==='fulfilled'?r.value:null;
-    render(val(ov), val(gr), val(re), val(tw), val(bz), val(mo), val(er));
+    render(val(ov), val(gr), val(re), val(tw), val(bz), val(mo), val(er), val(ads)||0);
     if(ov.status==='rejected') console.error(ov.reason);
     updated.textContent='Dernière mise à jour : '+new Date().toLocaleString('fr-CH',{dateStyle:'short',timeStyle:'short'});
   }
 
-  function render(o, g, r, towns, bz, mo, errs){
-    o=o||{}; r=r||{}; bz=bz||{}; errs=errs||[];
+  function render(o, g, r, towns, bz, mo, errs, adsActive){
+    o=o||{}; r=r||{}; bz=bz||{}; errs=errs||[]; adsActive=adsActive||0;
     content.innerHTML=`
     <div class="dash-sec">
       <h2>Vue d'ensemble</h2>
@@ -128,7 +129,8 @@
         ${card('Réactions', n(o.likes_total), `+${n(o.likes_7d)} / 7 j`)}
         ${card('Groupes', n(o.groups_total), `+${n(o.groups_7d)} / 7 j`)}
         ${card('Pages établ.', n(o.pages_total), `+${n(o.pages_7d)} / 7 j`)}
-        ${card('Annonces actives', n(o.listings_active), 'Marché')}
+        ${card('Pub active (régie)', n(adsActive), 'Publicités en ligne')}
+        ${card('Annonces Marché', n(o.listings_active), 'Petites annonces actives')}
         ${card('Événements', n(o.events_total), `${n(o.events_upcoming)} à venir`)}
         ${card('Messages /7j', n(o.messages_7d), 'Volume messagerie')}
       </div>
