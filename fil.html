@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=81">
+<link rel="stylesheet" href="assets/style.css?v=82">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -200,13 +200,56 @@
   }
   function reelsCardEl(){
     const d=document.createElement('div'); d.className='side-card feed-extra';
-    const tiles=(_reels||[]).map((r,i)=>`<a class="reel" data-i="${i}"><video src="${r.video}#t=0.1" muted playsinline preload="metadata"></video><div class="reel-grad"></div><span class="reel-play">▶</span><span class="reel-name">${JP.esc(r.author)}</span></a>`).join('');
+    const tiles=(_reels||[]).map((r,i)=>`<a class="reel" data-i="${i}"><video src="${r.video}" loop muted playsinline preload="metadata" data-rv></video><div class="reel-grad"></div><button type="button" class="reel-sound" aria-label="Écouter l'aperçu">🔇</button><span class="reel-name">${JP.esc(r.author)}</span></a>`).join('');
     d.innerHTML=`<h3 class="rs-title">🎬 Reels du Jura</h3><div class="reels-row">`+
       `<button type="button" class="reel reel-create" id="reelCreate"><span class="rc-plus">+</span><span class="rc-lbl">Ton reel</span></button>`+
       tiles+`</div>`;
     d.querySelector('#reelCreate').addEventListener('click',()=>document.getElementById('reelFile').click());
-    d.querySelectorAll('.reel[data-i]').forEach(a=>a.addEventListener('click',()=>JPReels.open(_reels, +a.dataset.i)));
+    d.querySelectorAll('.reel[data-i]').forEach(a=>a.addEventListener('click',()=>{
+      d.querySelectorAll('video[data-rv]').forEach(v=>{try{v.pause();}catch(e){}});   // coupe les aperçus avant le plein écran
+      JPReels.open(_reels, +a.dataset.i);
+    }));
+    wireReelPreviews(d);
     return d;
+  }
+
+  /* Aperçu animé des reels (façon FB) : autoplay muet quand visible,
+     son au survol (PC) ou via le bouton 🔊 (5 s d'aperçu sonore sur mobile). */
+  function wireReelPreviews(d){
+    const vids=[...d.querySelectorAll('video[data-rv]')];
+    if(!vids.length) return;
+    let soundTimer=null;
+    function muteAll(){
+      vids.forEach(v=>{ v.muted=true; });
+      d.querySelectorAll('.reel-sound').forEach(b=>b.textContent='🔇');
+      if(soundTimer){ clearTimeout(soundTimer); soundTimer=null; }
+    }
+    if('IntersectionObserver' in window){
+      const io=new IntersectionObserver(es=>es.forEach(en=>{
+        if(en.isIntersecting) en.target.play().catch(()=>{}); else en.target.pause();
+      }), {threshold:0.5});
+      vids.forEach(v=>io.observe(v));
+    } else { vids.forEach(v=>v.play().catch(()=>{})); }
+    // Survol souris (PC) : son tant que le pointeur reste sur la vignette
+    d.querySelectorAll('.reel[data-i]').forEach(a=>{
+      const v=a.querySelector('video'), btn=a.querySelector('.reel-sound');
+      a.addEventListener('pointerenter',e=>{ if(e.pointerType!=='mouse') return; muteAll(); v.muted=false; v.play().catch(()=>{}); if(btn) btn.textContent='🔊'; });
+      a.addEventListener('pointerleave',e=>{ if(e.pointerType!=='mouse') return; v.muted=true; if(btn) btn.textContent='🔇'; });
+    });
+    // Bouton 🔊 (mobile) : aperçu sonore de 5 s puis retour en sourdine
+    d.querySelectorAll('.reel-sound').forEach(btn=>{
+      btn.addEventListener('click',e=>{
+        e.preventDefault(); e.stopPropagation();
+        const v=btn.closest('.reel').querySelector('video');
+        const wasMuted=v.muted;
+        muteAll();
+        if(wasMuted){
+          v.muted=false; try{ v.currentTime=0; }catch(_){}
+          v.play().catch(()=>{}); btn.textContent='🔊';
+          soundTimer=setTimeout(()=>{ v.muted=true; btn.textContent='🔇'; soundTimer=null; }, 5000);
+        }
+      });
+    });
   }
   function suggCardEl(list, kind, title){
     if(!list || !list.length) return null;
