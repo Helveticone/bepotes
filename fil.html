@@ -90,6 +90,7 @@
             <option>Général</option><option>Sorties</option><option>Bons plans</option>
             <option>Entraide</option><option>Vendre/Donner</option><option>Question</option>
           </select>
+          <select id="compAs" class="chip" style="border:none;cursor:pointer;display:none" title="Publier en tant que"></select>
         </div>
         <button class="btn btn-primary btn-sm" id="compGo">Publier</button>
       </div>
@@ -135,7 +136,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=81"></script>
+<script src="assets/app.supabase.js?v=82"></script>
 <script src="assets/nav.js?v=8"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=23"></script>
@@ -635,13 +636,16 @@
 
   function postHTML(p){
     const mine=p.authorEmail===me.id;
+    const prof = p.asPage ? `groupe.html?id=${p.pageId}` : `membre.html?id=${p.authorEmail}`;
+    const showPerson = !mine && !p.asPage;   // boutons personne masqués pour un post de page
+    const meta = p.asPage ? `${JP.timeAgo(p.ts)} · 📄 Page` : `${JP.esc(p.town)} · ${JP.timeAgo(p.ts)}`;
     return `<article class="post" data-id="${p.id}" data-author="${p.authorEmail}">
       <div class="post-head">
-        <a href="membre.html?id=${p.authorEmail}" style="text-decoration:none">${JP.avatarHTML(p.author,p.authorAvatar,'av')}</a>
-        <div class="meta"><b><a href="membre.html?id=${p.authorEmail}" style="color:inherit;text-decoration:none">${JP.esc(p.author)}</a></b><span>${JP.esc(p.town)} · ${JP.timeAgo(p.ts)}</span></div>
-        ${!mine?`<a href="messages.html?to=${p.authorEmail}" class="btn btn-ghost btn-sm msg-btn" data-target="${p.authorEmail}" style="flex:0 0 auto;display:none" title="Envoyer un message">✉</a>`:''}
-        ${!mine?`<button class="btn btn-ghost btn-sm friend-btn" data-target="${p.authorEmail}">+ Ami</button>`:''}
-        ${!mine?`<button class="btn btn-ghost btn-sm follow-btn" data-target="${p.authorEmail}">Suivre</button>`:''}
+        <a href="${prof}" style="text-decoration:none">${JP.avatarHTML(p.author,p.authorAvatar,'av')}</a>
+        <div class="meta"><b><a href="${prof}" style="color:inherit;text-decoration:none">${JP.esc(p.author)}</a></b><span>${meta}</span></div>
+        ${showPerson?`<a href="messages.html?to=${p.authorEmail}" class="btn btn-ghost btn-sm msg-btn" data-target="${p.authorEmail}" style="flex:0 0 auto;display:none" title="Envoyer un message">✉</a>`:''}
+        ${showPerson?`<button class="btn btn-ghost btn-sm friend-btn" data-target="${p.authorEmail}">+ Ami</button>`:''}
+        ${showPerson?`<button class="btn btn-ghost btn-sm follow-btn" data-target="${p.authorEmail}">Suivre</button>`:''}
         <span class="tag">${JP.esc(p.tag)}</span>
         ${mine?`<div class="post-menu"><button class="dots">\u22EF</button>
           <div class="pop"><button class="edit-post">\u270F\uFE0F Modifier</button>${(p.images&&p.images.length)?`<button class="pt-edit" data-id="${p.id}">\uD83C\uDFF7\uFE0F Identifier</button>`:''}<button class="del"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg> Supprimer</button></div>
@@ -866,6 +870,25 @@
   const compText=document.getElementById('compText');
   JP.attachMentions(compText);
 
+  /* ---- Publier en tant que : Toi ou une de tes pages ---- */
+  const compAs=document.getElementById('compAs');
+  const compAvBox=document.getElementById('compAvBox');
+  let myManagedPages=[];
+  (async()=>{
+    try{ myManagedPages=await JP.myPages(); }catch(e){ myManagedPages=[]; }
+    if(!myManagedPages.length) return;
+    compAs.style.display='';
+    compAs.innerHTML='<option value="">🙂 Toi ('+JP.esc(me.name)+')</option>'
+      + myManagedPages.map(p=>`<option value="${p.id}">📄 ${JP.esc(p.name)}</option>`).join('');
+    function paintIdentity(){
+      const p=myManagedPages.find(x=>x.id===compAs.value);
+      if(compAvBox) compAvBox.innerHTML = p ? JP.avatarHTML(p.name,p.avatar,'av') : JP.avatarHTML(me.name,me.avatar,'av');
+      compText.placeholder = p ? ('Publier en tant que '+p.name+'…') : 'Quoi de neuf dans le Jura ?';
+    }
+    compAs.addEventListener('change', paintIdentity);
+    paintIdentity();
+  })();
+
   /* ---- Éditeur de sondage ---- */
   const pollBtn=document.getElementById('pollBtn');
   const pollEditor=document.getElementById('pollEditor');
@@ -904,7 +927,8 @@
     const t=JP.tokenizeMentions(raw, compText._mentions);
     compGo.disabled=true; compGo.textContent='Publication…';
     if(pendingVideo) JP.toast('Envoi de la vidéo… (ça peut prendre un moment)');
-    await JP.addPost({text:t, tag:document.getElementById('compTag').value, images:pendingImages, pollOptions, video:pendingVideo});
+    const pageId = (compAs && compAs.value) ? compAs.value : null;
+    await JP.addPost({text:t, tag:document.getElementById('compTag').value, images:pendingImages, pollOptions, video:pendingVideo, pageId});
     compGo.disabled=false; compGo.textContent='Publier';
     compText.value=''; compText._mentions=[];
     pendingImages=[]; pendingVideo=null; renderVideoPrev();

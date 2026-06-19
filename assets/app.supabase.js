@@ -609,22 +609,25 @@ window.JP = (() => {
   async function posts({before=null, limit=100, town=null}={}){
     // Fil allégé : on ne récupère QUE le nombre de commentaires (comments(count)).
     // La liste complète est chargée à la demande (JP.commentsOf) à l'ouverture d'un post.
-    const sel = `id, text, tag, image_url, images, created_at, author_id, shared_post_id,
-               author:profiles!author_id ( name, town, avatar_url ),
+    // withPage → inclut l'identité de page (posts publiés « en tant que page », section 47).
+    const cols = (withPage)=>`id, text, tag, image_url, images, created_at, author_id, shared_post_id${withPage?', page_id':''},
+               author:profiles!author_id ( name, town, avatar_url ),${withPage?' page:groups!page_id ( id, name, cover_url ),':''}
                shared:posts!shared_post_id ( id, text, image_url, images, video_url, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
                video_url, link_url, link_title, link_desc, link_image, link_site, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
                comments ( count )`;
     // withReel=true → exclut les reels du fil normal (colonne is_reel ; section 35).
-    const build = (withReel)=>{
-      let q = sb.from('posts').select(sel).is('group_id', null);
+    const build = (withReel, withPage)=>{
+      let q = sb.from('posts').select(cols(withPage)).is('group_id', null);
       if(withReel) q = q.eq('is_reel', false);
       if(town) q = q.eq('town', town);
       if(before) q = q.lt('created_at', before);
       return q.order('created_at', {ascending:false}).limit(limit);
     };
-    let { data, error } = await build(true);
-    // Repli si la colonne is_reel n'existe pas encore (SQL pas encore lancé)
-    if(error && /is_reel|column/i.test(error.message||'')){ ({ data, error } = await build(false)); }
+    let { data, error } = await build(true, true);
+    // Repli si page_id n'existe pas encore (section 47 pas lancée)
+    if(error){ ({ data, error } = await build(true, false)); }
+    // Repli si la colonne is_reel n'existe pas encore (section 35 pas lancée)
+    if(error && /is_reel|column/i.test(error.message||'')){ ({ data, error } = await build(false, false)); }
     if(error){ console.error(error); return []; }
     await loadBlocked();
     const blocked=blockedIds();
@@ -677,10 +680,14 @@ window.JP = (() => {
       liked:(c.comment_likes||[]).some(l=>l.user_id===_me?.id)
     }));
     const commentCount = isCount ? (cm[0].count||0) : comments.length;
+    const asPage = !!(p.page_id && p.page);   // publié « en tant que page »
     return {
       id:p.id, text:p.text, tag:p.tag, image:imgs[0]||null, images:imgs, video:cdnUrl(p.video_url||null), linkPreview, ts:p.created_at, poll,
-      authorEmail:p.author_id,
-      author:p.author?.name||'Membre', town:p.author?.town||'', authorAvatar:p.author?.avatar_url||null,
+      authorEmail:p.author_id,   // auteur réel (gestionnaire) -> mine/édition/suppression
+      asPage, pageId: p.page_id||null,
+      author: asPage ? (p.page.name||'Page') : (p.author?.name||'Membre'),
+      authorAvatar: asPage ? (cdnUrl(p.page.cover_url)||null) : (p.author?.avatar_url||null),
+      town: asPage ? '' : (p.author?.town||''),
       likes:likedBy.length, likedBy, myReaction, reactionCounts,
       sharedId:p.shared_post_id||null,
       shared: mapSharedPost(p.shared),
@@ -718,7 +725,7 @@ window.JP = (() => {
     return m ? m[1]+'_t.jpg'+(m[2]||'') : u;
   }
 
-  async function addPost({text, tag, image, images, sharedPostId, pollOptions, video}){
+  async function addPost({text, tag, image, images, sharedPostId, pollOptions, video, pageId}){
     if(!_me) return;
     let urls=[];
     if(images && images.length) urls=await uploadImages('posts', images, 1280, 0.82, true);
@@ -727,14 +734,17 @@ window.JP = (() => {
     if(video){ try{ videoUrl=await uploadVideo(video, videoProgress); }catch(e){ console.error(e); toast(e.message||'Vidéo refusée.', {error:true}); } finally{ hideVideoProgress(); } }
     const poll = (pollOptions && pollOptions.length>=2) ? pollOptions.slice(0,6) : null;
     const link = await fetchLinkPreview(text, {skip: !!sharedPostId});
-    const { error } = await sb.from('posts').insert({
-      author_id:_me.id, text, tag:tag||'Général', town:_me.town||null,
+    const row = {
+      author_id:_me.id, text, tag:tag||'Général', town: pageId ? null : (_me.town||null),
       image_url:urls[0]||null, images:urls, video_url:videoUrl,
       shared_post_id: sharedPostId||null,
       poll_options: poll,
       link_url:link.url, link_title:link.title, link_desc:link.desc, link_image:link.image, link_site:link.site
-    });
-    if(error) toast(error.message);
+    };
+    if(pageId) row.page_id = pageId;   // publié « en tant que page » (section 47)
+    const { error } = await sb.from('posts').insert(row);
+    if(error){ toast(error.message); return {ok:false, msg:error.message}; }
+    return {ok:true};
   }
 
   /* Détecte la 1ère URL d'un texte et récupère son aperçu Open Graph
@@ -1694,6 +1704,31 @@ window.JP = (() => {
     return (data||[]).map(mapPost);
   }
 
+  /* Pages que je gère (owner/admin) — pour le sélecteur « publier en tant que ». */
+  async function myPages(){
+    if(!_me) return [];
+    const { data, error } = await sb.from('group_members')
+      .select('role, groups!inner ( id, name, cover_url, kind )')
+      .eq('user_id', _me.id).in('role', ['owner','admin']);
+    if(error) return [];
+    return (data||[]).filter(r=>r.groups && r.groups.kind==='page')
+      .map(r=>({ id:r.groups.id, name:r.groups.name, avatar:cdnUrl(r.groups.cover_url) }));
+  }
+
+  /* Mur d'une page = ses publications « en tant que page » (page_id). */
+  async function pagePosts(pageId){
+    const { data } = await sb.from('posts')
+      .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id, page_id,
+               author:profiles!author_id ( name, town, avatar_url ),
+               page:groups!page_id ( id, name, cover_url ),
+               video_url, link_url, link_title, link_desc, link_image, link_site, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
+               comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
+      .eq('page_id', pageId)
+      .order('created_at', {ascending:false})
+      .limit(100);
+    return (data||[]).map(mapPost);
+  }
+
   async function addGroupPost(groupId, {text, tag, image, images}){
     if(!_me) return;
     let urls=[];
@@ -2179,7 +2214,7 @@ window.JP = (() => {
     friendStatus, sendFriendRequest, acceptFriend, removeFriend, pendingRequests, friends, friendCount, areFriends, friendSuggestions,
     postTags, tagPeople, untagPerson,
     userStats, leaderboard, repScore, repLevel, earnedBadges, reputationHTML, REP_LEVELS, REP_BADGES,
-    listGroups, suggestGroups, reels, addReel, getGroup, createGroup, joinGroup, leaveGroup, groupPosts, addGroupPost,
+    listGroups, suggestGroups, reels, addReel, getGroup, createGroup, joinGroup, leaveGroup, groupPosts, addGroupPost, myPages, pagePosts,
     uploadImages, pendingMembers, approveMember, rejectMember, updateGroupCover,
     updateGroupRules, updateGroupInfo, groupMembers, setMemberRole, removeMember,
     publicProfile, userPosts, userPhotos,

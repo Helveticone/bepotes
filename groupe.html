@@ -56,7 +56,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=81"></script>
+<script src="assets/app.supabase.js?v=82"></script>
 <script src="assets/nav.js?v=8"></script>
 <script src="assets/bell.js?v=23"></script>
 <script src="assets/calls.js?v=3"></script>
@@ -338,7 +338,13 @@
 
   function renderComposer(){
     const area=document.getElementById('composerArea');
-    if(!group || !group.isMember){ area.innerHTML='<div class="side-card" style="text-align:center;color:var(--ink-soft);margin-bottom:20px">'+(group&&group.isPending?'Ta demande est en attente de validation.':'Rejoins le groupe pour publier.')+'</div>'; return; }
+    if(!group){ area.innerHTML=''; return; }
+    if(group.kind==='page'){
+      // Sur une page, seuls les gestionnaires (owner/admin) publient — et en tant que page.
+      if(!group.isManager){ area.innerHTML=''; return; }
+    } else if(!group.isMember){
+      area.innerHTML='<div class="side-card" style="text-align:center;color:var(--ink-soft);margin-bottom:20px">'+(group.isPending?'Ta demande est en attente de validation.':'Rejoins le groupe pour publier.')+'</div>'; return;
+    }
     area.innerHTML=`
       <div class="composer">
         <div class="top">
@@ -364,7 +370,8 @@
       const raw=compText.value.trim();
       if(!raw && !pendingImages.length){ JP.toast('Écris un mot ou ajoute une photo'); return; }
       const t=JP.tokenizeMentions(raw, compText._mentions);
-      await JP.addGroupPost(groupId, {text:t, tag:'Groupe', images:pendingImages});
+      if(group.kind==='page') await JP.addPost({text:t, tag:'Page', images:pendingImages, pageId:groupId});
+      else                     await JP.addGroupPost(groupId, {text:t, tag:'Groupe', images:pendingImages});
       pendingImages=[];
       JP.toast('Publié ! 🎉'); await render();
     });
@@ -377,7 +384,7 @@
 
   async function render(){
     feed.innerHTML='<div class="empty"><p>Chargement…</p></div>';
-    const posts=await JP.groupPosts(groupId);
+    const posts = group && group.kind==='page' ? await JP.pagePosts(groupId) : await JP.groupPosts(groupId);
     if(!posts.length){ feed.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><p>Aucune publication dans ce groupe. Lance la discussion !</p></div>'; return; }
     feed.innerHTML=posts.map(postHTML).join('');
     posts.forEach(p=>bind(p));

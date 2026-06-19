@@ -1323,5 +1323,27 @@ notify pgrst, 'reload schema';
 
 
 -- ============================================================
+--  47. PUBLIER EN TANT QUE PAGE — détail dans publier-en-tant-que-page.sql
+--  posts.page_id = publié EN TANT QUE cette page (group_id reste NULL ->
+--  apparaît dans le fil, affiché comme la page). Insertion réservée aux
+--  gestionnaires de la page. Backfill des murs de page vers le fil.
+-- ============================================================
+alter table public.posts add column if not exists page_id uuid references public.groups(id) on delete cascade;
+create index if not exists posts_page_idx on public.posts(page_id, created_at desc);
+
+drop policy if exists "publier en son nom" on public.posts;
+drop policy if exists "posts_insert" on public.posts;
+create policy "posts_insert" on public.posts for insert with check (
+  auth.uid() = author_id
+  and ( page_id is null or public.is_group_manager(page_id) )
+);
+
+update public.posts p set page_id = p.group_id, group_id = null
+  where p.group_id in (select id from public.groups where kind = 'page') and p.page_id is null;
+
+notify pgrst, 'reload schema';
+
+
+-- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================
