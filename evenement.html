@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=88">
+<link rel="stylesheet" href="assets/style.css?v=89">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -44,7 +44,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=92"></script>
+<script src="assets/app.supabase.js?v=93"></script>
 <script src="assets/nav.js?v=8"></script>
 <script src="assets/bell.js?v=23"></script>
 <script src="assets/calls.js?v=3"></script>
@@ -122,7 +122,7 @@
     document.getElementById('evShare').addEventListener('click',async e=>{
       const b=e.currentTarget; b.disabled=true;
       const txt='📅 '+ev.title+'\n'+fullDate(ev.ts)+(ev.town?' · '+ev.town:'');
-      await JP.addPost({text:txt, tag:'Sorties', imageUrls: ev.cover?[ev.cover]:[]});
+      await JP.addPost({text:txt, tag:'Sorties', imageUrls: ev.cover?[ev.cover]:[], eventId: eid});
       b.disabled=false;
       JP.toast('Événement partagé dans ton fil ! 🔁');
     });

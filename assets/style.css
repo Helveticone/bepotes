@@ -1020,6 +1020,11 @@ a:focus:not(:focus-visible),button:focus:not(:focus-visible){outline:none}
 .to-top.show{display:flex;animation:jpFadeIn .2s ease}
 @media(min-width:901px){.to-top{bottom:24px;right:24px}}
 
+/* Carte « événement partagé » dans le fil */
+.event-card{display:block;position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);margin-top:4px;background:#000}
+.event-card img{width:100%;display:block;max-height:340px;object-fit:cover}
+.event-card .ev-cta{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.72));color:#fff;padding:18px 14px 11px;font-weight:700;font-size:.95rem}
+
 /* Réputation / gamification (profil + classement) */
 .rep-card{margin-top:14px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
 .rep-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}

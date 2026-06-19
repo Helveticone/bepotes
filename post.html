@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=88">
+<link rel="stylesheet" href="assets/style.css?v=89">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -46,7 +46,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=92"></script>
+<script src="assets/app.supabase.js?v=93"></script>
 <script src="assets/nav.js?v=8"></script>
 <script src="assets/bell.js?v=23"></script>
 <script src="assets/calls.js?v=3"></script>
@@ -182,8 +182,8 @@
       <div class="post-body">${JP.mentionHTML(p.text)}</div>
       ${pollHTML(p.poll)}
       ${p.video?`<video class="post-video" src="${p.video}" controls preload="metadata" playsinline></video>`:''}
-      ${galleryHTML(p.images)}
-      ${(p.images&&p.images.length)?`<div class="photo-tags" data-pid="${p.id}">${p.authorEmail===me.id?`<button type="button" class="pt-edit" data-id="${p.id}">🏷️ Identifier</button>`:''}</div>`:''}
+      ${p.eventId ? `<a href="evenement.html?id=${p.eventId}" class="event-card">${((p.images&&p.images[0])||p.image)?`<img src="${(p.images&&p.images[0])||p.image}" alt="" loading="lazy">`:''}<span class="ev-cta">📅 Voir l'événement →</span></a>` : galleryHTML(p.images)}
+      ${(!p.eventId && p.images&&p.images.length)?`<div class="photo-tags" data-pid="${p.id}">${p.authorEmail===me.id?`<button type="button" class="pt-edit" data-id="${p.id}">🏷️ Identifier</button>`:''}</div>`:''}
       ${linkCardHTML(p.linkPreview)}
       ${p.shared?sharedCardHTML(p.shared):''}
       <div class="post-actions">

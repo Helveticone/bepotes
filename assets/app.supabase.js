@@ -613,7 +613,7 @@ window.JP = (() => {
     // Fil allégé : on ne récupère QUE le nombre de commentaires (comments(count)).
     // La liste complète est chargée à la demande (JP.commentsOf) à l'ouverture d'un post.
     // withPage → inclut l'identité de page (posts publiés « en tant que page », section 47).
-    const cols = (withPage, withVis)=>`id, text, tag, image_url, images, created_at, author_id, shared_post_id${withPage?', page_id':''}${withVis?', visibility':''},
+    const cols = (withPage, withVis)=>`id, text, tag, image_url, images, created_at, author_id, shared_post_id${withPage?', page_id':''}${withVis?', visibility, event_id':''},
                author:profiles!author_id ( name, town, avatar_url ),${withPage?' page:groups!page_id ( id, name, cover_url ),':''}
                shared:posts!shared_post_id ( id, text, image_url, images, video_url, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
                video_url, link_url, link_title, link_desc, link_image, link_site, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
@@ -687,7 +687,7 @@ window.JP = (() => {
     return {
       id:p.id, text:p.text, tag:p.tag, image:imgs[0]||null, images:imgs, video:cdnUrl(p.video_url||null), linkPreview, ts:p.created_at, poll,
       authorEmail:p.author_id,   // auteur réel (gestionnaire) -> mine/édition/suppression
-      asPage, pageId: p.page_id||null, visibility: p.visibility||'all',
+      asPage, pageId: p.page_id||null, visibility: p.visibility||'all', eventId: p.event_id||null,
       author: asPage ? (p.page.name||'Page') : (p.author?.name||'Membre'),
       authorAvatar: asPage ? (cdnUrl(p.page.cover_url)||null) : (p.author?.avatar_url||null),
       town: asPage ? '' : (p.author?.town||''),
@@ -728,7 +728,7 @@ window.JP = (() => {
     return m ? m[1]+'_t.jpg'+(m[2]||'') : u;
   }
 
-  async function addPost({text, tag, image, images, imageUrls, sharedPostId, pollOptions, video, pageId, visibility}){
+  async function addPost({text, tag, image, images, imageUrls, sharedPostId, pollOptions, video, pageId, visibility, eventId}){
     if(!_me) return;
     let urls=[];
     if(imageUrls && imageUrls.length) urls=imageUrls.filter(Boolean);   // images déjà hébergées (ex. couverture d'événement) — pas de ré-upload
@@ -747,9 +747,10 @@ window.JP = (() => {
     };
     if(pageId) row.page_id = pageId;   // publié « en tant que page » (section 47)
     if(visibility==='friends' && !pageId) row.visibility = 'friends';   // confidentialité (section 51 ; pages = public)
+    if(eventId) row.event_id = eventId;   // partage d'événement -> carte cliquable (section 52)
     let { error } = await sb.from('posts').insert(row);
-    if(error && /visibility|column|schema/i.test(error.message||'')){   // section 51 pas encore lancée → on publie sans
-      delete row.visibility; ({ error } = await sb.from('posts').insert(row));
+    if(error && /visibility|event_id|column|schema/i.test(error.message||'')){   // section 51/52 pas encore lancée → on publie sans
+      delete row.visibility; delete row.event_id; ({ error } = await sb.from('posts').insert(row));
     }
     if(error){ toast(error.message); return {ok:false, msg:error.message}; }
     return {ok:true};
@@ -790,14 +791,13 @@ window.JP = (() => {
 
   /* Une seule publication (permalien) avec ses commentaires */
   async function getPost(pid){
-    const { data, error } = await sb
-      .from('posts')
-      .select(`id, text, tag, image_url, images, created_at, author_id, shared_post_id,
+    const base = `id, text, tag, image_url, images, created_at, author_id, shared_post_id,
                author:profiles!author_id ( name, town, avatar_url ),
                shared:posts!shared_post_id ( id, text, image_url, images, video_url, created_at, author_id, author:profiles!author_id ( name, avatar_url ) ),
                video_url, link_url, link_title, link_desc, link_image, link_site, likes ( user_id, type ), poll_options, poll_votes ( user_id, choice ),
-               comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`)
-      .eq('id', pid).single();
+               comments ( id, text, created_at, author_id, parent_id, author:profiles!author_id ( name, avatar_url ), comment_likes ( user_id ) )`;
+    let { data, error } = await sb.from('posts').select(base + ', event_id, visibility').eq('id', pid).single();
+    if(error){ ({ data, error } = await sb.from('posts').select(base).eq('id', pid).single()); }   // colonnes récentes absentes
     if(error){ console.error(error); return null; }
     return mapPost(data);
   }
