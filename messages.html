@@ -391,6 +391,10 @@
     input.focus();
   }
 
+  // Rend les liens cliquables dans une bulle (après échappement)
+  function linkifyMsg(t){
+    return JP.esc(t||'').replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">$1</a>');
+  }
   function bubbleHTML(m, group, membersMap){
     const time=new Date(m.ts).toLocaleTimeString('fr-CH',{hour:'2-digit',minute:'2-digit'});
     let label='';
@@ -402,7 +406,7 @@
     let rq='';
     if(m.reply){ const rt=(m.reply.image && !m.reply.text)?'📷 Photo':(m.reply.text||''); rq=`<div class="bubble-reply"><b>${JP.esc(m.reply.senderName||'')}</b><span>${JP.esc(rt.slice(0,90))}</span></div>`; }
     const img = m.image ? `<img class="bubble-img" src="${m.image}" alt="photo">` : '';
-    const txt = m.text ? `<span class="bubble-txt">${JP.esc(m.text)}</span>` : '';
+    const txt = m.text ? `<span class="bubble-txt">${linkifyMsg(m.text)}</span>` : '';
     const acts = mid ? `<button type="button" class="msg-react-btn" aria-label="Réagir">🙂</button><button type="button" class="msg-reply-btn" aria-label="Répondre">↩</button>`
       + (m.mine ? `<button type="button" class="msg-edit-btn" aria-label="Modifier">✏️</button><button type="button" class="msg-del-btn" aria-label="Supprimer">🗑</button>` : '') : '';
     return `<div class="msg-row ${m.mine?'me':'them'}" data-mid="${mid}">

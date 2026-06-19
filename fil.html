@@ -426,6 +426,40 @@
     openTagModal(pid, ex);
   });
 
+  /* Envoyer une publication en message privé (choisir un ami) */
+  async function shareToMessage(pid){
+    const mates = await JP.friends();
+    if(!mates.length){ JP.toast('Ajoute des amis pour partager en message'); return; }
+    const url = location.origin + '/post.html?id=' + pid;
+    const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.display='flex';
+    bg.innerHTML=`<div class="modal"><div class="modal-head"><h3>Envoyer en message</h3><button class="x" type="button">&times;</button></div>
+      <div class="modal-body">
+        <input id="shmSearch" type="text" placeholder="Chercher un ami…" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font-family:inherit;margin-bottom:10px;background:var(--paper);color:inherit">
+        <div id="shmList"></div>
+      </div></div>`;
+    document.body.appendChild(bg);
+    const close=()=>bg.remove();
+    bg.querySelector('.x').addEventListener('click',close);
+    bg.addEventListener('click',e=>{ if(e.target===bg) close(); });
+    const list=bg.querySelector('#shmList'), search=bg.querySelector('#shmSearch');
+    function paint(q){
+      const f=mates.filter(m=>!q || (m.name||'').toLowerCase().includes(q.toLowerCase())).slice(0,20);
+      list.innerHTML = f.map(m=>`<div class="pending-row" style="margin-bottom:6px;flex-wrap:wrap;row-gap:6px">
+          ${JP.avatarHTML(m.name,m.avatar,'av')}
+          <div class="pi" style="flex:1;min-width:0"><b>${JP.esc(m.name)}</b></div>
+          <button class="btn btn-primary btn-sm shm-send" data-id="${m.id}" data-name="${JP.esc(m.name)}">Envoyer</button>
+        </div>`).join('') || '<div style="color:var(--ink-soft);padding:8px">Aucun ami.</div>';
+      list.querySelectorAll('.shm-send').forEach(b=>b.addEventListener('click',async()=>{
+        b.disabled=true;
+        const conv=await JP.openConversationWith(b.dataset.id);
+        if(typeof conv==='string'){ await JP.sendMessage(conv, {text:url}); JP.toast('Envoyé à '+b.dataset.name+' ✉'); close(); }
+        else { JP.toast('Envoi impossible'); b.disabled=false; }
+      }));
+    }
+    search.addEventListener('input',()=>paint(search.value.trim()));
+    paint('');
+  }
+
   async function openTagModal(postId, existingIds){
     const mates=await JP.friends();
     if(!mates.length){ JP.toast('Ajoute des amis pour pouvoir les identifier'); return; }
@@ -690,6 +724,7 @@
           <div class="share-menu">
             <button class="sh-link" type="button">Copier le lien</button>
             <button class="sh-reshare" type="button">Partager dans mon fil</button>
+            <button class="sh-msg" type="button">Envoyer en message</button>
           </div>
         </div>
       </div>
@@ -829,6 +864,7 @@
       await JP.sharePost(pid, cap);
       JP.toast('Partagé dans ton fil ! \u{1F501}'); await render();
     });
+    el.querySelector('.sh-msg').addEventListener('click',()=>shareToMessage(pid));
     const pollEl=el.querySelector('.poll');
     if(pollEl){
       pollEl.querySelectorAll('.poll-opt').forEach(b=>b.addEventListener('click',async()=>{
