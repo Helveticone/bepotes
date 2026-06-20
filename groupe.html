@@ -303,8 +303,16 @@
         <input type="checkbox" id="${id}" ${checked?'checked':''} style="margin-top:3px;width:18px;height:18px;flex:0 0 auto">
         <span style="display:flex;flex-direction:column"><b style="font-size:.9rem">${title}</b><small style="color:var(--ink-soft);font-size:.78rem;line-height:1.3">${desc}</small></span>
       </label>`;
+    const inStyle="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font-family:inherit;background:var(--paper);color:inherit;box-sizing:border-box";
     const settingsHTML = `
-      <p style="color:var(--ink-soft);font-size:.82rem;margin:0 0 8px;line-height:1.4">En tant qu'administrateur, tu peux modifier la couverture, les infos${isGrp?', les règles':' (catégorie, adresse, téléphone, site)'}, les membres et les administrateurs${isGrp?', et les réglages ci-dessous.':'. Seuls les administrateurs publient en tant que page.'}</p>
+      <p style="color:var(--ink-soft);font-size:.82rem;margin:0 0 8px;line-height:1.4">En tant qu'administrateur, tu peux modifier le nom, la couverture, les infos${isGrp?', les règles':' (catégorie, adresse, téléphone, site)'}, les membres et les administrateurs${isGrp?', et les réglages ci-dessous.':'. Seuls les administrateurs publient en tant que page.'}</p>
+      <div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:14px">
+        <label style="display:block;font-size:.82rem;font-weight:700;margin-bottom:4px">Nom ${isGrp?'du groupe':'de la page'}</label>
+        <input id="setName" type="text" value="${JP.esc(group.name||'')}" maxlength="80" style="${inStyle};margin-bottom:10px">
+        <label style="display:block;font-size:.82rem;font-weight:700;margin-bottom:4px">Description</label>
+        <textarea id="setDesc" rows="3" maxlength="500" style="${inStyle};resize:vertical">${JP.esc(group.description||'')}</textarea>
+        <button class="btn btn-primary btn-sm" id="saveInfo" style="margin-top:10px">Enregistrer</button>
+      </div>
       ${isGrp ? `<div style="border:1px solid var(--line);border-radius:12px;padding:6px 12px;margin-bottom:14px">
         ${setRow('setPrivate', group.isPrivate, "Valider les demandes d'adhésion", "Les nouveaux membres doivent être acceptés par un admin avant de rejoindre.")}
         ${setRow('setAdminsOnly', group.postPolicy==='admins', "Seuls les admins peuvent publier", "Les membres peuvent lire et commenter, mais pas créer de publication.")}
@@ -353,6 +361,20 @@
     wireSet('setPrivate','is_private', c=>c);
     wireSet('setAdminsOnly','post_policy', c=>c?'admins':'all');
     wireSet('setApproval','post_approval', c=>c);
+    // Renommer / modifier la description (owner ou admin)
+    const saveInfo=document.getElementById('saveInfo');
+    if(saveInfo){
+      saveInfo.addEventListener('click',async()=>{
+        const name=document.getElementById('setName').value.trim();
+        const description=document.getElementById('setDesc').value.trim();
+        if(!name){ JP.toast('Le nom ne peut pas être vide'); return; }
+        saveInfo.disabled=true; const old=saveInfo.textContent; saveInfo.textContent='Enregistrement…';
+        const r=await JP.updateGroupInfo(groupId, {name, description});
+        saveInfo.disabled=false; saveInfo.textContent=old;
+        if(r.ok){ JP.toast('Enregistré ✓'); await loadHeader(); }
+        else JP.toast(r.msg||'Échec — réessaie');
+      });
+    }
     // Ajouter un administrateur (recherche d'une personne par nom)
     const addAdminToggle=document.getElementById('addAdminToggle');
     if(addAdminToggle){
