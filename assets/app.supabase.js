@@ -242,16 +242,10 @@ window.JP = (() => {
   /* ---------- Session / cache du profil courant ---------- */
   let _me = null;   // profil de l'utilisateur connecté (mis en cache)
 
-  async function loadMe(){
-    // getSession() est LOCAL (pas de round-trip réseau) -> chargement plus rapide ;
-    // le client rafraîchit le jeton tout seul et la RLS protège les données côté serveur.
-    let user=null;
-    try{ const { data:{ session } } = await sb.auth.getSession(); user = session?.user || null; }catch(e){}
-    if(!user){ try{ const { data:{ user:u } } = await sb.auth.getUser(); user=u||null; }catch(e){} }
-    if(!user){ _me=null; return null; }
-    const { data } = await sb.from('profiles').select('*').eq('id', user.id).single();
-    _me = data ? {
-      id:data.id, email:user.email, name:data.name, town:data.town,
+  function mapProfile(data, user){
+    if(!data) return null;
+    return {
+      id:data.id, email:user?.email, name:data.name, town:data.town,
       bio:data.bio||'', avatar:cdnUrl(data.avatar_url), cover:cdnUrl(data.cover_url),
       is_pro:data.is_pro, is_admin:data.is_admin, is_banned:data.is_banned, joined:data.created_at,
       job:data.job||'', origin:data.origin||'', website:data.website||'',
@@ -259,8 +253,31 @@ window.JP = (() => {
       school:data.school||'', relationship:data.relationship||'',
       email_notifications: data.email_notifications!==false,  // compat
       email_mode: data.email_mode || 'instant'                // 'instant' | 'daily' | 'off'
-    } : null;
+    };
+  }
+  async function refreshProfile(user){
+    const { data } = await sb.from('profiles').select('*').eq('id', user.id).single();
+    _me = mapProfile(data, user);
+    try{ if(data) sessionStorage.setItem('jp-me', JSON.stringify({uid:user.id, p:data})); }catch(e){}
     return _me;
+  }
+  async function loadMe(){
+    // getSession() est LOCAL (pas de round-trip réseau) -> chargement plus rapide ;
+    // le client rafraîchit le jeton tout seul et la RLS protège les données côté serveur.
+    let user=null;
+    try{ const { data:{ session } } = await sb.auth.getSession(); user = session?.user || null; }catch(e){}
+    if(!user){ try{ const { data:{ user:u } } = await sb.auth.getUser(); user=u||null; }catch(e){} }
+    if(!user){ _me=null; try{ sessionStorage.removeItem('jp-me'); }catch(e){} return null; }
+    // Cache profil (sessionStorage) : navigation entre pages quasi instantanée.
+    // On sert le profil mémorisé immédiatement, puis on rafraîchit en arrière-plan.
+    let cached=null;
+    try{ const raw=sessionStorage.getItem('jp-me'); if(raw){ const o=JSON.parse(raw); if(o && o.uid===user.id) cached=o.p; } }catch(e){}
+    if(cached){
+      _me = mapProfile(cached, user);
+      refreshProfile(user).then(()=>{ if(_me && _me.is_banned){ try{sessionStorage.removeItem('jp-me');}catch(e){} location.href='banni.html'; } }).catch(()=>{});
+      return _me;
+    }
+    return await refreshProfile(user);
   }
   const user = () => _me;   // synchrone, renvoie le cache (appeler requireAuth d'abord)
 
@@ -327,7 +344,7 @@ window.JP = (() => {
     return {ok:true};
   }
 
-  async function logout(){ await sb.auth.signOut(); location.href='index.html'; }
+  async function logout(){ try{ sessionStorage.removeItem('jp-me'); }catch(e){} await sb.auth.signOut(); location.href='index.html'; }
 
   /* ---------- Compte ---------- */
   async function updateEmail(email){
@@ -402,6 +419,7 @@ window.JP = (() => {
     if(patch.relationship!==undefined)    row.relationship=patch.relationship;
     const { error } = await sb.from('profiles').update(row).eq('id', _me.id);
     if(error) return {ok:false, msg:error.message};
+    try{ sessionStorage.removeItem('jp-me'); }catch(e){}   // forcer un profil frais (pas le cache)
     await loadMe();
     return {ok:true};
   }
