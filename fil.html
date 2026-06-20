@@ -216,9 +216,12 @@
      Préchargés une fois, puis insérés comme « cartes » à des positions espacées. */
   let _reels=null, _gsuggGroup=null, _gsuggPage=null;
   async function prefetchExtras(){
-    try{ _reels=await JP.reels(12); }catch(e){ _reels=[]; }
-    try{ _gsuggGroup=await JP.suggestGroups('group',10); }catch(e){ _gsuggGroup=[]; }
-    try{ _gsuggPage=await JP.suggestGroups('page',10); }catch(e){ _gsuggPage=[]; }
+    const [r,g,p]=await Promise.all([
+      JP.reels(12).catch(()=>[]),
+      JP.suggestGroups('group',10).catch(()=>[]),
+      JP.suggestGroups('page',10).catch(()=>[])
+    ]);
+    _reels=r||[]; _gsuggGroup=g||[]; _gsuggPage=p||[];
   }
   function reelsCardEl(){
     const d=document.createElement('div'); d.className='side-card feed-extra';
@@ -1046,16 +1049,15 @@
     window.scrollTo({top:0, behavior:'smooth'});   // remonte voir sa publication
   });
 
-  /* Mini événements */
-  const evs=await JP.events();
-  document.getElementById('evMini').innerHTML=evs.slice(0,3).map(e=>`
+  /* Mini événements (non bloquant : ne retarde pas le rendu du fil) */
+  JP.events().then(evs=>{ const evMini=document.getElementById('evMini'); if(evMini) evMini.innerHTML=evs.slice(0,3).map(e=>`
     <div style="display:flex;gap:11px;align-items:center;margin-bottom:12px">
       <div style="background:var(--rouge-soft);color:var(--rouge-dark);border-radius:11px;padding:6px 10px;text-align:center;min-width:46px">
         <div style="font-family:'Fraunces',serif;font-weight:700;font-size:1.1rem;line-height:1">${e.day}</div>
         <div style="font-size:.68rem;text-transform:uppercase">${e.month}</div>
       </div>
       <div><b style="font-size:.88rem;display:block">${JP.esc(e.title)}</b><span style="font-size:.78rem;color:var(--ink-soft)">${JP.esc(e.town)}</span></div>
-    </div>`).join('') || '<div style="font-size:.85rem;color:var(--ink-soft)">Aucun événement pour l\'instant.</div>';
+    </div>`).join('') || '<div style="font-size:.85rem;color:var(--ink-soft)">Aucun événement pour l\'instant.</div>'; }).catch(()=>{});
 
   /* ---- Suggestions d'amis (amis communs prioritaires) ---- */
   async function renderSuggestions(){
@@ -1101,7 +1103,7 @@
     }));
   }
 
-  try{ (await JP.friends()).forEach(f=>{ if(f && f.id) friendSet.add(f.id); }); }catch(e){}
+  const friendsReady = JP.friends().then(list=>{ (list||[]).forEach(f=>{ if(f && f.id) friendSet.add(f.id); }); }).catch(()=>{});
 
   /* ---- Visionneuse photos (galerie : précédent / suivant / swipe) ---- */
   window.JPLightbox = (function(){
@@ -1241,8 +1243,12 @@
     if(wp) wp.addEventListener('click',e=>{ e.preventDefault(); const t=document.getElementById('compText'); if(t){ t.focus(); t.scrollIntoView({behavior:'smooth',block:'center'}); } });
   })();
 
-  await prefetchExtras();
-  await render();
+  // Le fil s'affiche AU PLUS VITE : on ne bloque plus sur reels/suggestions/amis.
+  const extrasReady = prefetchExtras();          // reels + suggestions groupes/pages (en parallèle)
+  await render();                                 // squelette immédiat puis posts → 1er rendu rapide
+  // Quand amis + extras sont prêts, on ré-affiche (sans réseau) pour intégrer
+  // l'état des boutons d'amitié et les cartes reels/groupes intercalées.
+  Promise.all([friendsReady, extrasReady]).then(()=>{ if(loadedPosts.length) renderFeed(); });
   renderSuggestions();
 })();
 </script>
