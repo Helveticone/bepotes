@@ -1113,6 +1113,15 @@ window.JP = (() => {
       .eq('follower_id',_me.id).eq('followee_id',targetId).maybeSingle();
     return !!data;
   }
+  /* Version groupée : renvoie un Set des ids (parmi `ids`) que JE suis. UNE requête. */
+  async function followingSet(ids){
+    if(!_me || !ids || !ids.length) return new Set();
+    const uniq=[...new Set(ids.filter(Boolean))];
+    if(!uniq.length) return new Set();
+    const { data } = await sb.from('follows').select('followee_id')
+      .eq('follower_id',_me.id).in('followee_id', uniq);
+    return new Set((data||[]).map(r=>r.followee_id));
+  }
   async function followCounts(profileId){
     const [{count:followers},{count:following}] = await Promise.all([
       sb.from('follows').select('followee_id',{count:'exact',head:true}).eq('followee_id',profileId),
@@ -1456,6 +1465,27 @@ window.JP = (() => {
     if(data.status==='accepted') return {status:'friends', id:data.id};
     if(data.requester_id===_me.id) return {status:'pending_sent', id:data.id};
     return {status:'pending_received', id:data.id};
+  }
+
+  /* Version groupée : map { id -> {status, id?} } pour une liste d'ids. UNE requête.
+     (au lieu d'un friendStatus() par auteur du fil). */
+  async function friendStatuses(ids){
+    const out={};
+    if(!_me || !ids || !ids.length) return out;
+    const uniq=[...new Set(ids.filter(x=>x && x!==_me.id))];
+    if(!uniq.length) return out;
+    const list=uniq.join(',');
+    const { data } = await sb.from('friendships')
+      .select('id, requester_id, addressee_id, status')
+      .or(`and(requester_id.eq.${_me.id},addressee_id.in.(${list})),and(addressee_id.eq.${_me.id},requester_id.in.(${list}))`);
+    (data||[]).forEach(d=>{
+      const other = d.requester_id===_me.id ? d.addressee_id : d.requester_id;
+      if(d.status==='accepted') out[other]={status:'friends', id:d.id};
+      else if(d.requester_id===_me.id) out[other]={status:'pending_sent', id:d.id};
+      else out[other]={status:'pending_received', id:d.id};
+    });
+    uniq.forEach(id=>{ if(!out[id]) out[id]={status:'none'}; });
+    return out;
   }
 
   async function sendFriendRequest(otherId){
@@ -2350,13 +2380,13 @@ window.JP = (() => {
     votePoll, removePollVote,
     events, getEvent, toggleGoing, isGoing, setEventRsvp, eventComments, addEventComment, deleteEventComment, createEvent, updateEvent, updateEventCover, deleteEvent,
     notifications, unreadCount, markAllRead, notifText, subscribeNotifications,
-    follow, unfollow, isFollowing, followCounts,
+    follow, unfollow, isFollowing, followingSet, followCounts,
     members, openConversationWith, logMissedCall, contactSeller, conversations, messagesOf, sendMessage, subscribeMessages,
     MSG_REACTIONS, reactMessage, messageReactions, subscribeMessageReactions,
     editMessage, deleteMessage, markConversationRead, unreadCounts, heartbeat, conversationPresence, presenceLabel, subscribeTyping,
     createGroupConversation, conversationInfo, addConversationMembers, leaveConversation, renameConversation,
     searchPosts,
-    friendStatus, sendFriendRequest, acceptFriend, removeFriend, pendingRequests, friends, friendCount, areFriends, friendSuggestions, birthdaysToday,
+    friendStatus, friendStatuses, sendFriendRequest, acceptFriend, removeFriend, pendingRequests, friends, friendCount, areFriends, friendSuggestions, birthdaysToday,
     postTags, tagPeople, untagPerson,
     userStats, leaderboard, repScore, repLevel, earnedBadges, reputationHTML, REP_LEVELS, REP_BADGES,
     listGroups, suggestGroups, reels, addReel, getGroup, createGroup, joinGroup, leaveGroup, groupPosts, addGroupPost, myPages, pagePosts, pendingGroupPosts, approveGroupPost, rejectGroupPost,

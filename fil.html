@@ -155,7 +155,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=101"></script>
+<script src="assets/app.supabase.js?v=102"></script>
 <script src="assets/nav.js?v=8"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=23"></script>
@@ -579,13 +579,15 @@
   async function wireFriendButtons(){
     const btns=[...feed.querySelectorAll('.friend-btn')];
     const targets=[...new Set(btns.map(b=>b.dataset.target))];
-    const states={};
-    await Promise.all(targets.map(async t=>{ states[t]=await JP.friendStatus(t); }));
+    if(!targets.length) return;
+    let states={};
+    try{ states=await JP.friendStatuses(targets); }catch(e){}   // 1 requête au lieu de N
     btns.forEach(b=>{
       const t=b.dataset.target;
-      applyFriendState(b, states[t]);
+      const stt=states[t]||{status:'none'};
+      applyFriendState(b, stt);
       // Afficher le bouton message uniquement si on est amis
-      if(states[t] && states[t].status==='friends'){
+      if(stt.status==='friends'){
         feed.querySelectorAll(`.msg-btn[data-target="${t}"]`).forEach(m=>m.style.display='');
       }
       b.addEventListener('click',async()=>{
@@ -618,11 +620,12 @@
     const btns=[...feed.querySelectorAll('.follow-btn')];
     // dédupliquer par auteur pour limiter les requêtes
     const targets=[...new Set(btns.map(b=>b.dataset.target))];
-    const states={};
-    await Promise.all(targets.map(async t=>{ states[t]=await JP.isFollowing(t); }));
+    if(!targets.length) return;
+    let followingSet=new Set();
+    try{ followingSet=await JP.followingSet(targets); }catch(e){}   // 1 requête au lieu de N
     btns.forEach(b=>{
       const t=b.dataset.target;
-      setFollowBtn(b, states[t]);
+      setFollowBtn(b, followingSet.has(t));
       b.addEventListener('click',async()=>{
         const following=b.dataset.following==='1';
         b.disabled=true;
