@@ -539,13 +539,31 @@ window.JP = (() => {
       const b=el.querySelector('.vp-bar i'); if(b) b.style.width='100%';
       const pc=el.querySelector('.vp-pct'); if(pc) pc.textContent='Envoi…';
     } }catch(e){}
-    const { error } = await sb.storage.from('posts').upload(path, file, {contentType:file.type||'video/mp4', upsert:true, cacheControl:'31536000'});
+    // Envoi avec REESSAIS : « Failed to fetch » = coupure réseau en cours d'upload (fréquent en mobile),
+    // souvent transitoire -> on retente jusqu'à 3 fois. On arrête net sur une erreur définitive (format/taille).
+    const isFatal=m=> m.includes('mime')||m.includes('not allowed')||m.includes('not supported')||m.includes('exceed')||m.includes('too large')||m.includes('maximum');
+    let error=null;
+    for(let attempt=1; attempt<=3; attempt++){
+      try{
+        const res = await sb.storage.from('posts').upload(path, file, {contentType:file.type||'video/mp4', upsert:true, cacheControl:'31536000'});
+        error = res.error || null;
+      }catch(e){ error = e; }   // un échec réseau est souvent « lancé », pas renvoyé
+      if(!error) break;
+      const m=(error.message||'').toLowerCase();
+      if(isFatal(m) || String(error.statusCode)==='413') break;
+      if(attempt<3){
+        try{ const pc=document.getElementById('jp-vidprog')?.querySelector('.vp-pct'); if(pc) pc.textContent='Nouvel essai… '+attempt+'/2'; }catch(_){}
+        await new Promise(r=>setTimeout(r, 1500*attempt));
+      }
+    }
     if(error){
       const m=(error.message||'').toLowerCase();
       if(m.includes('mime')||m.includes('not allowed')||m.includes('not supported'))
         throw new Error("Format vidéo non autorisé par le serveur. (Dans Supabase → Storage → bucket « posts », autorise les types video/mp4, video/quicktime, video/webm — ou laisse vide.)");
       if(m.includes('exceed')||m.includes('too large')||m.includes('maximum')||String(error.statusCode)==='413')
         throw new Error("Vidéo refusée : dépasse la limite de taille du bucket Storage « posts ». (Augmente la « File size limit » du bucket dans Supabase.)");
+      if(m.includes('fetch')||m.includes('network')||m.includes('load failed')||m.includes('timeout')||m.includes('connection'))
+        throw new Error("Connexion interrompue pendant l'envoi 📶. Réessaie de préférence en Wi-Fi — la vidéo est peut-être un peu lourde.");
       throw new Error(error.message || "Échec de l'envoi de la vidéo.");
     }
     const { data } = sb.storage.from('posts').getPublicUrl(path);
