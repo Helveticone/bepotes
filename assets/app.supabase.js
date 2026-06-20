@@ -425,8 +425,8 @@ window.JP = (() => {
   /* ---- Compression vidéo dans le navigateur (MediaRecorder, SANS dépendance) ----
      Ré-encode via canvas + MediaRecorder : aucune librairie/CDN à charger, donc
      marche partout. Sortie MP4 (Safari) ou WebM (Chrome/Android). Repli = original. */
-  const MAX_VIDEO_MB = 100;       // limite finale d'upload = doit correspondre à la « File size limit » du bucket « posts »
-                                  // (relevée à 100 Mo pour accepter les vidéos iPhone/HEVC non compressées par Safari)
+  const MAX_VIDEO_MB = 50;        // limite finale d'upload = limite du bucket (forfait Supabase GRATUIT = 50 Mo, non modifiable).
+                                  // La compression doit ramener la vidéo sous cette barre (cf. débit ci-dessous).
   const MAX_VIDEO_IN_MB = 300;    // taille d'entrée max acceptée
   let _compressState='skipped';   // 'ok' | 'failed' | 'skipped'
   function videoDuration(file){
@@ -443,7 +443,7 @@ window.JP = (() => {
     for(const t of cands){ if(MediaRecorder.isTypeSupported(t)) return t; }
     return '';
   }
-  async function compressVideo(file, onProgress, targetMB=42){
+  async function compressVideo(file, onProgress, targetMB=38){   // cible <50 Mo (bucket gratuit) avec marge
     if(!file || file.size < 6*1024*1024){ _compressState='skipped'; return file; }   // déjà léger
     if(!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream){ _compressState='failed'; return file; }
     let video, ac, raf, timer;
@@ -456,7 +456,7 @@ window.JP = (() => {
       await new Promise((res,rej)=>{ video.onloadedmetadata=()=>res(); video.onerror=()=>rej(new Error('lecture vidéo impossible')); });
       const dur=video.duration||60;
       let vBps=Math.floor((targetMB*1024*1024*8)/dur)-96000;
-      vBps=Math.max(300000, Math.min(vBps, 4000000));
+      vBps=Math.max(300000, Math.min(vBps, 3000000));   // plafond 3 Mb/s : qualité correcte en vertical + marge sous 50 Mo
       let w=video.videoWidth||1280, h=video.videoHeight||720;
       const sc=Math.min(1, 1280/w, 1280/h);
       w=Math.max(2,Math.round(w*sc/2)*2); h=Math.max(2,Math.round(h*sc/2)*2);
