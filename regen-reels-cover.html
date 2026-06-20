@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Outil — Régénérer les couvertures de reels</title>
+<link rel="stylesheet" href="assets/style.css?v=91">
+</head>
+<body>
+<div class="page-pad"><div class="narrow">
+  <h2>🎬 Régénérer les couvertures de reels</h2>
+  <p style="color:var(--ink-soft);line-height:1.5">
+    Cet outil capture la 1ʳᵉ image de chaque reel <b>sans couverture</b> et l'enregistre,
+    pour supprimer l'écran noir au chargement. Il ne traite que <b>tes propres reels</b>
+    (sécurité RLS). Reste sur la page jusqu'à la fin.
+  </p>
+  <button class="btn btn-primary" id="go">Lancer la régénération</button>
+  <div id="log" style="margin-top:18px;font-size:.92rem;line-height:1.7"></div>
+</div></div>
+
+<script src="/assets/supabase.min.js?v=18"></script>
+<script src="assets/config.js"></script>
+<script src="assets/app.supabase.js?v=104"></script>
+<script>
+(async function(){
+  const okAuth = await JP.requireAuth();
+  if(!okAuth){ location.href='connexion.html'; return; }
+  const me = JP.user();
+  const log = document.getElementById('log');
+  const line = (m)=>{ const d=document.createElement('div'); d.innerHTML=m; log.appendChild(d); };
+
+  // Capture la 1ʳᵉ image d'une vidéo distante (CDN CORS ouvert -> canvas non « tainted »).
+  function captureFromUrl(url){
+    return new Promise(resolve=>{
+      const v=document.createElement('video');
+      v.crossOrigin='anonymous'; v.muted=true; v.playsInline=true; v.preload='auto'; v.src=url;
+      let done=false; const fin=b=>{ if(done)return; done=true; resolve(b); };
+      v.addEventListener('loadeddata',()=>{ try{ v.currentTime=Math.min(0.1,(v.duration||1)/2);}catch(e){fin(null);} });
+      v.addEventListener('seeked',()=>{
+        try{
+          const w=v.videoWidth,h=v.videoHeight; if(!w||!h){fin(null);return;}
+          const sc=Math.min(1,720/w),cw=Math.round(w*sc),ch=Math.round(h*sc);
+          const c=document.createElement('canvas'); c.width=cw;c.height=ch;
+          c.getContext('2d').drawImage(v,0,0,cw,ch);
+          c.toBlob(b=>fin(b),'image/jpeg',0.7);
+        }catch(e){ fin(null); }
+      });
+      v.addEventListener('error',()=>fin(null));
+      setTimeout(()=>fin(null),12000);
+    });
+  }
+
+  document.getElementById('go').addEventListener('click', async (e)=>{
+    e.target.disabled=true; e.target.textContent='En cours…';
+    let reels=[];
+    try{ reels = await JP.reels(200); }catch(err){ line('❌ Impossible de lister les reels : '+err.message); return; }
+    const mine = reels.filter(r=> r.authorId===me.id && !r.cover);
+    line(`<b>${reels.length}</b> reels au total · <b>${mine.length}</b> de tes reels sans couverture.`);
+    if(!mine.length){ line('✅ Rien à régénérer — tous tes reels ont déjà une couverture.'); e.target.textContent='Terminé'; return; }
+    let ok=0, ko=0;
+    for(const r of mine){
+      try{
+        const blob = await captureFromUrl(r.video);
+        if(!blob){ ko++; line(`⚠️ Reel ${r.id.slice(0,8)} : capture impossible (peut-être un format non lisible).`); continue; }
+        const url = await JP.uploadBlob('posts', blob);
+        const res = await JP.setReelCover(r.id, url);
+        if(res.ok){ ok++; line(`✅ Couverture ajoutée à « ${JP.esc(r.caption||'sans légende')} »`); }
+        else { ko++; line(`❌ Reel ${r.id.slice(0,8)} : ${res.msg||'échec mise à jour'}`); }
+      }catch(err){ ko++; line(`❌ Reel ${r.id.slice(0,8)} : ${err.message}`); }
+    }
+    line(`<br><b>Terminé : ${ok} réussi(s), ${ko} échec(s).</b> Recharge le fil pour voir le résultat.`);
+    e.target.textContent='Terminé';
+  });
+})();
+</script>
+</body>
+</html>

@@ -1633,6 +1633,12 @@ window.JP = (() => {
     return {ok:true};
   }
 
+  /* Définit/régénère la couverture d'un reel (outil de rattrapage). RLS : auteur uniquement. */
+  async function setReelCover(postId, url){
+    const { error } = await sb.from('posts').update({images:[url]}).eq('id', postId).eq('is_reel', true);
+    return { ok:!error, msg: error?.message };
+  }
+
   /* ---------- Gamification : réputation, niveaux, badges ----------
      Scores calculés à la demande (RPC user_stats / leaderboard).      */
   async function userStats(uid){
@@ -2417,7 +2423,7 @@ window.JP = (() => {
     friendStatus, friendStatuses, sendFriendRequest, acceptFriend, removeFriend, pendingRequests, friends, friendCount, areFriends, friendSuggestions, birthdaysToday,
     postTags, tagPeople, untagPerson,
     userStats, leaderboard, repScore, repLevel, earnedBadges, reputationHTML, REP_LEVELS, REP_BADGES,
-    listGroups, suggestGroups, reels, addReel, getGroup, createGroup, joinGroup, leaveGroup, groupPosts, addGroupPost, myPages, pagePosts, pendingGroupPosts, approveGroupPost, rejectGroupPost,
+    listGroups, suggestGroups, reels, addReel, setReelCover, getGroup, createGroup, joinGroup, leaveGroup, groupPosts, addGroupPost, myPages, pagePosts, pendingGroupPosts, approveGroupPost, rejectGroupPost,
     uploadImages, pendingMembers, approveMember, rejectMember, updateGroupCover,
     updateGroupRules, updateGroupInfo, groupMembers, setMemberRole, addGroupAdmin, removeMember,
     publicProfile, userPosts, userPhotos,
