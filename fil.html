@@ -16,6 +16,16 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Jurapotes">
+<style>
+  /* Composer du fil : la rangée d'options (Photo/Vidéo/Sondage + menus) ne doit
+     jamais déborder ni pousser « Publier » hors de la carte. Retour à la ligne
+     autorisé à toutes les largeurs ; « Publier » reste toujours visible. */
+  .composer{overflow:hidden}
+  .composer .bar{flex-wrap:wrap;gap:10px;row-gap:12px}
+  .composer .opts{flex-wrap:wrap;min-width:0;flex:1 1 auto}
+  .composer .opts .chip{max-width:100%;min-width:0}
+  .composer .bar #compGo{flex:0 0 auto;margin-left:auto}
+</style>
 </head>
 <body>
 <nav><div class="wrap nav-inner">
