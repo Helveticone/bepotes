@@ -448,7 +448,9 @@ window.JP = (() => {
     let video, ac, raf, timer;
     try{
       video=document.createElement('video');
-      video.playsInline=true; video.muted=false; video.preload='auto';
+      // muted=true : INDISPENSABLE pour que video.play() soit autorisé sur MOBILE (autoplay
+      // avec son interdit). L'audio est quand même capté via WebAudio (createMediaElementSource).
+      video.playsInline=true; video.muted=true; video.preload='auto';
       video.src=URL.createObjectURL(file);
       await new Promise((res,rej)=>{ video.onloadedmetadata=()=>res(); video.onerror=()=>rej(new Error('lecture vidéo impossible')); });
       const dur=video.duration||60;
@@ -486,8 +488,10 @@ window.JP = (() => {
       const hardMs=Math.min(Math.max(dur*1000*2.5, 20000)+15000, 5*60*1000);
       let lastT=-1, stallMs=0;
       const watch=setInterval(()=>{
-        if(Math.abs(video.currentTime-lastT)<0.04) stallMs+=500; else { stallMs=0; lastT=video.currentTime; }
-        if(stallMs>=8000) stop=true;   // figé 8 s -> on arrête (la vidéo a calé)
+        // On ne compte un « gel » qu'APRÈS le démarrage réel (currentTime>0.1) : sinon une grosse
+        // vidéo (4K) lente à décoder au début serait coupée à tort. Seuil porté à 14 s.
+        if(video.currentTime>0.1 && Math.abs(video.currentTime-lastT)<0.04) stallMs+=500; else { stallMs=0; lastT=video.currentTime; }
+        if(stallMs>=14000) stop=true;   // vraiment figé en cours de lecture -> on arrête
       },500);
       const hardTimer=setTimeout(()=>{ stop=true; }, hardMs);
       const pushFrame=()=>{
