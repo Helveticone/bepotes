@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Inscription gratuite — Jurapotes, le réseau social du Jura</title>
-<meta name="description" content="Crée ton compte gratuit sur Jurapotes et rejoins la communauté des habitants du canton du Jura : fil d'actu, amis, groupes, marché et événements locaux.">
+<meta name="description" content="Inscris-toi gratuitement sur Jurapotes, le réseau social du Jura — et tente de gagner 1 AN DE PIZZA GRATUITE 🍕 ! Grand concours, tirage au sort le 15 juillet. Il suffit de s'inscrire.">
 <link rel="canonical" href="https://jurapotes.ch/inscription.html">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,6 +18,30 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Jurapotes">
+<style>
+  /* ===== Concours « 1 an de pizza » (page inscription uniquement) ===== */
+  .concours-wrap{max-width:440px;margin:0 auto 12px}
+  .concours{display:block;border-radius:18px;overflow:hidden;text-decoration:none;
+    border:2px solid var(--rouge);box-shadow:0 12px 34px rgba(225,29,42,.20);
+    transition:transform .15s ease, box-shadow .15s ease}
+  .concours:hover{transform:translateY(-2px);box-shadow:0 16px 40px rgba(225,29,42,.28)}
+  .concours img{display:block;width:100%;height:auto}
+  .concours-fallback{background:linear-gradient(135deg,#E11D2A 0%,#a30f1a 100%);color:#fff;
+    padding:26px 20px;text-align:center}
+  .cc-badge{display:inline-block;background:#1A1416;color:#fff;font-weight:800;
+    letter-spacing:.6px;padding:6px 15px;border-radius:999px;font-size:13px}
+  .cc-prize{font-size:33px;font-weight:800;line-height:1.04;margin:13px 0 7px;
+    font-family:'Fraunces',Georgia,serif}
+  .cc-sub{font-size:14px;opacity:.95;line-height:1.4}
+  .concours-cta{max-width:440px;margin:0 auto 22px;background:#1A1416;color:#fff;
+    border-radius:14px;padding:13px 16px;text-align:center;box-shadow:0 8px 22px rgba(0,0,0,.14)}
+  .cc-count{display:block;font-weight:800;font-size:17px;animation:ccPulse 1.8s ease-in-out infinite}
+  .cc-hint{display:block;font-size:13.5px;opacity:.92;margin-top:4px}
+  .cc-fine{display:block;text-align:center;font-size:11px;color:var(--muted,#8a7d7d);
+    max-width:440px;margin:-14px auto 18px;line-height:1.4}
+  @keyframes ccPulse{0%,100%{opacity:1}50%{opacity:.62}}
+  @media (max-width:480px){ .cc-prize{font-size:29px} }
+</style>
 </head>
 <body>
 <nav><div class="wrap nav-inner">
@@ -26,9 +50,28 @@
 </div></nav>
 
 <div class="page-pad">
+
+  <!-- ===== Concours « 1 an de pizza gratuite » ===== -->
+  <div class="concours-wrap">
+    <a class="concours" href="#name" aria-label="Grand concours : gagne 1 an de pizza gratuite, inscris-toi">
+      <img src="assets/concours.jpg" alt="Grand concours Jurapotes : gagne 1 an de pizza gratuite — inscris-toi pour participer"
+           onerror="this.style.display='none';var f=document.getElementById('ccFallback');if(f)f.style.display='block';">
+      <div id="ccFallback" class="concours-fallback" style="display:none">
+        <span class="cc-badge">🍕 GRAND CONCOURS</span>
+        <div class="cc-prize">Gagne 1&nbsp;AN<br>de PIZZA GRATUITE</div>
+        <div class="cc-sub">12 pizzas offertes — 1 par mois 🍕<br>Offert par <b>Tchie nos Pizzeria</b></div>
+      </div>
+    </a>
+  </div>
+  <div class="concours-cta">
+    <span class="cc-count" id="ccCount">⏳ Tirage au sort le 15 juillet</span>
+    <span class="cc-hint">Pour participer, il suffit de t'inscrire ci-dessous 👇</span>
+  </div>
+  <span class="cc-fine">*Tirage au sort parmi tous les membres inscrits au 15&nbsp;juillet&nbsp;2026. Lot offert par Tchie nos Pizzeria. Sans obligation d'achat.</span>
+
   <div class="auth-card">
     <h2>Rejoins les potes 👋</h2>
-    <p class="sub">Crée ton compte Jurapotes en 30 secondes.</p>
+    <p class="sub">Crée ton compte en 30&nbsp;secondes — et tu participes au concours <b>1&nbsp;an de pizza</b> 🍕</p>
     <div id="err" class="alert" style="display:none"></div>
     <div class="field">
       <label for="name">Nom & prénom</label>
@@ -65,6 +108,17 @@
 <script src="assets/app.supabase.js?v=100"></script>
 <script>
   (async()=>{ await JP.loadMe(); if(JP.user()) location.href='fil.html'; })();
+
+  /* ---- Concours : compte à rebours jusqu'au tirage du 15 juillet ---- */
+  (function(){
+    const el=document.getElementById('ccCount'); if(!el) return;
+    const draw=new Date(2026,6,15,23,59,59);            // 6 = juillet
+    const ms=draw-new Date();
+    if(ms<=0){ el.textContent='🎉 Concours terminé — merci à tous !'; return; }
+    const days=Math.ceil(ms/86400000);
+    if(days<=1) el.textContent='⏳ DERNIER JOUR pour t\'inscrire — tirage ce 15 juillet !';
+    else el.textContent='⏳ Tirage le 15 juillet — plus que '+days+' jours pour participer';
+  })();
   JP.fillCommuneSelect(document.getElementById('town'), {first:'Choisis ta commune…'});
   const err=document.getElementById('err');
   function showErr(m){err.textContent=m;err.style.display='block';err.style.background='var(--rouge-soft)';err.style.color='var(--rouge-dark)';}
