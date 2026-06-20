@@ -959,7 +959,15 @@ window.JP = (() => {
     if(town) q = q.eq('town', town);
     const { data, error } = await q;
     if(error){ console.error(error); return []; }
-    return (data||[]).map(mapEvent);
+    const now = Date.now();
+    // On masque les événements échus (terminés) :
+    //  - avec heure de fin -> jusqu'à la fin
+    //  - sans heure de fin -> jusqu'à la fin de la journée de début
+    return (data||[]).map(mapEvent).filter(ev=>{
+      if(ev.endTs) return new Date(ev.endTs).getTime() >= now;
+      if(ev.ts){ const d=new Date(ev.ts); d.setHours(23,59,59,999); return d.getTime() >= now; }
+      return true; // date inconnue -> on garde par sécurité
+    });
   }
   async function getEvent(eid){
     const { data } = await sb.from('events')
