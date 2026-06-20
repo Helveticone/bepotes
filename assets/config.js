@@ -14,9 +14,10 @@ window.JP_CONFIG = {
   VAPID_PUBLIC: "BDQ6phxYy7ryVbMKWjqfztaBvRUT28m28jVN_rYTpF9_nk7AAHnJ8z7Bn2Jnmt5ln3K4J4RKNNlXGSCLoaOsB8g",
 
   // CDN média (Cloudflare devant Supabase Storage). VIDE = désactivé (médias servis
-  // directement par Supabase). Au lancement, mets ex. "https://cdn.jurapotes.ch"
+  // directement par Supabase). Worker actif sur workers.dev (provisoire avant jurapotes.ch).
+  // Quand jurapotes.ch sera branché : remplacer par "https://cdn.jurapotes.ch".
   // (voir cloudflare/cdn-worker.js + cloudflare/CDN-GUIDE.md). Aucun autre changement requis.
-  MEDIA_CDN: "",
+  MEDIA_CDN: "https://jurapotes.connect41swiss1.workers.dev",
 
   // Anti-bot à l'inscription : clé PUBLIQUE Cloudflare Turnstile (gratuit).
   // VIDE = désactivé (seule la protection honeypot/délai s'applique). Pour activer :
