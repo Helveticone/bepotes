@@ -421,6 +421,31 @@ window.JP = (() => {
     return data.publicUrl;
   }
 
+  /* Capture la 1ʳᵉ image d'une vidéo (pour servir de couverture/poster de reel).
+     Renvoie un Blob JPEG, ou null si le navigateur ne le permet pas (ex. iOS strict). */
+  function captureVideoPoster(file){
+    return new Promise(resolve=>{
+      try{
+        const v=document.createElement('video');
+        v.muted=true; v.playsInline=true; v.preload='auto'; v.src=URL.createObjectURL(file);
+        let done=false;
+        const finish=(blob)=>{ if(done) return; done=true; try{URL.revokeObjectURL(v.src);}catch(_){}; resolve(blob); };
+        v.addEventListener('loadeddata',()=>{ try{ v.currentTime=Math.min(0.1,(v.duration||1)/2); }catch(_){ finish(null); } });
+        v.addEventListener('seeked',()=>{
+          try{
+            const w=v.videoWidth, h=v.videoHeight; if(!w||!h){ finish(null); return; }
+            const scale=Math.min(1, 720/w), cw=Math.round(w*scale), ch=Math.round(h*scale);
+            const c=document.createElement('canvas'); c.width=cw; c.height=ch;
+            c.getContext('2d').drawImage(v,0,0,cw,ch);
+            c.toBlob(b=>finish(b),'image/jpeg',0.7);
+          }catch(_){ finish(null); }
+        });
+        v.addEventListener('error',()=>finish(null));
+        setTimeout(()=>finish(null), 8000);   // garde-fou
+      }catch(_){ resolve(null); }
+    });
+  }
+
   /* Upload d'une vidéo (telle quelle, pas de transcodage) -> URL publique */
   /* ---- Compression vidéo dans le navigateur (MediaRecorder, SANS dépendance) ----
      Ré-encode via canvas + MediaRecorder : aucune librairie/CDN à charger, donc
@@ -1576,13 +1601,13 @@ window.JP = (() => {
   /* Reels = publications verticales is_reel=true (vidéo courte, type FB/Insta) */
   async function reels(limit=20){
     const { data, error } = await sb.from('posts')
-      .select('id, video_url, text, town, created_at, author_id, author:profiles!author_id ( name, avatar_url ), likes ( user_id ), comments ( count )')
+      .select('id, video_url, images, text, town, created_at, author_id, author:profiles!author_id ( name, avatar_url ), likes ( user_id ), comments ( count )')
       .is('group_id', null).eq('is_reel', true).not('video_url','is',null)
       .order('created_at', {ascending:false}).limit(limit);
     if(error){ /* colonne is_reel absente (SQL pas encore lancé) → pas de reels */ return []; }
     return (data||[]).map(p=>{
       const likedBy=(p.likes||[]).map(l=>l.user_id);
-      return { id:p.id, video:cdnUrl(p.video_url), caption:p.text||'', town:p.town||'',
+      return { id:p.id, video:cdnUrl(p.video_url), cover: cdnUrl((Array.isArray(p.images)&&p.images[0])||null), caption:p.text||'', town:p.town||'',
         authorId:p.author_id, author:p.author?.name||'Membre', avatar:p.author?.avatar_url||null,
         likes:likedBy.length, likedByMe: !!_me && likedBy.includes(_me.id),
         commentCount: p.comments?.[0]?.count ?? 0 };
@@ -1593,9 +1618,12 @@ window.JP = (() => {
     if(!_me || !video) return {ok:false, msg:'Vidéo manquante'};
     let videoUrl=null;
     try{ videoUrl=await uploadVideo(video, videoProgress); }catch(e){ console.error(e); hideVideoProgress(); return {ok:false, msg:e.message||'Vidéo refusée.'}; } finally{ hideVideoProgress(); }
+    // Couverture (1ʳᵉ image) : affichage instantané au lieu d'un écran noir pendant le chargement.
+    let coverUrl=null;
+    try{ const poster=await captureVideoPoster(video); if(poster) coverUrl=await uploadBlob('posts', poster); }catch(e){}
     const { error } = await sb.from('posts').insert({
       author_id:_me.id, text:(caption||'').slice(0,300), tag:'Reel', town:_me.town||null,
-      images:[], video_url:videoUrl, is_reel:true
+      images: coverUrl?[coverUrl]:[], video_url:videoUrl, is_reel:true
     });
     if(error){
       if(/is_reel|column|schema cache|PGRST204/i.test(error.message||''))

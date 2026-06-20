@@ -155,7 +155,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=102"></script>
+<script src="assets/app.supabase.js?v=103"></script>
 <script src="assets/nav.js?v=8"></script>
 <script src="assets/moderation.js?v=18"></script>
 <script src="assets/bell.js?v=23"></script>
@@ -227,7 +227,7 @@
     const d=document.createElement('div'); d.className='side-card feed-extra';
     // Aperçu = 1ʳᵉ image figée (preload metadata seulement, ~léger). La vidéo
     // ne se télécharge en entier QUE quand on clique (ouverture plein écran).
-    const tiles=(_reels||[]).map((r,i)=>`<a class="reel" data-i="${i}"><video src="${r.video}#t=0.1" muted playsinline preload="metadata"></video><div class="reel-grad"></div><span class="reel-play" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;pointer-events:none">▶</span><span class="reel-name">${JP.esc(r.author)}</span></a>`).join('');
+    const tiles=(_reels||[]).map((r,i)=>`<a class="reel" data-i="${i}"><video src="${r.video}#t=0.1" ${r.cover?`poster="${r.cover}"`:''} muted playsinline preload="${r.cover?'none':'metadata'}"></video><div class="reel-grad"></div><span class="reel-play" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;pointer-events:none">▶</span><span class="reel-name">${JP.esc(r.author)}</span></a>`).join('');
     d.innerHTML=`<h3 class="rs-title">🎬 Reels du Jura <a href="reels.html" class="rs-all">Voir tout ›</a></h3><div class="reels-row">`+
       `<button type="button" class="reel reel-create" id="reelCreate"><span class="rc-plus">+</span><span class="rc-lbl">Ton reel</span></button>`+
       tiles+`</div>`;
@@ -1109,7 +1109,7 @@
     function paint(){
       const r=list[idx]; if(!r){ close(); return; }
       const mine = me && r.authorId===me.id;
-      stage.innerHTML=`<video src="${r.video}" playsinline autoplay loop preload="auto"></video>
+      stage.innerHTML=`<video src="${r.video}" ${r.cover?`poster="${r.cover}"`:''} playsinline autoplay loop preload="auto"></video>
         <div class="rv-grad"></div>
         ${mine?'<button class="rv-del" type="button" aria-label="Supprimer ce reel">🗑 Supprimer</button>':''}
         <div class="rv-actions">

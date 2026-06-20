@@ -60,7 +60,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=102"></script>
+<script src="assets/app.supabase.js?v=103"></script>
 <script src="assets/nav.js?v=8"></script>
 <script src="assets/bell.js?v=23"></script>
 <script src="assets/calls.js?v=3"></script>
@@ -77,7 +77,7 @@
   function slideHTML(r,i){
     const mine = me && r.authorId===me.id;
     return `<div class="rp-slide" data-i="${i}" data-id="${r.id}">
-      <video src="${r.video}" loop playsinline preload="metadata" muted></video>
+      <video src="${r.video}" ${r.cover?`poster="${r.cover}"`:''} loop playsinline preload="metadata" muted></video>
       <div class="rp-grad"></div>
       <div class="rp-actions">
         <button class="rp-like ${r.likedByMe?'on':''}" type="button" aria-label="J'aime">
