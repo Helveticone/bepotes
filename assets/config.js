@@ -32,5 +32,5 @@ window.JP_CONFIG = {
   // Connexion Google (OAuth). false = bouton « Continuer avec Google » masqué.
   // Passer à true UNE FOIS le provider Google activé dans Supabase
   // (Authentication → Providers → Google). Voir supabase/google-auth-GUIDE.md.
-  GOOGLE_AUTH: false
+  GOOGLE_AUTH: true
 };
