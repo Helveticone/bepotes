@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=89">
+<link rel="stylesheet" href="assets/style.css?v=90">
 <script src="assets/theme.js?v=1"></script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -73,6 +73,7 @@
         <div id="compAvBox"></div>
         <textarea id="compText" placeholder="Quoi de neuf dans le Jura ?" maxlength="500"></textarea>
       </div>
+      <div class="comp-starters" id="compStarters"></div>
       <div class="comp-previews" id="previews"></div>
       <div class="comp-video" id="videoPrev" style="display:none"></div>
       <div class="poll-editor" id="pollEditor" style="display:none"></div>
@@ -372,7 +373,11 @@
 
   function renderFeed(){
     if(!loadedPosts.length){
-      feed.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><p>Aucune publication pour l\'instant. Sois le premier à lancer la discussion !</p></div>';
+      feed.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
+        +'<p><b>Le fil n\'attend que toi !</b><br>Sois le premier à publier — présente-toi, partage un bon plan ou pose une question au Jura.</p>'
+        +'<button class="btn btn-primary btn-sm" id="emptyPost" style="margin-top:12px">✍️ Publier maintenant</button></div>';
+      const ep=document.getElementById('emptyPost');
+      if(ep) ep.addEventListener('click',()=>{ const t=document.getElementById('compText'); if(t){ t.focus(); t.scrollIntoView({behavior:'smooth',block:'center'}); } });
       return;
     }
     const tok=++feedToken;   // jeton anti-course (insertions async)
@@ -923,6 +928,28 @@
 
   const compText=document.getElementById('compText');
   JP.attachMentions(compText);
+
+  /* ---- Amorces de publication : lèvent la « page blanche » du premier post ---- */
+  const STARTERS=[
+    {label:'👋 Je me présente', text:'Salut le Jura ! 👋 Moi c’est '},
+    {label:'💡 Un bon plan',     text:'Mon bon plan dans le Jura : '},
+    {label:'❓ Une question',     text:'Petite question aux Jurapotes : '},
+    {label:'📅 Une sortie',      text:'Qui est partant·e pour '},
+    {label:'😍 Un coup de cœur',  text:'Mon coup de cœur du moment dans le Jura : '}
+  ];
+  const startersEl=document.getElementById('compStarters');
+  function paintStarters(){ if(startersEl) startersEl.style.display = compText.value.trim() ? 'none' : 'flex'; }
+  if(startersEl){
+    startersEl.innerHTML=STARTERS.map((s,i)=>`<button type="button" class="comp-starter" data-i="${i}">${s.label}</button>`).join('');
+    startersEl.querySelectorAll('.comp-starter').forEach(b=>b.addEventListener('click',()=>{
+      const s=STARTERS[+b.dataset.i]; compText.value=s.text; compText.focus();
+      try{ compText.setSelectionRange(s.text.length,s.text.length); }catch(e){}
+      compText.scrollIntoView({behavior:'smooth',block:'center'});
+      paintStarters();
+    }));
+    compText.addEventListener('input', paintStarters);
+    paintStarters();
+  }
 
   /* ---- Publier en tant que : Toi ou une de tes pages ---- */
   const compAs=document.getElementById('compAs');
