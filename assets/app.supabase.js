@@ -72,7 +72,7 @@ window.JP = (() => {
   }
 
   function avatarHTML(name, avatar, cls='av', style=''){
-    if(avatar) return `<div class="${cls} avatar" style="${style}"><img src="${cdnUrl(avatar)}" alt=""></div>`;
+    if(avatar) return `<div class="${cls} avatar" style="${style}"><img src="${cdnUrl(avatar)}" alt="" width="100" height="100"></div>`;
     return `<div class="${cls}" style="background:${colorFor(name)};${style}">${initials(name)}</div>`;
   }
 
@@ -797,8 +797,21 @@ window.JP = (() => {
   }
   /* Upload image + vignette (~600px) au même emplacement (suffixe _t) pour un fil léger.
      Renvoie l'URL de l'image complète ; la vignette se déduit via thumbUrl(). */
+  /* Lit les dimensions naturelles d'une image (pour réserver sa place -> anti-saut CLS). */
+  function imageDims(file){
+    return new Promise(res=>{
+      try{
+        const u=URL.createObjectURL(file), img=new Image();
+        img.onload=()=>{ res({w:img.naturalWidth,h:img.naturalHeight}); try{URL.revokeObjectURL(u);}catch(_){} };
+        img.onerror=()=>{ res(null); try{URL.revokeObjectURL(u);}catch(_){} };
+        img.src=u;
+      }catch(e){ res(null); }
+    });
+  }
   async function uploadImageWithThumb(bucket, file, maxW=1280, quality=0.82){
-    const base = `${_me.id}/${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
+    // On encode les dimensions dans le nom (__LxH) pour réserver la place à l'affichage.
+    let dim=''; try{ const d=await imageDims(file); if(d&&d.w&&d.h) dim=`__${d.w}x${d.h}`; }catch(e){}
+    const base = `${_me.id}/${Date.now()}_${Math.random().toString(36).slice(2,7)}${dim}`;
     const full  = await fileToBlob(file, maxW, quality);
     const thumb = await fileToBlob(file, 600, 0.7);
     const { error } = await sb.storage.from(bucket).upload(base+'.jpg', full, {contentType:'image/jpeg', upsert:true, cacheControl:'31536000'});

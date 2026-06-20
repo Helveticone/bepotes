@@ -46,7 +46,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=104"></script>
+<script src="assets/app.supabase.js?v=105"></script>
 <script src="assets/nav.js?v=8"></script>
 <script src="assets/bell.js?v=23"></script>
 <script src="assets/calls.js?v=3"></script>
@@ -69,7 +69,8 @@
     for(let i=0;i<show;i++){
       const full=imgs[i], thumb=JP.thumbUrl(full);
       const more=(i===show-1 && extra>0)?`<div class="more">+${extra}</div>`:'';
-      tiles+=`<div class="gtile"><img src="${thumb}" data-full="${full}" alt="" class="gimg" loading="lazy" onerror="this.onerror=null;this.src=this.dataset.full">${more}</div>`;
+      let ar=''; if(show===1){ const m=full.match(/__(\d+)x(\d+)/); if(m) ar=` style="aspect-ratio:${m[1]}/${m[2]}"`; }
+      tiles+=`<div class="gtile"><img src="${thumb}" data-full="${full}" alt="" class="gimg" width="800" height="600" loading="lazy"${ar} onerror="this.onerror=null;this.src=this.dataset.full">${more}</div>`;
     }
     return `<div class="post-gallery g${show}">${tiles}</div>`;
   }
