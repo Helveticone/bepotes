@@ -42,7 +42,16 @@ window.JP = (() => {
     }catch(e){ /* silencieux : le monitoring ne doit jamais casser l'app */ }
   }
   if(typeof window!=='undefined'){
-    window.addEventListener('error', ev=>{ try{ logError(ev.message, (ev.error&&ev.error.stack)||((ev.filename||'')+':'+(ev.lineno||''))); }catch(e){} });
+    window.addEventListener('error', ev=>{ try{
+      const msg=ev.message||'', file=ev.filename||'';
+      // Bruit NON exploitable -> on ne journalise pas :
+      //  - « Script error. » = erreur d'un script tiers/cross-origin (souvent une EXTENSION du navigateur du visiteur), détails masqués par le navigateur ;
+      //  - scripts d'extensions (chrome-extension://, etc.) ; - ResizeObserver (bénin).
+      if(msg==='Script error.' || msg==='Script error') return;
+      if(file.indexOf('extension://')>-1 || /^(chrome|moz|safari|webkit)-/.test(file)) return;
+      if(/ResizeObserver loop/i.test(msg)) return;
+      logError(msg, (ev.error&&ev.error.stack)||(file+':'+(ev.lineno||'')));
+    }catch(e){} });
     window.addEventListener('unhandledrejection', ev=>{ try{ const r=ev.reason; logError('promise: '+((r&&r.message)||r), (r&&r.stack)||''); }catch(e){} });
   }
 
