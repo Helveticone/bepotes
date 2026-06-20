@@ -292,7 +292,8 @@ window.JP = (() => {
       return false;
     }
     // Connexion sociale (Google…) : le profil n'a pas de commune -> étape d'accueil.
-    if(!_me.town && !location.pathname.endsWith('bienvenue.html')){
+    // Détection robuste (évite toute boucle si l'URL est /bienvenue, /bienvenue.html, ?… ).
+    if(!_me.town && location.pathname.indexOf('bienvenue')===-1){
       location.href='bienvenue.html'; return false;
     }
     touchLastSeen();   // marque l'activité (throttlé, non bloquant)
