@@ -362,30 +362,7 @@ window.JP = (() => {
   }
 
   async function logout(){ try{ sessionStorage.removeItem('jp-me'); }catch(e){} await sb.auth.signOut(); location.href='index.html'; }
-
-  /* ---- Jauge de perf (diagnostic) : activer avec ?perf=1, désactiver avec ?perf=0 ----
-     Affiche un badge avec les temps clés de chargement de la page. */
-  try{
-    const _pq=new URLSearchParams(location.search);
-    if(_pq.has('perf')){ try{ localStorage.setItem('jp-perf', _pq.get('perf')==='0'?'0':'1'); }catch(e){} }
-    if((()=>{ try{ return localStorage.getItem('jp-perf')==='1'; }catch(e){ return false; } })()){
-      addEventListener('load', ()=>setTimeout(()=>{
-        try{
-          const n=performance.getEntriesByType('navigation')[0]||{};
-          const ms=x=>Math.round(x||0)+'ms';
-          const b=document.createElement('div');
-          b.style.cssText='position:fixed;bottom:10px;left:10px;z-index:2147483647;background:#1A1416;color:#fff;font:12px/1.5 monospace;padding:9px 11px;border-radius:9px;opacity:.92;max-width:90vw';
-          b.innerHTML='⏱️ TTFB '+ms((n.responseStart||0)-(n.requestStart||0))
-            +' · HTML '+ms(n.responseEnd-n.requestStart)
-            +'<br>DOMready '+ms(n.domContentLoadedEventEnd)
-            +' · Load '+ms(n.loadEventEnd)
-            +'<br>écoulé '+ms(performance.now())+' (toucher pour fermer)';
-          b.addEventListener('click',()=>b.remove());
-          document.body.appendChild(b);
-        }catch(e){}
-      },50));
-    }
-  }catch(e){}
+  try{ localStorage.removeItem('jp-perf'); }catch(e){}   // nettoyage de l'ancien drapeau de la jauge perf (retirée)
 
   /* ---------- Compte ---------- */
   async function updateEmail(email){
