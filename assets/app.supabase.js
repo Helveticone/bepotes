@@ -234,7 +234,11 @@ window.JP = (() => {
   let _me = null;   // profil de l'utilisateur connecté (mis en cache)
 
   async function loadMe(){
-    const { data:{ user } } = await sb.auth.getUser();
+    // getSession() est LOCAL (pas de round-trip réseau) -> chargement plus rapide ;
+    // le client rafraîchit le jeton tout seul et la RLS protège les données côté serveur.
+    let user=null;
+    try{ const { data:{ session } } = await sb.auth.getSession(); user = session?.user || null; }catch(e){}
+    if(!user){ try{ const { data:{ user:u } } = await sb.auth.getUser(); user=u||null; }catch(e){} }
     if(!user){ _me=null; return null; }
     const { data } = await sb.from('profiles').select('*').eq('id', user.id).single();
     _me = data ? {
@@ -465,23 +469,39 @@ window.JP = (() => {
       const chunks=[]; rec.ondataavailable=e=>{ if(e.data && e.data.size) chunks.push(e.data); };
       const stopped=new Promise(r=>{ rec.onstop=r; });
       rec.start(1000);
-      await video.play();
-      // Capture à intervalle CONSTANT (espacement uniforme des images = lecture fluide).
+      let completed=false, stop=false;
       const FPS=30, frameMs=1000/FPS;
-      timer=setInterval(()=>{
+      video.onended=()=>{ completed=true; stop=true; };
+      await video.play();
+      // Garde-fous ANTI-BLOCAGE : durée max bornée + détection de gel (currentTime figé).
+      const hardMs=Math.min(Math.max(dur*1000*2.5, 20000)+15000, 5*60*1000);
+      let lastT=-1, stallMs=0;
+      const watch=setInterval(()=>{
+        if(Math.abs(video.currentTime-lastT)<0.04) stallMs+=500; else { stallMs=0; lastT=video.currentTime; }
+        if(stallMs>=8000) stop=true;   // figé 8 s -> on arrête (la vidéo a calé)
+      },500);
+      const hardTimer=setTimeout(()=>{ stop=true; }, hardMs);
+      const pushFrame=()=>{
         try{ ctx.drawImage(video,0,0,w,h); }catch(e){}
         if(vtrack.requestFrame) vtrack.requestFrame();
         if(onProgress) onProgress(Math.min(99, Math.round((video.currentTime/dur)*100)));
-      }, frameMs);
-      await new Promise(r=>{ video.onended=r; });
-      clearInterval(timer); timer=null;
+      };
+      if(useRVFC){   // 1 image décodée = 1 image capturée (moins de CPU que setInterval)
+        const onFrame=()=>{ if(stop) return; pushFrame(); video.requestVideoFrameCallback(onFrame); };
+        video.requestVideoFrameCallback(onFrame);
+      } else {
+        timer=setInterval(()=>{ if(stop) return; pushFrame(); }, frameMs);
+      }
+      await new Promise(r=>{ const w2=setInterval(()=>{ if(stop){ clearInterval(w2); r(); } },100); });
+      clearInterval(watch); clearTimeout(hardTimer); if(timer){ clearInterval(timer); timer=null; }
+      try{ video.pause(); }catch(e){}
       if(rec.state!=='inactive') rec.stop();
       await stopped;
       const outMp4=mime.indexOf('mp4')>-1;
       const blob=new Blob(chunks,{type: outMp4?'video/mp4':'video/webm'});
-      _compressState='ok';
+      _compressState = completed ? 'ok' : 'failed';   // pas fini (gel/timeout) -> on n'utilise pas un blob tronqué
       try{ if(ac) ac.close(); URL.revokeObjectURL(video.src); }catch(e){}
-      if(blob.size>0 && blob.size<file.size){
+      if(completed && blob.size>0 && blob.size<file.size){
         return new File([blob], (file.name||'video').replace(/\.[^.]+$/,'')+(outMp4?'.mp4':'.webm'), {type: outMp4?'video/mp4':'video/webm'});
       }
       return file;   // pas plus petit → on garde l'original
@@ -504,6 +524,12 @@ window.JP = (() => {
     }
     const ext=(file.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'') || 'mp4';
     const path=`${_me.id}/${Date.now()}.${ext}`;
+    // Bascule l'overlay en mode « envoi » (l'upload Storage n'a pas d'événement de progression)
+    try{ const el=document.getElementById('jp-vidprog'); if(el){
+      const t=el.querySelector('.vp-title'); if(t) t.textContent='Envoi vers le serveur… (ne ferme pas la page)';
+      const b=el.querySelector('.vp-bar i'); if(b) b.style.width='100%';
+      const pc=el.querySelector('.vp-pct'); if(pc) pc.textContent='Envoi…';
+    } }catch(e){}
     const { error } = await sb.storage.from('posts').upload(path, file, {contentType:file.type||'video/mp4', upsert:true, cacheControl:'31536000'});
     if(error){
       const m=(error.message||'').toLowerCase();
