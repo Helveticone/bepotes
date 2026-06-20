@@ -574,8 +574,8 @@ footer{padding:46px 0 36px;border-top:1px solid var(--line);margin-top:40px}
 .post-gallery .gtile{position:relative;overflow:hidden;min-width:0}
 .post-gallery .gtile img{width:100%;height:100%;object-fit:cover;display:block;cursor:pointer}
 .post-gallery .more{position:absolute;inset:0;background:rgba(0,0,0,.45);color:#fff;display:grid;place-items:center;font-size:1.9rem;font-weight:700;pointer-events:none}
-/* 1 photo : ratio naturel */
-.post-gallery.g1 .gtile img{aspect-ratio:auto;max-height:520px;width:100%}
+/* 1 photo : ratio naturel (vertical/carré/paysage), borné à 80vh pour rester lisible */
+.post-gallery.g1 .gtile img{aspect-ratio:auto;height:auto;max-height:80vh;width:100%}
 /* 2 : côte à côte */
 .post-gallery.g2{grid-template-columns:1fr 1fr;aspect-ratio:2/1}
 /* 3 : une grande à gauche, deux empilées à droite */

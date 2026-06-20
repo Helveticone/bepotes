@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"></noscript>
-<link rel="stylesheet" href="assets/style.css?v=91">
+<link rel="stylesheet" href="assets/style.css?v=92">
 <script>(function(){function s(){return window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches}function t(){try{return localStorage.getItem("jp-theme")}catch(e){return null}}function a(m){if(m==="dark")document.documentElement.setAttribute("data-theme","dark");else document.documentElement.removeAttribute("data-theme")}var p=t();a(p?p:(s()?"dark":"light"));window.JPTheme={get:function(){return document.documentElement.getAttribute("data-theme")==="dark"?"dark":"light"},set:function(m){a(m);try{localStorage.setItem("jp-theme",m)}catch(e){}document.dispatchEvent(new CustomEvent("jp-theme-change",{detail:this.get()}))},toggle:function(){this.set(this.get()==="dark"?"light":"dark");return this.get()}}})();</script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -54,7 +54,7 @@
     <div class="prof-body">
       <div class="prof-av-wrap">
         <div id="avBox"></div>
-        <button class="av-edit" id="avBtn" title="Changer la photo">
+        <button class="av-edit" id="avBtn" title="Changer la photo — carré conseillé (≈ 600 × 600 px)">
           <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
         </button>
       </div>
@@ -186,6 +186,9 @@
     const cover=document.getElementById('cover');
     if(me.cover){ cover.style.backgroundImage=`url(${me.cover})`; cover.style.backgroundSize='cover'; cover.style.backgroundPosition='center'; }
     else { cover.style.backgroundImage='linear-gradient(120deg,var(--rouge),#F2723B)'; }
+    // Conseil de dimensions tant qu'aucune couverture n'est définie
+    const cbtn=document.getElementById('coverBtn');
+    if(cbtn){ const svg=cbtn.querySelector('svg'); cbtn.innerHTML=(svg?svg.outerHTML:'')+(me.cover?' Modifier la couverture':' Ajouter une couverture — paysage ≈ 1600 × 600 px'); }
     document.getElementById('name').textContent=me.name;
     const since = me.joined ? new Date(me.joined).toLocaleDateString('fr-CH',{month:'long',year:'numeric'}) : 'récemment';
     document.getElementById('loc').textContent='📍 '+(me.town||'')+' · Membre depuis '+since;
@@ -226,7 +229,7 @@
   document.getElementById('coverBtn').addEventListener('click',()=>coverFile.click());
   coverFile.addEventListener('change',async e=>{
     const f=e.target.files[0]; coverFile.value=''; if(!f) return;
-    const blob=await JP.cropImage(f,{aspect:2.7,round:false,outW:1600,title:'Repositionne ta couverture'});
+    const blob=await JP.cropImage(f,{aspect:2.7,round:false,outW:1600,title:'Repositionne ta couverture — image paysage conseillée (≈ 1600 × 600 px)'});
     if(!blob) return;
     JP.toast('Envoi de la couverture…');
     try{
@@ -242,7 +245,7 @@
   document.getElementById('avBtn').addEventListener('click',()=>avFile.click());
   avFile.addEventListener('change',async e=>{
     const f=e.target.files[0]; avFile.value=''; if(!f) return;
-    const blob=await JP.cropImage(f,{aspect:1,round:true,outW:512,title:'Repositionne ta photo de profil'});
+    const blob=await JP.cropImage(f,{aspect:1,round:true,outW:512,title:'Repositionne ta photo de profil — image carrée conseillée (≈ 600 × 600 px)'});
     if(!blob) return;
     JP.toast('Envoi de la photo…');
     try{

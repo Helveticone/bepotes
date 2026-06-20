@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"></noscript>
-<link rel="stylesheet" href="assets/style.css?v=91">
+<link rel="stylesheet" href="assets/style.css?v=92">
 <script>(function(){function s(){return window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches}function t(){try{return localStorage.getItem("jp-theme")}catch(e){return null}}function a(m){if(m==="dark")document.documentElement.setAttribute("data-theme","dark");else document.documentElement.removeAttribute("data-theme")}var p=t();a(p?p:(s()?"dark":"light"));window.JPTheme={get:function(){return document.documentElement.getAttribute("data-theme")==="dark"?"dark":"light"},set:function(m){a(m);try{localStorage.setItem("jp-theme",m)}catch(e){}document.dispatchEvent(new CustomEvent("jp-theme-change",{detail:this.get()}))},toggle:function(){this.set(this.get()==="dark"?"light":"dark");return this.get()}}})();</script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
@@ -107,7 +107,7 @@
     document.getElementById('header').innerHTML=`
       <div class="group-header">
         <div class="gh-cover" id="ghCover" ${group.cover?`style="background-image:url(${group.cover})"`:''}>
-          ${group.isManager?'<button class="cover-edit" id="ghCoverBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Couverture</button>':''}
+          ${group.isManager?'<button class="cover-edit" id="ghCoverBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> '+(group.cover?'Couverture':'Couverture — paysage ≈ 1600 × 600 px')+'</button>':''}
         </div>
         <div class="gh-body">
           <div>
@@ -135,7 +135,7 @@
         const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
         inp.onchange=async e=>{
           const f=e.target.files[0]; if(!f) return;
-          const blob=await JP.cropImage(f,{aspect:2.7,round:false,outW:1600,title:isPage?'Repositionne la couverture de la page':'Repositionne la couverture du groupe'});
+          const blob=await JP.cropImage(f,{aspect:2.7,round:false,outW:1600,title:(isPage?'Repositionne la couverture de la page':'Repositionne la couverture du groupe')+' — image paysage conseillée (≈ 1600 × 600 px)'});
           if(!blob) return;
           JP.toast('Envoi de la couverture…');
           const r=await JP.updateGroupCover(groupId, blob);
