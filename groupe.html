@@ -16,6 +16,16 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Jurapotes">
+<style>
+  /* Anti-débordement du composer (toutes largeurs) : le textarea et la barre
+     d'actions ne doivent jamais pousser la carte au-delà de sa largeur. */
+  .composer{overflow:hidden}
+  .composer .top{min-width:0}
+  .composer textarea{min-width:0}
+  .composer .bar{flex-wrap:wrap;gap:10px}
+  .composer .opts{min-width:0;flex-wrap:wrap}
+  .composer .bar .btn{flex:0 0 auto}
+</style>
 </head>
 <body>
 <nav><div class="wrap nav-inner">
@@ -44,11 +54,11 @@
 <div class="page-pad"><div class="narrow">
   <a href="groupes.html" id="backLink" style="color:var(--ink-soft);text-decoration:none;font-size:.9rem;display:inline-block;margin-bottom:14px">‹ Retour</a>
   <div id="header"></div>
-  <div id="aboutArea"></div>
-  <div id="reviewsArea"></div>
+  <div id="composerArea"></div>
   <div id="manageArea"></div>
   <div id="pendingArea"></div>
-  <div id="composerArea"></div>
+  <div id="aboutArea"></div>
+  <div id="reviewsArea"></div>
   <div id="feed"></div>
 </div></div>
 
@@ -113,7 +123,7 @@
     const jb=document.getElementById('joinBtn');
     if(jb && !group.isOwner){
       jb.addEventListener('click',async()=>{
-        if(group.isMember || group.isPending){ await JP.leaveGroup(groupId); JP.toast(group.isPending?'Demande annulée':'Tu as quitté le groupe'); }
+        if(group.isMember || group.isPending){ await JP.leaveGroup(groupId); JP.toast(group.isPending?'Demande annulée':(isPage?'Tu ne suis plus la page':'Tu as quitté le groupe')); }
         else { const r=await JP.joinGroup(groupId); JP.toast(r.pending?'Demande envoyée ✋':'Bienvenue ! 🎉'); }
         await loadHeader(); renderComposer(); await renderPending();
       });
@@ -125,7 +135,7 @@
         const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
         inp.onchange=async e=>{
           const f=e.target.files[0]; if(!f) return;
-          const blob=await JP.cropImage(f,{aspect:2.7,round:false,outW:1600,title:'Repositionne la couverture du groupe'});
+          const blob=await JP.cropImage(f,{aspect:2.7,round:false,outW:1600,title:isPage?'Repositionne la couverture de la page':'Repositionne la couverture du groupe'});
           if(!blob) return;
           JP.toast('Envoi de la couverture…');
           const r=await JP.updateGroupCover(groupId, blob);
@@ -171,7 +181,8 @@
     if(!area) return;
     if(!group){ area.innerHTML=''; return; }
     const mgr=group.isManager;
-    const showRules = group.rules || mgr;
+    const isPage = group.kind==='page';
+    const showRules = !isPage && (group.rules || mgr);   // les règles ne concernent que les groupes
     const admins=(group.managers||[]).map(m=>`
       <div class="pending-row" style="margin-bottom:8px;flex-wrap:wrap;row-gap:6px">
         ${JP.avatarHTML(m.name,m.avatar,'av')}
@@ -331,7 +342,7 @@
           <div id="adminResults" style="margin-top:8px"></div>
         </div>
       </div>
-      <h3 style="font-family:'Plus Jakarta Sans';font-size:.95rem;margin:4px 0 10px">Membres & administrateurs (${mems.length})</h3>
+      <h3 style="font-family:'Plus Jakarta Sans';font-size:.95rem;margin:4px 0 10px">${isGrp?'Membres':'Abonnés'} & administrateurs (${mems.length})</h3>
       ${mems.map(m=>{
         const isOwnerRow=m.role==='owner';
         const tag=isOwnerRow?'👑 Créateur':(m.role==='admin'?'🛡️ Admin':'Membre');
@@ -409,7 +420,7 @@
       else { JP.toast(r.msg||'Échec'); b.disabled=false; }
     }));
     area.querySelectorAll('.kick').forEach(b=>b.addEventListener('click',async()=>{
-      if(!confirm('Retirer ce membre du groupe ?')) return;
+      if(!confirm(isGrp?'Retirer ce membre du groupe ?':'Retirer cet abonné de la page ?')) return;
       b.disabled=true;
       const r=await JP.removeMember(groupId, b.dataset.uid);
       if(r.ok){ JP.toast('Membre retiré'); await loadHeader(); await renderManage(); }
@@ -491,7 +502,7 @@
       }
     }
     const posts = group && group.kind==='page' ? await JP.pagePosts(groupId) : await JP.groupPosts(groupId);
-    if(!posts.length && !pendingHTML){ feed.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><p>Aucune publication dans ce groupe. Lance la discussion !</p></div>'; return; }
+    if(!posts.length && !pendingHTML){ feed.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><p>'+(group.kind==='page'?'Aucune publication sur cette page pour l\'instant.':'Aucune publication dans ce groupe. Lance la discussion !')+'</p></div>'; return; }
     feed.innerHTML=pendingHTML + posts.map(postHTML).join('');
     posts.forEach(p=>bind(p));
     feed.querySelectorAll('.appr').forEach(b=>b.addEventListener('click',async()=>{ b.disabled=true; const r=await JP.approveGroupPost(b.dataset.pid); if(r.ok){ JP.toast('Publication validée ✅'); await render(); } else { JP.toast(r.msg||'Échec'); b.disabled=false; } }));
