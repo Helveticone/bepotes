@@ -27,5 +27,10 @@ window.JP_CONFIG = {
 
   // GIFs dans le chat (Tenor, gratuit). VIDE = bouton GIF masqué. Pour activer :
   // créer une clé sur Google Cloud (API « Tenor ») → la coller ici. Recherche filtrée SFW.
-  TENOR_KEY: ""
+  TENOR_KEY: "",
+
+  // Connexion Google (OAuth). false = bouton « Continuer avec Google » masqué.
+  // Passer à true UNE FOIS le provider Google activé dans Supabase
+  // (Authentication → Providers → Google). Voir supabase/google-auth-GUIDE.md.
+  GOOGLE_AUTH: false
 };

@@ -249,6 +249,7 @@ window.JP = (() => {
       bio:data.bio||'', avatar:cdnUrl(data.avatar_url), cover:cdnUrl(data.cover_url),
       is_pro:data.is_pro, is_admin:data.is_admin, is_banned:data.is_banned, joined:data.created_at,
       job:data.job||'', origin:data.origin||'', website:data.website||'',
+      gender:data.gender||'',
       birthday:data.birthday||null, show_birth_year:data.show_birth_year===true,
       school:data.school||'', relationship:data.relationship||'',
       email_notifications: data.email_notifications!==false,  // compat
@@ -290,6 +291,10 @@ window.JP = (() => {
       location.href='banni.html';
       return false;
     }
+    // Connexion sociale (Google…) : le profil n'a pas de commune -> étape d'accueil.
+    if(!_me.town && !location.pathname.endsWith('bienvenue.html')){
+      location.href='bienvenue.html'; return false;
+    }
     touchLastSeen();   // marque l'activité (throttlé, non bloquant)
     return true;
   }
@@ -327,14 +332,25 @@ window.JP = (() => {
   /* ============================================================
      AUTH
      ============================================================ */
-  async function register({name, town, email, password, captchaToken}){
-    const options={ data:{ name, town } };   // récupérés par le trigger handle_new_user
+  async function register({name, town, gender, birthday, email, password, captchaToken}){
+    const options={ data:{ name, town, gender:gender||null, birthday:birthday||null } };   // récupérés par le trigger handle_new_user
     if(captchaToken) options.captchaToken=captchaToken;   // vérifié par Supabase si CAPTCHA activé
     const { data, error } = await sb.auth.signUp({ email, password, options });
     if(error) return {ok:false, msg: traduireErreur(error.message)};
     // Selon les réglages Supabase, la session peut être directe ou demander confirmation e-mail
     if(data.session){ await loadMe(); return {ok:true, confirm:false}; }
     return {ok:true, confirm:true};   // e-mail de confirmation envoyé
+  }
+
+  /* Connexion / inscription via un fournisseur OAuth (Google, etc.).
+     Redirige vers le fournisseur puis revient sur le fil ; si le profil n'a pas
+     de commune, requireAuth envoie vers bienvenue.html. */
+  async function signInWithProvider(provider){
+    const { error } = await sb.auth.signInWithOAuth({
+      provider,
+      options:{ redirectTo: location.origin + '/fil.html' }
+    });
+    return { ok:!error, msg: error?.message };
   }
 
   async function login({email, password}){
@@ -435,13 +451,19 @@ window.JP = (() => {
     if(patch.avatar!==undefined) row.avatar_url=patch.avatar;
     if(patch.cover!==undefined)  row.cover_url=patch.cover;
     if(patch.job!==undefined)    row.job=patch.job;
+    if(patch.gender!==undefined) row.gender=patch.gender;
     if(patch.origin!==undefined) row.origin=patch.origin;
     if(patch.website!==undefined)row.website=patch.website;
     if(patch.birthday!==undefined)        row.birthday=patch.birthday||null;
     if(patch.show_birth_year!==undefined) row.show_birth_year=!!patch.show_birth_year;
     if(patch.school!==undefined)          row.school=patch.school;
     if(patch.relationship!==undefined)    row.relationship=patch.relationship;
-    const { error } = await sb.from('profiles').update(row).eq('id', _me.id);
+    let { error } = await sb.from('profiles').update(row).eq('id', _me.id);
+    // Repli si la colonne gender n'existe pas encore (section 53 du SQL pas lancée) :
+    if(error && 'gender' in row && /gender|column|schema|PGRST204/i.test(error.message||'')){
+      delete row.gender;
+      ({ error } = await sb.from('profiles').update(row).eq('id', _me.id));
+    }
     if(error) return {ok:false, msg:error.message};
     try{ sessionStorage.removeItem('jp-me'); }catch(e){}   // forcer un profil frais (pas le cache)
     await loadMe();
@@ -2463,7 +2485,7 @@ window.JP = (() => {
     sb, loadMe, requireAuth, user, toast, avatarHTML,
     colorFor, initials, esc, timeAgo, uploadImage, uploadBlob, uploadVideo, cropImage, fileToBlob, thumbUrl, cdnUrl,
     mentionHTML, attachMentions, tokenizeMentions, COMMUNES, fillCommuneSelect, aboutHTML,
-    register, login, logout, updateProfile, updateEmail, updatePassword, deleteAccount, setEmailNotifications, setEmailMode,
+    register, login, signInWithProvider, logout, updateProfile, updateEmail, updatePassword, deleteAccount, setEmailNotifications, setEmailMode,
     savePushSubscription, deletePushSubscription,
     posts, getPost, commentsOf, addPost, sharePost, deletePost, editPost, editComment, toggleLike, isLiked, reactPost, REACTIONS, reactionMeta, addComment, toggleCommentLike,
     votePoll, removePollVote,

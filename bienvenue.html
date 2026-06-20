@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Bienvenue — Jurapotes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"></noscript>
+<link rel="stylesheet" href="assets/style.css?v=92">
+<script>(function(){function s(){return window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches}function t(){try{return localStorage.getItem("jp-theme")}catch(e){return null}}function a(m){if(m==="dark")document.documentElement.setAttribute("data-theme","dark");else document.documentElement.removeAttribute("data-theme")}var p=t();a(p?p:(s()?"dark":"light"));window.JPTheme={get:function(){return document.documentElement.getAttribute("data-theme")==="dark"?"dark":"light"},set:function(m){a(m);try{localStorage.setItem("jp-theme",m)}catch(e){}document.dispatchEvent(new CustomEvent("jp-theme-change",{detail:this.get()}))},toggle:function(){this.set(this.get()==="dark"?"light":"dark");return this.get()}}})();</script>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#E11D2A">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+</head>
+<body>
+<nav><div class="wrap nav-inner">
+  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">J</span><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+</div></nav>
+
+<div class="page-pad">
+  <div class="auth-card">
+    <h2>Bienvenue 👋</h2>
+    <p class="sub">Encore une petite étape pour rejoindre le Jura.</p>
+    <div id="err" class="alert" style="display:none"></div>
+    <div class="field">
+      <label for="name">Nom & prénom</label>
+      <input id="name" type="text" placeholder="Marie Lovis" autocomplete="name">
+    </div>
+    <div class="field">
+      <label for="town">Ta commune jurassienne</label>
+      <select id="town"><option value="">Choisis…</option></select>
+    </div>
+    <div class="field">
+      <label for="gender">Tu es…</label>
+      <select id="gender">
+        <option value="">Choisis…</option>
+        <option value="Femme">Une femme</option>
+        <option value="Homme">Un homme</option>
+        <option value="Autre">Autre</option>
+        <option value="Ne se prononce pas">Je préfère ne pas dire</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="birthday">Date de naissance</label>
+      <input id="birthday" type="date">
+    </div>
+    <button class="btn btn-primary btn-block" id="go">C'est parti ! 🚀</button>
+  </div>
+</div>
+
+<script src="/assets/supabase.min.js?v=18"></script>
+<script src="assets/config.js"></script>
+<script src="assets/app.supabase.js?v=108"></script>
+<script>
+(async function(){
+  const ok = await JP.requireAuth();   // sur bienvenue.html, requireAuth ne redirige PAS si pas de commune
+  if(!ok) return;                       // non connecté -> envoyé vers connexion
+  const me = JP.user();
+  if(me && me.town){ location.href='fil.html'; return; }   // profil déjà complété
+
+  const err=document.getElementById('err');
+  const showErr=m=>{ err.textContent=m; err.style.display='block'; };
+  // Pré-remplit le nom fourni par Google (si présent)
+  const nameEl=document.getElementById('name');
+  if(me && me.name && me.name!=='Nouveau membre') nameEl.value=me.name;
+  JP.fillCommuneSelect(document.getElementById('town'), {first:'Choisis ta commune…'});
+
+  const btn=document.getElementById('go');
+  btn.addEventListener('click', async()=>{
+    const name=nameEl.value.trim();
+    const town=document.getElementById('town').value;
+    const gender=document.getElementById('gender').value;
+    const birthday=document.getElementById('birthday').value||null;
+    if(!name) return showErr("Indique ton nom.");
+    if(!town) return showErr("Choisis ta commune jurassienne.");
+    btn.disabled=true; btn.textContent='Un instant…';
+    const r=await JP.updateProfile({name, town, gender, birthday});
+    btn.disabled=false; btn.textContent="C'est parti ! 🚀";
+    if(!r.ok) return showErr(r.msg||'Échec, réessaie.');
+    location.href='fil.html';
+  });
+})();
+</script>
+</body>
+</html>

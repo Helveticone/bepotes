@@ -123,6 +123,13 @@
         <textarea id="mBio" maxlength="200" placeholder="Parle un peu de toi… (passions, quartier, métier)"></textarea>
         <div class="count-hint"><span id="bioCount">0</span>/200</div>
       </div>
+      <div class="field"><label for="mGender">Sexe</label>
+        <select id="mGender">
+          <option value="">— Non précisé —</option>
+          <option value="Femme">Une femme</option><option value="Homme">Un homme</option>
+          <option value="Autre">Autre</option><option value="Ne se prononce pas">Je préfère ne pas dire</option>
+        </select>
+      </div>
       <div class="field"><label for="mJob">Métier / activité</label><input id="mJob" type="text" maxlength="60" placeholder="Ex. Menuisier, étudiante, retraité·e…"></div>
       <div class="field"><label for="mSchool">Formation / études</label><input id="mSchool" type="text" maxlength="80" placeholder="Ex. Lycée cantonal, CFC menuisier…"></div>
       <div class="field"><label for="mRel">Situation amoureuse</label>
@@ -158,7 +165,7 @@
 
 <script src="/assets/supabase.min.js?v=18"></script>
 <script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=107"></script>
+<script src="assets/app.supabase.js?v=108"></script>
 <script src="assets/nav.js?v=8"></script>
 <script src="assets/bell.js?v=23"></script>
 <script src="assets/calls.js?v=3"></script>
@@ -262,6 +269,7 @@
     JP.fillCommuneSelect(document.getElementById('mTown'), {selected: me.town||'Delémont'});
     JP.fillCommuneSelect(document.getElementById('mOrigin'), {first:'Non précisée', selected: me.origin||''});
     document.getElementById('mBio').value=me.bio||'';
+    document.getElementById('mGender').value=me.gender||'';
     document.getElementById('mJob').value=me.job||'';
     document.getElementById('mSchool').value=me.school||'';
     document.getElementById('mRel').value=me.relationship||'';
@@ -281,7 +289,7 @@
     const name=document.getElementById('mName').value.trim();
     if(!name){JP.toast('Le nom ne peut pas être vide');return;}
     const r=await JP.updateProfile({name, town:document.getElementById('mTown').value, bio:document.getElementById('mBio').value.trim(),
-      job:document.getElementById('mJob').value.trim(), origin:document.getElementById('mOrigin').value||'', website:document.getElementById('mWebsite').value.trim(),
+      job:document.getElementById('mJob').value.trim(), gender:document.getElementById('mGender').value||'', origin:document.getElementById('mOrigin').value||'', website:document.getElementById('mWebsite').value.trim(),
       school:document.getElementById('mSchool').value.trim(), relationship:document.getElementById('mRel').value||'',
       birthday:document.getElementById('mBirthday').value||null, show_birth_year:document.getElementById('mShowYear').checked});
     if(r.ok){ JP.toast('Profil enregistré ✅'); closeM(); paint(); }

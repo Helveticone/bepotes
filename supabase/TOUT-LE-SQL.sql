@@ -1453,3 +1453,33 @@ notify pgrst, 'reload schema';
 -- ============================================================
 --  FIN. Tout est à jour.
 -- ============================================================
+
+-- ============================================================
+--  53. INSCRIPTION ENRICHIE + CONNEXION GOOGLE
+--  profiles.gender + handle_new_user (name/full_name, town, gender, birthday, avatar)
+-- ============================================================
+alter table public.profiles add column if not exists gender text;
+
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare m jsonb := coalesce(new.raw_user_meta_data, '{}'::jsonb);
+begin
+  insert into public.profiles (id, name, town, gender, birthday, avatar_url)
+  values (
+    new.id,
+    coalesce(nullif(m ->> 'name',''), nullif(m ->> 'full_name',''), 'Nouveau membre'),
+    nullif(m ->> 'town',''),
+    nullif(m ->> 'gender',''),
+    nullif(m ->> 'birthday','')::date,
+    coalesce(nullif(m ->> 'avatar_url',''), nullif(m ->> 'picture',''))
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+notify pgrst, 'reload schema';
