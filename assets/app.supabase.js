@@ -425,7 +425,8 @@ window.JP = (() => {
   /* ---- Compression vidéo dans le navigateur (MediaRecorder, SANS dépendance) ----
      Ré-encode via canvas + MediaRecorder : aucune librairie/CDN à charger, donc
      marche partout. Sortie MP4 (Safari) ou WebM (Chrome/Android). Repli = original. */
-  const MAX_VIDEO_MB = 50;        // limite finale (après compression) = limite du bucket
+  const MAX_VIDEO_MB = 100;       // limite finale d'upload = doit correspondre à la « File size limit » du bucket « posts »
+                                  // (relevée à 100 Mo pour accepter les vidéos iPhone/HEVC non compressées par Safari)
   const MAX_VIDEO_IN_MB = 300;    // taille d'entrée max acceptée
   let _compressState='skipped';   // 'ok' | 'failed' | 'skipped'
   function videoDuration(file){
@@ -532,7 +533,7 @@ window.JP = (() => {
     const mb = file.size/1048576;
     if(mb > MAX_VIDEO_MB){
       if(_compressState==='failed')
-        throw new Error(`Compression indisponible (moteur non chargé). Vérifie ta connexion, réessaie, ou réduis la qualité/durée de la vidéo. (${Math.round(mb)} Mo, max ${MAX_VIDEO_MB})`);
+        throw new Error(`Vidéo trop lourde (${Math.round(mb)} Mo, max ${MAX_VIDEO_MB}). Astuce iPhone : filme en 1080p plutôt qu'en 4K (Réglages → Appareil photo → Enregistrer vidéo), ou raccourcis le clip.`);
       throw new Error(`Vidéo encore trop lourde après compression (${Math.round(mb)} Mo, max ${MAX_VIDEO_MB}). Raccourcis-la un peu.`);
     }
     const ext=(file.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'') || 'mp4';
