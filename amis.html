@@ -59,8 +59,8 @@
 <script src="assets/config.js"></script>
 <script src="assets/app.supabase.js?v=111"></script>
 <script src="assets/nav.js?v=10"></script>
-<script src="assets/bell.js?v=23"></script>
-<script src="assets/calls.js?v=3"></script>
+<script src="assets/bell.js?v=23" defer></script>
+<script src="assets/calls.js?v=3" defer></script>
 <script>
 (async function(){
   const okAuth = await JP.requireAuth();
@@ -117,7 +117,7 @@
   await render();
 })();
 </script>
-<script src="/assets/pwa.js?v=21"></script>
+<script src="/assets/pwa.js?v=21" defer></script>
 
 <nav class="mobile-nav">
 <a href="fil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Fil</span></a>

@@ -77,6 +77,6 @@
     if(g) g.addEventListener('click',async()=>{ g.disabled=true; const r=await JP.signInWithProvider('google'); if(!r.ok){ g.disabled=false; showErr(r.msg||'Connexion Google indisponible pour le moment.'); } });
   }
 </script>
-<script src="/assets/pwa.js?v=21"></script>
+<script src="/assets/pwa.js?v=21" defer></script>
 </body>
 </html>
