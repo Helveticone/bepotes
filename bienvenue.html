@@ -14,6 +14,9 @@
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#E11D2A">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
+<script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
 </head>
 <body>
 <nav><div class="wrap nav-inner">
@@ -51,10 +54,8 @@
   </div>
 </div>
 
-<script src="/assets/supabase.min.js?v=18"></script>
-<script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=111"></script>
 <script>
+document.addEventListener("DOMContentLoaded",function(){
 (async function(){
   const ok = await JP.requireAuth();   // sur bienvenue.html, requireAuth ne redirige PAS si pas de commune
   if(!ok) return;                       // non connecté -> envoyé vers connexion
@@ -83,6 +84,8 @@
     location.href='fil.html';
   });
 })();
+
+});
 </script>
 </body>
 </html>

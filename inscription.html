@@ -42,6 +42,10 @@
   @keyframes ccPulse{0%,100%{opacity:1}50%{opacity:.62}}
   @media (max-width:480px){ .cc-prize{font-size:29px} }
 </style>
+<script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
+<script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
+<script src="/assets/pwa.js?v=21" defer data-turbo-track="reload"></script>
 </head>
 <body>
 <nav><div class="wrap nav-inner">
@@ -109,6 +113,17 @@
       <label for="pw">Mot de passe</label>
       <input id="pw" type="password" placeholder="••••••••" autocomplete="new-password">
     </div>
+    <div class="field">
+      <label for="howknow">Comment nous as-tu connus ? <span style="font-weight:400;color:var(--ink-soft);font-size:.85em">(optionnel)</span></label>
+      <select id="howknow">
+        <option value="">Choisis…</option>
+        <option value="bouche-à-oreille">Bouche-à-oreille</option>
+        <option value="concours pizza">Le concours pizza 🍕</option>
+        <option value="réseaux sociaux">Réseaux sociaux</option>
+        <option value="presse-affichage">Presse / affichage</option>
+        <option value="autre">Autre</option>
+      </select>
+    </div>
     <!-- piège anti-bot : invisible aux humains, rempli par les robots -->
     <input id="hp_site" name="site_web" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
     <div id="cfTurnstile" style="margin:6px 0"></div>
@@ -124,10 +139,8 @@
   </div>
 </div>
 
-<script src="/assets/supabase.min.js?v=18"></script>
-<script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=111"></script>
 <script>
+document.addEventListener("DOMContentLoaded",function(){
   (async()=>{ await JP.loadMe(); if(JP.user()) location.href='fil.html'; })();
 
   /* ---- Concours : compte à rebours jusqu'au tirage du 15 juillet ---- */
@@ -177,7 +190,9 @@
     if(password.length<6) return showErr("Mot de passe trop court (min. 6 caractères).");
     if(CF_KEY && !cfToken) return showErr("Confirme que tu n'es pas un robot 🤖");
     btn.disabled=true; btn.textContent='Création…';
-    const r=await JP.register({name,town,gender,birthday,email,password,captchaToken:cfToken||undefined});
+    let _src=null; try{ _src=localStorage.getItem('jp-src'); }catch(e){}
+    const source = _src || document.getElementById('howknow').value || undefined;
+    const r=await JP.register({name,town,gender,birthday,email,password,captchaToken:cfToken||undefined, source});
     btn.disabled=false; btn.textContent='Créer mon compte';
     if(!r.ok){ if(window.turnstile&&CF_KEY){ try{turnstile.reset();}catch(e){} cfToken=''; } return showErr(r.msg); }
     if(r.confirm){ showOk("Compte créé ! Vérifie ta boîte mail pour confirmer ton adresse, puis connecte-toi."); return; }
@@ -191,7 +206,8 @@
     const g=document.getElementById('googleBtn');
     if(g) g.addEventListener('click',async()=>{ g.disabled=true; const r=await JP.signInWithProvider('google'); if(!r.ok){ g.disabled=false; showErr(r.msg||'Inscription Google indisponible pour le moment.'); } });
   }
+
+});
 </script>
-<script src="/assets/pwa.js?v=21" defer></script>
 </body>
 </html>

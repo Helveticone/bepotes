@@ -45,6 +45,11 @@
   .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
   @media(max-width:760px){.two-col{grid-template-columns:1fr}}
 </style>
+<script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
+<script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
+<script src="assets/nav.js?v=10" defer data-turbo-track="reload"></script>
+<script src="/assets/pwa.js?v=21" defer data-turbo-track="reload"></script>
 </head>
 <body>
 <nav><div class="wrap nav-inner">
@@ -68,11 +73,8 @@
   <div id="content"></div>
 </div></div>
 
-<script src="/assets/supabase.min.js?v=18"></script>
-<script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=111"></script>
-<script src="assets/nav.js?v=10"></script>
 <script>
+document.addEventListener("DOMContentLoaded",function(){
 (async function(){
   const okAuth = await JP.requireAuth();
   if(!okAuth) return;
@@ -115,21 +117,22 @@
 
   async function load(){
     updated.textContent='Chargement…';
-    const [ov,gr,re,tw,bz,mo,er,ads]=await Promise.allSettled([
+    const [ov,gr,re,tw,bz,mo,er,ads,acq,pst,eng,hrs]=await Promise.allSettled([
       JP.adminOverview(), JP.adminGrowth(growthDays), JP.adminRetention(),
       JP.adminTopTowns(), JP.adminBusiness(), JP.adminModeration(), JP.adminErrors(40),
-      JP.adminAdsActive ? JP.adminAdsActive() : Promise.resolve(0)
+      JP.adminAdsActive ? JP.adminAdsActive() : Promise.resolve(0),
+      JP.adminAcquisition(growthDays), JP.adminPagesStatus(), JP.adminEngagement(30), JP.adminActivityByHour()
     ]);
     const val=r=>r.status==='fulfilled'?r.value:null;
     // Top communes : repli côté client si la RPC renvoie vide (agrège profils + posts par commune)
     let towns = val(tw);
     if(!towns || !towns.length){ try{ towns = await topTownsFallback(); }catch(e){ towns = towns||[]; } }
-    render(val(ov), val(gr), val(re), towns, val(bz), val(mo), val(er), val(ads)||0);
+    render(val(ov), val(gr), val(re), towns, val(bz), val(mo), val(er), val(ads)||0, val(acq), val(pst), val(eng), val(hrs));
     if(ov.status==='rejected') console.error(ov.reason);
     updated.textContent='Dernière mise à jour : '+new Date().toLocaleString('fr-CH',{dateStyle:'short',timeStyle:'short'});
   }
 
-  function render(o, g, r, towns, bz, mo, errs, adsActive){
+  function render(o, g, r, towns, bz, mo, errs, adsActive, acq, pst, eng, hrs){
     o=o||{}; r=r||{}; bz=bz||{}; errs=errs||[]; adsActive=adsActive||0;
     content.innerHTML=`
     <div class="dash-sec">
@@ -161,6 +164,26 @@
       <div class="two-col">
         <div class="chart-card"><h3>Activité & contenu / jour</h3><div class="chart-wrap"><canvas id="chActivity"></canvas></div></div>
         <div class="chart-card"><h3>Cumul des comptes</h3><div class="chart-wrap"><canvas id="chCumul"></canvas></div></div>
+      </div>
+    </div>
+
+    <div class="dash-sec">
+      <h2>Acquisition &amp; engagement</h2>
+      <div class="two-col">
+        <div class="chart-card"><h3>D'où viennent les inscrits (${growthDays} j)</h3><div class="chart-wrap"><canvas id="chAcq"></canvas></div></div>
+        <div class="chart-card"><h3>Engagement — 30 j</h3><div class="chart-wrap"><canvas id="chEngage"></canvas></div></div>
+      </div>
+      <div class="two-col">
+        <div class="chart-card"><h3>Audience par heure (7 j, Europe/Zurich)</h3><div class="chart-wrap"><canvas id="chHours"></canvas></div></div>
+        <div class="chart-card"><h3>Pages établissements</h3>
+          <div class="dash-grid">
+            ${card('Créées', n(pst&&pst.pages_total), `+${n(pst&&pst.pages_7d)} / 7 j · +${n(pst&&pst.pages_30d)} / 30 j`)}
+            ${card('Actives', n(pst&&pst.active_30d), '≥ 1 post sur 30 j')}
+            ${card('Dormantes', n(pst?(pst.pages_total||0)-(pst.active_30d||0):null), 'aucun post récent')}
+            ${card('Avis', n(pst&&pst.reviews_total), `+${n(pst&&pst.reviews_30d)} / 30 j`)}
+          </div>
+          <p style="font-size:.75rem;color:var(--ink-soft);margin-top:8px">« Active » = page avec ≥ 1 publication sur les 30 derniers jours.</p>
+        </div>
       </div>
     </div>
 
@@ -216,6 +239,7 @@
     }));
 
     drawCharts(g);
+    drawExtraCharts(acq, eng, hrs);
   }
 
   async function drawCharts(g){
@@ -248,12 +272,36 @@
     line('chCumul',[{ label:'Comptes (cumul)', data:cumul, borderColor:t.rouge, backgroundColor:'rgba(225,29,42,.10)', borderWidth:2.5, fill:true }]);
   }
 
+  async function drawExtraCharts(acq, eng, hrs){
+    const C=await waitChart(); if(!C) return; const t=themeColors();
+    C.defaults.color=t.soft; C.defaults.borderColor=t.line; C.defaults.font.family="'Plus Jakarta Sans',sans-serif";
+    const bar=(id,labels,data)=>{ const el=document.getElementById(id); if(!el) return;
+      if(charts[id]) charts[id].destroy();
+      charts[id]=new C(el,{type:"bar",data:{labels,datasets:[{data,backgroundColor:t.rouge,borderRadius:6}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+          scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{precision:0},grid:{color:t.line}}}}}); };
+    // Acquisition (barres horizontales par source)
+    if(acq&&acq.length){ const el=document.getElementById("chAcq"); if(el){ if(charts.chAcq)charts.chAcq.destroy();
+      charts.chAcq=new C(el,{type:"bar",data:{labels:acq.map(x=>x.source),datasets:[{data:acq.map(x=>x.signups),backgroundColor:t.rouge,borderRadius:6}]},
+        options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+          scales:{x:{beginAtZero:true,ticks:{precision:0},grid:{color:t.line}},y:{grid:{display:false}}}}}); } }
+    // Engagement (doughnut)
+    if(eng){ const el=document.getElementById("chEngage"); if(el){ if(charts.chEngage)charts.chEngage.destroy();
+      charts.chEngage=new C(el,{type:"doughnut",
+        data:{labels:["Créateurs","Engagés","Lurkers"],datasets:[{data:[eng.creators||0,eng.engagers||0,eng.lurkers||0],backgroundColor:["#22a06b","#2d7dd2","#cbcbcb"]}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:12}}}}}); } }
+    // Audience par heure (0-23, trous à 0)
+    if(hrs){ const map={}; hrs.forEach(x=>map[x.heure]=x.evenements);
+      bar("chHours", Array.from({length:24},(_,h)=>h+"h"), Array.from({length:24},(_,h)=>map[h]||0)); }
+  }
+
+
   document.getElementById('refresh').addEventListener('click',load);
   await load();
 })();
-</script>
-<script src="/assets/pwa.js?v=21" defer></script>
 
+});
+</script>
 <nav class="mobile-nav">
 <a href="fil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Fil</span></a>
 <a href="dashboard-hcm-7x2k9.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13h8V3H3zM13 21h8V3h-8zM3 21h8v-6H3z"/></svg><span>Dash</span></a>

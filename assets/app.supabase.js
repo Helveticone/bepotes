@@ -15,6 +15,9 @@ window.JP = (() => {
     console.error('Supabase non chargé');
   }
   const sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON);
+  // Capture de la source d'inscription (?src=/?ref=/?utm_source) -> normalisée -> localStorage.
+  const SRC_MAP={ww:'bouche-à-oreille',bao:'bouche-à-oreille',concours:'concours pizza',pizza:'concours pizza',rs:'réseaux sociaux',social:'réseaux sociaux',fb:'réseaux sociaux',insta:'réseaux sociaux',presse:'presse-affichage',affiche:'presse-affichage',flyer:'presse-affichage'};
+  try{ const _q=new URLSearchParams(location.search); const _raw=(_q.get('src')||_q.get('ref')||_q.get('utm_source')||'').toLowerCase().trim(); if(_raw) localStorage.setItem('jp-src', SRC_MAP[_raw]||'autre'); }catch(e){}
 
   /* ---------- CDN média (Cloudflare devant Supabase Storage) ----------
      Réécrit une URL Storage publique vers le CDN si cfg.MEDIA_CDN est défini.
@@ -335,8 +338,9 @@ window.JP = (() => {
   /* ============================================================
      AUTH
      ============================================================ */
-  async function register({name, town, gender, birthday, email, password, captchaToken}){
-    const options={ data:{ name, town, gender:gender||null, birthday:birthday||null } };   // récupérés par le trigger handle_new_user
+  async function register({name, town, gender, birthday, email, password, captchaToken, source}){
+    let src=source||null; if(!src){ try{ src=localStorage.getItem('jp-src')||null; }catch(e){} }
+    const options={ data:{ name, town, gender:gender||null, birthday:birthday||null, signup_source:src } };   // récupérés par le trigger handle_new_user
     if(captchaToken) options.captchaToken=captchaToken;   // vérifié par Supabase si CAPTCHA activé
     const { data, error } = await sb.auth.signUp({ email, password, options });
     if(error) return {ok:false, msg: traduireErreur(error.message)};
@@ -2136,6 +2140,10 @@ window.JP = (() => {
   async function adminTopTowns(){ const {data,error}=await sb.rpc('admin_top_towns'); if(error) throw error; return data||[]; }
   async function adminBusiness(){ const {data,error}=await sb.rpc('admin_business'); if(error) throw error; return data||{}; }
   async function adminModeration(){ const {data,error}=await sb.rpc('admin_moderation'); if(error) throw error; return data||{}; }
+  async function adminAcquisition(days=30){ const {data,error}=await sb.rpc('admin_acquisition',{days}); if(error) throw error; return data||[]; }
+  async function adminPagesStatus(){ const {data,error}=await sb.rpc('admin_pages_status'); if(error) throw error; return data||{}; }
+  async function adminEngagement(days=30){ const {data,error}=await sb.rpc('admin_engagement',{days}); if(error) throw error; return data||{}; }
+  async function adminActivityByHour(){ const {data,error}=await sb.rpc('admin_activity_by_hour'); if(error) throw error; return data||[]; }
   /* Nombre de publicités (régie) actuellement actives — lecture directe (RLS admin-only). */
   async function adminAdsActive(){
     const today=new Date().toISOString().slice(0,10);
@@ -2494,6 +2502,6 @@ window.JP = (() => {
     report, block, unblock, isBlocked, blockedList, loadBlocked, blockedIds,
     isAdmin, listReports, resolveReport, adminDeletePost, adminDeleteComment, banUser, unbanUser,
     listBannedWords, addBannedWord, removeBannedWord, modQueue, resolveModItem,
-    touchLastSeen, adminOverview, adminGrowth, adminRetention, adminTopTowns, adminBusiness, adminModeration, adminAdsActive, adminErrors, logError
+    touchLastSeen, adminOverview, adminGrowth, adminRetention, adminTopTowns, adminBusiness, adminModeration, adminAcquisition, adminPagesStatus, adminEngagement, adminActivityByHour, adminAdsActive, adminErrors, logError
   };
 })();

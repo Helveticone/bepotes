@@ -16,6 +16,12 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Jurapotes">
+<script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
+<script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
+<script src="assets/nav.js?v=10" defer data-turbo-track="reload"></script>
+<script src="assets/bell.js?v=23" defer data-turbo-track="reload"></script>
+<script src="assets/calls.js?v=3" defer data-turbo-track="reload"></script>
 </head>
 <body>
 <nav><div class="wrap nav-inner">
@@ -50,13 +56,8 @@
   <div class="lb-list" id="list"></div>
 </div></div>
 
-<script src="/assets/supabase.min.js?v=18"></script>
-<script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=111"></script>
-<script src="assets/nav.js?v=10"></script>
-<script src="assets/bell.js?v=23" defer></script>
-<script src="assets/calls.js?v=3" defer></script>
 <script>
+document.addEventListener("DOMContentLoaded",function(){
 (async function(){
   const okAuth = await JP.requireAuth();
   if(!okAuth) return;
@@ -109,6 +110,8 @@
 
   await render('month');
 })();
+
+});
 </script>
 </body>
 </html>

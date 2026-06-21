@@ -18,6 +18,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Jurapotes">
+<script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
+<script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
+<script src="/assets/pwa.js?v=21" defer data-turbo-track="reload"></script>
 </head>
 <body>
 <nav><div class="wrap nav-inner">
@@ -50,10 +54,8 @@
   </div>
 </div>
 
-<script src="/assets/supabase.min.js?v=18"></script>
-<script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=111"></script>
 <script>
+document.addEventListener("DOMContentLoaded",function(){
   (async()=>{ await JP.loadMe(); if(JP.user()) location.href='fil.html'; })();
   const err=document.getElementById('err');
   function showErr(m){err.textContent=m;err.style.display='block';}
@@ -76,7 +78,8 @@
     const g=document.getElementById('googleBtn');
     if(g) g.addEventListener('click',async()=>{ g.disabled=true; const r=await JP.signInWithProvider('google'); if(!r.ok){ g.disabled=false; showErr(r.msg||'Connexion Google indisponible pour le moment.'); } });
   }
+
+});
 </script>
-<script src="/assets/pwa.js?v=21" defer></script>
 </body>
 </html>

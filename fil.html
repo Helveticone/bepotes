@@ -26,6 +26,16 @@
   .composer .opts .chip{max-width:100%;min-width:0}
   .composer .bar #compGo{flex:0 0 auto;margin-left:auto}
 </style>
+<script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
+<script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
+<script src="assets/nav.js?v=10" defer data-turbo-track="reload"></script>
+<script src="assets/moderation.js?v=18" defer data-turbo-track="reload"></script>
+<script src="assets/bell.js?v=23" defer data-turbo-track="reload"></script>
+<script src="assets/calls.js?v=3" defer data-turbo-track="reload"></script>
+<script src="assets/install.js?v=1" defer data-turbo-track="reload"></script>
+<script src="assets/stories.js?v=3" defer data-turbo-track="reload"></script>
+<script src="/assets/pwa.js?v=21" defer data-turbo-track="reload"></script>
 </head>
 <body>
 <nav><div class="wrap nav-inner">
@@ -153,16 +163,8 @@
 
 <div class="lightbox" id="lightbox"><button class="lb-close" aria-label="Fermer">&times;</button><button class="lb-nav lb-prev" aria-label="Précédent">&#8249;</button><img id="lbImg" alt=""><button class="lb-nav lb-next" aria-label="Suivant">&#8250;</button><span class="lb-count"></span><button class="lb-tag" type="button" style="display:none">🏷️ Identifier</button></div>
 
-<script src="/assets/supabase.min.js?v=18"></script>
-<script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=111"></script>
-<script src="assets/nav.js?v=10"></script>
-<script src="assets/moderation.js?v=18" defer></script>
-<script src="assets/bell.js?v=23" defer></script>
-<script src="assets/calls.js?v=3" defer></script>
-<script src="assets/install.js?v=1"></script>
-<script src="assets/stories.js?v=3"></script>
 <script>
+document.addEventListener("DOMContentLoaded",function(){
 (async function(){
   const okAuth = await JP.requireAuth();
   if(!okAuth) return;
@@ -1221,9 +1223,9 @@
   Promise.all([friendsReady, extrasReady]).then(()=>{ if(loadedPosts.length) renderFeed(); });
   renderSuggestions();
 })();
-</script>
-<script src="/assets/pwa.js?v=21" defer></script>
 
+});
+</script>
 <nav class="mobile-nav">
 <a href="fil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Fil</span></a>
 <a href="recherche.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg><span>Recherche</span></a>

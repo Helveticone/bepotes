@@ -16,6 +16,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Jurapotes">
+<script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
+<script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
+<script src="/assets/pwa.js?v=21" defer data-turbo-track="reload"></script>
 </head>
 <body>
 <nav><div class="wrap nav-inner">
@@ -34,13 +38,12 @@
   <a href="index.html" class="btn btn-ghost">Retour à l'accueil</a>
 </div></div>
 
-<script src="/assets/supabase.min.js?v=18"></script>
-<script src="assets/config.js"></script>
-<script src="assets/app.supabase.js?v=111"></script>
 <script>
+document.addEventListener("DOMContentLoaded",function(){
 // Fermer la session silencieusement (sans redirection)
 (async function(){ try{ await JP.sb.auth.signOut(); }catch(e){} })();
+
+});
 </script>
-<script src="/assets/pwa.js?v=21" defer></script>
 </body>
 </html>
