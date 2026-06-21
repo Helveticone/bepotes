@@ -121,6 +121,29 @@
       m.addEventListener('click', e => { e.preventDefault(); open(); });
       mob.appendChild(m);
     }
+
+    // --- Préchargement intelligent (navigation quasi instantanée) ---
+    // Chrome/Edge/Android : prépare la page cible quand le doigt touche le lien
+    // (pointerdown) ou au survol -> elle s'ouvre instantanément. Effets de bord
+    // (impressions pub, activité) neutralisés tant que la page n'est pas affichée.
+    try {
+      if (HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules')
+          && !document.querySelector('script[type="speculationrules"]')) {
+        const sr = document.createElement('script');
+        sr.type = 'speculationrules';
+        sr.textContent = JSON.stringify({
+          prerender: [{
+            where: { and: [
+              { href_matches: '/*' },
+              { not: { href_matches: '/*\\?*' } },
+              { not: { selector_matches: '[target="_blank"], [rel~="external"], [href^="#"], #logout, #drawerLogout' } }
+            ]},
+            eagerness: 'moderate'
+          }]
+        });
+        document.head.appendChild(sr);
+      }
+    } catch (e) { /* navigateur non compatible : navigation normale */ }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();

@@ -322,6 +322,8 @@ window.JP = (() => {
 
   /* Marque l'utilisateur actif (last_seen + activité du jour). Throttlé 1×/10 min. */
   async function touchLastSeen(){
+    // Page en préchargement (prerender) : on attend l'affichage réel.
+    if(document.prerendering){ document.addEventListener('prerenderingchange', ()=>touchLastSeen(), {once:true}); return; }
     try{
       const k='jp-last-touch', now=Date.now();
       if(now - (+(localStorage.getItem(k)||0)) < 600000) return;
@@ -2414,6 +2416,8 @@ window.JP = (() => {
     return ad;
   }
   async function adImpression(id){
+    // Page en préchargement : on ne compte l'impression qu'à l'affichage réel.
+    if(document.prerendering){ document.addEventListener('prerenderingchange', ()=>adImpression(id), {once:true}); return; }
     try{ await sb.rpc('ad_impression', { ad_id: id }); }catch(e){ /* silencieux */ }
   }
   async function adClick(id){
