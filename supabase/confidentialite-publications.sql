@@ -1,5 +1,5 @@
 -- ============================================================
---  51. CONFIDENTIALITÉ DES PUBLICATIONS (Tout le Jura / Amis seulement)
+--  51. CONFIDENTIALITÉ DES PUBLICATIONS (Tout le réseau / Amis seulement)
 --  posts.visibility = 'all' (tous les membres, défaut) | 'friends' (amis only).
 --  La confidentialité est appliquée par RLS (lecture) : un post 'friends'
 --  n'est visible que par l'auteur, ses amis, et les admins.

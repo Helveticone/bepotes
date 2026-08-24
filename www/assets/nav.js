@@ -44,7 +44,7 @@
     bg.className = 'drawer-bg';
     bg.innerHTML =
       '<aside class="drawer" role="dialog" aria-label="Menu">' +
-        '<div class="drawer-head"><span class="wordmark">jura<span class="wm-red">potes</span></span>' +
+        '<div class="drawer-head"><span class="wordmark">be<span class="wm-red">potes</span></span>' +
         '<button class="drawer-x" type="button" aria-label="Fermer">&times;</button></div>' +
         '<nav class="drawer-links">' +
           link('fil.html', 'Le fil', I.fil) +

@@ -1,5 +1,5 @@
 -- ============================================================
---  BEPOTES — Suppression de compte (nLPD / droit à l'effacement)
+--  BEPOTES — Suppression de compte (RGPD / droit à l'effacement)
 --  À exécuter dans Supabase > SQL Editor (après TOUT-LE-SQL.sql).
 --  Sûr à ré-exécuter (idempotent).
 --  ------------------------------------------------------------

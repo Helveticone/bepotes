@@ -10,7 +10,7 @@
    ============================================================ */
 
 // 🔧 Mets ici l'URL de TON projet Supabase (sans slash final) :
-const SUPABASE_ORIGIN = 'https://nvlquqrsjmwgtkhmxazq.supabase.co';
+const SUPABASE_ORIGIN = 'https://hshowrlrjktijmjyljys.supabase.co';
 
 export default {
   async fetch(request, env, ctx) {

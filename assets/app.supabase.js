@@ -16,7 +16,7 @@ window.JP = (() => {
   }
   const sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON);
   // Capture de la source d'inscription (?src=/?ref=/?utm_source) -> normalisée -> localStorage.
-  const SRC_MAP={ww:'bouche-à-oreille',bao:'bouche-à-oreille',concours:'concours pizza',pizza:'concours pizza',rs:'réseaux sociaux',social:'réseaux sociaux',fb:'réseaux sociaux',insta:'réseaux sociaux',presse:'presse-affichage',affiche:'presse-affichage',flyer:'presse-affichage'};
+  const SRC_MAP={ww:'bouche-à-oreille',bao:'bouche-à-oreille',rs:'réseaux sociaux',social:'réseaux sociaux',fb:'réseaux sociaux',insta:'réseaux sociaux',presse:'presse-affichage',affiche:'presse-affichage',flyer:'presse-affichage'};
   try{ const _q=new URLSearchParams(location.search); const _raw=(_q.get('src')||_q.get('ref')||_q.get('utm_source')||'').toLowerCase().trim(); if(_raw) localStorage.setItem('jp-src', SRC_MAP[_raw]||'autre'); }catch(e){}
 
   /* ---------- CDN média (Cloudflare devant Supabase Storage) ----------

@@ -15,5 +15,6 @@ _*.sql
 # réglages Claude Code personnels (permissions)
 .claude/settings.local.json
 
-# clés VAPID (privé) — ne jamais committer
-_vapid.txt
+# SECRETS (privé) — ne jamais committer.
+# Le glob couvre _vapid.txt, _supabase_db_password.txt et tout futur _*.txt.
+_*.txt

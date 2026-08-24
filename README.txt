@@ -21,7 +21,7 @@ clé "service_role" ici.
 Dans Supabase > SQL Editor, exécute dans l'ordre :
   1) schema.sql            (les tables — déjà fait normalement)
   2) storage-policies.sql  (droits sur les images)
-  3) seed-events.sql       (quelques événements de démo — optionnel)
+  3) TOUT-LE-SQL.sql       (toutes les sections numérotées, idempotent)
 
 ------------------------------------------------------------
 ÉTAPE 3 — STORAGE (images)

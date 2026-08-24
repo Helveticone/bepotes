@@ -16,7 +16,7 @@ window.JP = (() => {
   }
   const sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON);
   // Capture de la source d'inscription (?src=/?ref=/?utm_source) -> normalisée -> localStorage.
-  const SRC_MAP={ww:'bouche-à-oreille',bao:'bouche-à-oreille',concours:'concours pizza',pizza:'concours pizza',rs:'réseaux sociaux',social:'réseaux sociaux',fb:'réseaux sociaux',insta:'réseaux sociaux',presse:'presse-affichage',affiche:'presse-affichage',flyer:'presse-affichage'};
+  const SRC_MAP={ww:'bouche-à-oreille',bao:'bouche-à-oreille',rs:'réseaux sociaux',social:'réseaux sociaux',fb:'réseaux sociaux',insta:'réseaux sociaux',presse:'presse-affichage',affiche:'presse-affichage',flyer:'presse-affichage'};
   try{ const _q=new URLSearchParams(location.search); const _raw=(_q.get('src')||_q.get('ref')||_q.get('utm_source')||'').toLowerCase().trim(); if(_raw) localStorage.setItem('jp-src', SRC_MAP[_raw]||'autre'); }catch(e){}
 
   /* ---------- CDN média (Cloudflare devant Supabase Storage) ----------
@@ -71,7 +71,7 @@ window.JP = (() => {
     if(s<3600) return Math.floor(s/60)+' min';
     if(s<86400) return Math.floor(s/3600)+' h';
     if(s<604800) return Math.floor(s/86400)+' j';
-    return new Date(t).toLocaleDateString('fr-CH',{day:'numeric',month:'short'});
+    return new Date(t).toLocaleDateString('fr-BE',{day:'numeric',month:'short'});
   }
 
   function avatarHTML(name, avatar, cls='av', style=''){
@@ -146,22 +146,13 @@ window.JP = (() => {
     el.addEventListener('blur', ()=>setTimeout(close,150));
   }
 
-  /* ---------- Communes du Jura (exhaustif, incl. Moutier rattaché en 2026) ----------
-     Communes officielles + principaux villages/localités (fusions). */
-  const COMMUNES = [
-    'Alle','Asuel','La Baroche','Bassecourt','Belprahon','Berlincourt','Beurnevésin','Boécourt',
-    'Boncourt','Bonfol','Bourrignon','Bressaucourt','Les Breuleux','Buix','Bure','Charmoille',
-    'Châtillon','La Chaux-des-Breuleux','Chevenez','Clos du Doubs','Cœuve','Corban','Cornol',
-    'Courchapoix','Courchavon','Courfaivre','Courgenay','Courrendlin','Courroux','Courtedoux',
-    'Courtemaîche','Courtételle','Damphreux','Damphreux-Lugnez','Damvant','Delémont','Develier',
-    'Ederswiler','Les Enfers','Épauvillers','Épiquerez','Fahy','Fontenais','Fregiécourt',
-    'Les Genevez','Glovelier','Goumois','Grandfontaine','Haute-Ajoie','Haute-Sorne','Lajoux',
-    'Lugnez','Mervelier','Mettembert','Miécourt','Montfaucon','Montignez','Montmelon','Montsevelier',
-    'Mormont','Moutier','Movelier','Le Noirmont','Ocourt','Pleigne','Pleujouse','Les Pommerats',
-    'Porrentruy','Réclère','Rebeuvelier','Roche-d\'Or','Rocourt','Rossemaison','Saignelégier',
-    'Saint-Brais','Saint-Ursanne','Saulcy','Séprais','Seleute','Soubey','Soulce','Soyhières',
-    'Undervelier','Vendlincourt','Vermes','Vicques'
-  ];
+  /* ---------- Communes (Région wallonne + Région de Bruxelles-Capitale) ----------
+     Liste générée dans assets/communes.js (window.JP_COMMUNES) depuis le jeu de données
+     officiel des communes belges. Ce fichier doit être chargé AVANT app.supabase.js.
+     Repli minimal si absent, pour ne jamais rendre un <select> vide. */
+  const COMMUNES = (window.JP_COMMUNES && window.JP_COMMUNES.length)
+    ? window.JP_COMMUNES.slice()
+    : ['Bruxelles','Charleroi','Liège','Mons','Namur','Seraing','Verviers'];
   /* Remplit un <select> de communes. opts.first = libellé d'option vide en tête ;
      opts.selected = valeur présélectionnée (ajoutée si absente de la liste). */
   function fillCommuneSelect(sel, opts={}){
@@ -172,14 +163,14 @@ window.JP = (() => {
     let html = '';
     if(opts.first!==undefined) html += `<option value="">${esc(opts.first)}</option>`;
     html += list.map(c=>`<option${c===selected?' selected':''}>${esc(c)}</option>`).join('');
-    html += '<option>Autre commune du Jura</option>';
+    html += '<option>Autre commune</option>';
     sel.innerHTML = html;
   }
 
   /* Bloc « À propos » d'un profil (mutualisé profil.html / membre.html) */
   function formatBirthday(d, showYear){
     const dt=new Date(d+'T00:00:00'); if(isNaN(dt.getTime())) return esc(d);
-    let s=dt.toLocaleDateString('fr-CH', showYear?{day:'numeric',month:'long',year:'numeric'}:{day:'numeric',month:'long'});
+    let s=dt.toLocaleDateString('fr-BE', showYear?{day:'numeric',month:'long',year:'numeric'}:{day:'numeric',month:'long'});
     if(showYear){ const age=Math.floor((Date.now()-dt.getTime())/(365.25*864e5)); if(age>0&&age<120) s+=' ('+age+' ans)'; }
     return s;
   }
@@ -1030,7 +1021,7 @@ window.JP = (() => {
       ts:e.starts_at, endTs:e.ends_at||null, images:(Array.isArray(e.images)?e.images.filter(Boolean):[]).map(cdnUrl),
       creatorId:e.creator_id, mine:e.creator_id===_me?.id,
       day: d? String(d.getDate()).padStart(2,'0') : '–',
-      month: d? d.toLocaleDateString('fr-CH',{month:'short'}) : '',
+      month: d? d.toLocaleDateString('fr-BE',{month:'short'}) : '',
       going: att.filter(a=>(a.status||'going')==='going').length,
       interested: att.filter(a=>a.status==='interested').length,
       goingBy: att.filter(a=>(a.status||'going')==='going').map(a=>a.user_id),
@@ -1716,11 +1707,11 @@ window.JP = (() => {
   }
   const REP_LEVELS=[
     {min:0,    name:'Nouveau',         emoji:'🌱'},
-    {min:50,   name:'Habitué',         emoji:'🧀'},
+    {min:50,   name:'Habitué',         emoji:'🍟'},
     {min:150,  name:'Régional',        emoji:'⛰️'},
     {min:350,  name:'Pilier',          emoji:'🏛️'},
     {min:700,  name:'Ambassadeur',     emoji:'🎖️'},
-    {min:1500, name:'Légende du Jura', emoji:'👑'}
+    {min:1500, name:'Légende locale',  emoji:'👑'}
   ];
   function repScore(s){
     if(!s) return 0;
@@ -1736,7 +1727,7 @@ window.JP = (() => {
   }
   const REP_BADGES=[
     {key:'first',     emoji:'📝', name:'Premier post',      test:s=>(s.posts||0)>=1},
-    {key:'writer',    emoji:'✍️', name:'Plume jurassienne', test:s=>(s.posts||0)>=25},
+    {key:'writer',    emoji:'✍️', name:'Belle plume',       test:s=>(s.posts||0)>=25},
     {key:'talker',    emoji:'💬', name:'Beau parleur',      test:s=>(s.comments||0)>=50},
     {key:'loved',     emoji:'❤️', name:'Apprécié',          test:s=>(s.likes_received||0)>=50},
     {key:'star',      emoji:'🌟', name:'Star locale',       test:s=>(s.likes_received||0)>=250},

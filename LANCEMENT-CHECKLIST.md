@@ -1,4 +1,4 @@
-# 🚀 Jurapotes — Checklist de lancement
+# 🚀 BePotes — Checklist de lancement
 
 Les étapes **manuelles** à faire (côté Supabase / Cloudflare / Google). Le code est prêt.
 
@@ -11,13 +11,13 @@ Les étapes **manuelles** à faire (côté Supabase / Cloudflare / Google). Le c
 - [ ] Bucket **`posts`** : `Edit` → **File size limit** ≥ 50 Mo ; **Allowed MIME types** = vide (ou ajouter `video/mp4, video/quicktime, video/webm`). Buckets **publics**.
 - [ ] (Free = 50 Mo/fichier max ; la compression vidéo navigateur ramène sous la limite.)
 
-## 3. Domaine jurapotes.ch + CDN média (Cloudflare)
-- [ ] Ajouter la zone **jurapotes.ch** à Cloudflare, brancher le projet **Pages** dessus (DNS).
-- [ ] Suivre **`cloudflare/CDN-GUIDE.md`** : Worker `cdn-worker.js` + route `cdn.jurapotes.ch/*`.
-- [ ] `assets/config.js` → `MEDIA_CDN: "https://cdn.jurapotes.ch"`.
+## 3. Domaine bepotes.be + CDN média (Cloudflare)
+- [ ] Ajouter la zone **bepotes.be** à Cloudflare, brancher le projet **Pages** dessus (DNS).
+- [ ] Suivre **`cloudflare/CDN-GUIDE.md`** : Worker `cdn-worker.js` + route `cdn.bepotes.be/*`.
+- [ ] `assets/config.js` → `MEDIA_CDN: "https://cdn.bepotes.be"`.
 
 ## 4. Anti-bot inscription (Cloudflare Turnstile) — recommandé
-- [ ] Cloudflare → Turnstile → créer un widget (domaine jurapotes.ch) → copier **Site Key** + **Secret Key**.
+- [ ] Cloudflare → Turnstile → créer un widget (domaine bepotes.be) → copier **Site Key** + **Secret Key**.
 - [ ] `assets/config.js` → `TURNSTILE_SITEKEY: "<site key>"`.
 - [ ] Supabase → **Authentication → Bot & Abuse Protection** → activer **Turnstile** + coller la **Secret Key**.
 
@@ -30,7 +30,7 @@ Les étapes **manuelles** à faire (côté Supabase / Cloudflare / Google). Le c
 - [ ] `notify-email` (Resend), `notify-digest`, `og-preview`, `notify-push` (VAPID). L'app marche sans.
 
 ## 7. SEO / découverte
-- [ ] Brancher le domaine puis **Google Search Console** → soumettre `https://jurapotes.ch/sitemap.xml`.
+- [ ] Brancher le domaine puis **Google Search Console** → soumettre `https://bepotes.be/sitemap.xml`.
 
 ## 8. Vérifs finales
 - [ ] Test inscription → fil → publier (photo + vidéo) → messagerie (image + réponse) → reel.

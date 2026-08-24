@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Bepotes</string>
-    <string name="title_activity_main">Bepotes</string>
+    <string name="app_name">BePotes</string>
+    <string name="title_activity_main">BePotes</string>
     <string name="package_name">be.bepotes.app</string>
     <string name="custom_url_scheme">be.bepotes.app</string>
 </resources>

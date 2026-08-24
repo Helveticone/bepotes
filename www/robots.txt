@@ -24,4 +24,4 @@ Disallow: /offline.html
 Disallow: /panneau-hcm-7x2k9.html
 Disallow: /regie-hcm-7x2k9.html
 
-Sitemap: https://jurapotes.ch/sitemap.xml
+Sitemap: https://bepotes.be/sitemap.xml

@@ -7,8 +7,10 @@
    ============================================================ */
 
 window.JP_CONFIG = {
-  SUPABASE_URL:  "https://nvlquqrsjmwgtkhmxazq.supabase.co",
-  SUPABASE_ANON: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52bHF1cXJzam13Z3RraG14YXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MDA1ODAsImV4cCI6MjA5NzE3NjU4MH0.p-D6FAH2jTTCFWhcrI8NwpOrkYH2ImwBGxZrprIw0K0",
+  // ⚠️ URL RACINE du projet, SANS "/rest/v1/" : supabase-js ajoute lui-même
+  // /rest/v1 (données), /auth/v1 (comptes), /storage/v1 et /realtime/v1.
+  SUPABASE_URL:  "https://hshowrlrjktijmjyljys.supabase.co",
+  SUPABASE_ANON: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzaG93cmxyamt0aWptanlsanlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1OTk0MjgsImV4cCI6MjEwMzE3NTQyOH0.-ipiIHrfM1GZEaIDWatqxbs2taDCH2C3ynMPNh3Fm4k",
   // Notifications push : clé PUBLIQUE VAPID (générée via `npx web-push generate-vapid-keys`).
   // Colle ici la "Public Key" ; la clé privée va dans les secrets Supabase (voir push-GUIDE.md).
   VAPID_PUBLIC: "BDQ6phxYy7ryVbMKWjqfztaBvRUT28m28jVN_rYTpF9_nk7AAHnJ8z7Bn2Jnmt5ln3K4J4RKNNlXGSCLoaOsB8g",

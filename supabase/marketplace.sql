@@ -2,7 +2,7 @@
 --  BEPOTES — Marketplace / petites annonces
 --  À exécuter dans Supabase > SQL Editor (après TOUT-LE-SQL.sql).
 --  Sûr à ré-exécuter (idempotent).
---  Acheter · vendre · donner entre habitants du Jura.
+--  Acheter · vendre · donner entre habitants de la région.
 -- ============================================================
 create table if not exists public.listings (
   id          uuid primary key default gen_random_uuid(),

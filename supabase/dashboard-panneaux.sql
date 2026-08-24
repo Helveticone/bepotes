@@ -1,7 +1,7 @@
 -- ============================================================
 --  SECTION 54 — Dashboard : acquisition / business / engagement / heures
 --  Lecture seule, SAUF la colonne profiles.signup_source (posée à l'INSERT).
---  Idempotent. RPC admin-only (is_admin()). Fuseau Europe/Zurich.
+--  Idempotent. RPC admin-only (is_admin()). Fuseau Europe/Brussels.
 -- ============================================================
 
 -- (a) Source d'inscription (même patron que gender/birthday, section 53)
@@ -74,7 +74,7 @@ begin
 end$$;
 
 -- (e) Audience par heure — UNION de tables réellement horodatées (user_activity.day
---     est une DATE pure, inexploitable pour l'heure). 7j glissants, Europe/Zurich.
+--     est une DATE pure, inexploitable pour l'heure). 7j glissants, Europe/Brussels.
 create or replace function public.admin_activity_by_hour()
 returns table(heure int, evenements bigint)
 language plpgsql security definer set search_path=public as $$
@@ -87,7 +87,7 @@ begin
       union all select created_at from public.likes    where created_at >= now()-interval '7 days'
       union all select created_at from public.messages where created_at >= now()-interval '7 days'
     )
-    select extract(hour from (created_at at time zone 'Europe/Zurich'))::int, count(*)
+    select extract(hour from (created_at at time zone 'Europe/Brussels'))::int, count(*)
     from ev group by 1 order by 1;
 end$$;
 
