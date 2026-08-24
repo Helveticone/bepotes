@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Politiques de Storage (images)
+--  BEPOTES — Politiques de Storage (images)
 --  À exécuter APRÈS avoir créé les 3 buckets dans
 --  Supabase > Storage : "avatars", "covers", "posts"
 --  (cocher "Public bucket" à la création des trois).

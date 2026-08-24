@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Correctifs appliqués en cours de route
+--  BEPOTES — Correctifs appliqués en cours de route
 --  Ces correctifs ont DÉJÀ été appliqués sur la base en live.
 --  Ce fichier les regroupe pour garder une trace (au cas où tu
 --  recrées la base un jour). À exécuter après schema.sql.

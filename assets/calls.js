@@ -1,5 +1,5 @@
-/* ============================================================
-   Jurapotes — Appels audio/vidéo (WebRTC pair-à-pair)
+﻿/* ============================================================
+   BePotes — Appels audio/vidéo (WebRTC pair-à-pair)
    - Signalisation : Supabase Realtime broadcast (canal « inbox » par
      utilisateur : calls:<userId>). Aucune table, aucun message stocké.
    - Média : P2P chiffré (DTLS-SRTP). STUN public Google (gratuit).
@@ -248,3 +248,4 @@ window.JPCall = (function () {
 
   return { start, end: endCall, active: () => !!cur };
 })();
+

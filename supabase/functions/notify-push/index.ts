@@ -1,5 +1,5 @@
 // ============================================================
-//  JURAPOTES — Edge Function « notify-push »
+//  BEPOTES — Edge Function « notify-push »
 //  Envoie une notification push aux appareils du destinataire.
 //  Déclenchée par un Database Webhook sur INSERT de public.notifications.
 //  ------------------------------------------------------------
@@ -11,7 +11,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
 
-const SITE_URL = Deno.env.get("SITE_URL") || "https://jurapotes-betatest.pages.dev";
+const SITE_URL = Deno.env.get("SITE_URL") || "https://bepotes-betatest.pages.dev";
 const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC") || "";
 const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE") || "";
 const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:office@helveticonemedia.ch";
@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
     }
 
     const payload = JSON.stringify({
-      title: "Jurapotes",
+      title: "BePotes",
       body: `${actorName} ${notifText(rec.type)}`,
       url: SITE_URL + deepLink(rec.type, rec.post_id ?? null, rec.actor_id ?? null),
       tag: rec.type

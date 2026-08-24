@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Marché — Jurapotes</title>
+<title>Marché — BePotes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
@@ -15,9 +15,10 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Jurapotes">
+<meta name="apple-mobile-web-app-title" content="BePotes">
 <script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
 <script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/communes.js?v=1" defer data-turbo-track="reload"></script>
 <script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
 <script src="assets/nav.js?v=10" defer data-turbo-track="reload"></script>
 <script src="assets/bell.js?v=23" defer data-turbo-track="reload"></script>
@@ -26,7 +27,7 @@
 </head>
 <body>
 <nav><div class="wrap nav-inner">
-  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">J</span><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">B</span><span class="wordmark">be<span class="wm-red">potes</span></span></a>
   <div class="nav-links">
     <form class="nav-search" onsubmit="location.href='recherche.html?q='+encodeURIComponent(this.q.value);return false;">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -52,7 +53,7 @@
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:14px;flex-wrap:wrap">
     <div>
       <h1 style="font-size:2rem;margin-bottom:6px">Le marché du coin</h1>
-      <p style="color:var(--ink-soft)">Achète, vends, donne entre habitants du Jura.</p>
+      <p style="color:var(--ink-soft)">Achète, vends, donne entre habitants de la région.</p>
     </div>
     <button class="btn btn-primary" id="newBtn">+ Vendre / Donner</button>
   </div>
@@ -76,16 +77,16 @@
     <div class="modal-body">
       <div class="field"><label for="nTitle">Titre</label><input id="nTitle" type="text" maxlength="80" placeholder="Vélo enfant, canapé 3 places…"></div>
       <div class="field" style="display:flex;gap:12px">
-        <div style="flex:1"><label for="nPrice">Prix (CHF)</label><input id="nPrice" type="number" min="0" step="1" placeholder="Vide = à discuter"></div>
+        <div style="flex:1"><label for="nPrice">Prix (€)</label><input id="nPrice" type="number" min="0" step="1" placeholder="Vide = à discuter"></div>
         <div style="flex:1"><label for="nCat">Catégorie</label><select id="nCat"></select></div>
       </div>
       <div class="field"><label for="nTown">Commune</label>
         <select id="nTown">
-          <option value="">Tout le Jura</option>
-          <option>Delémont</option><option>Porrentruy</option><option>Saignelégier</option>
-          <option>Bassecourt</option><option>Courrendlin</option><option>Le Noirmont</option>
-          <option>Les Bois</option><option>Courroux</option><option>Alle</option>
-          <option>Châtenois</option><option>Vicques</option>
+          <option value="">Toute la région</option>
+          <option>Bruxelles</option><option>Liège</option><option>Charleroi</option>
+          <option>Namur</option><option>Mons</option><option>Seraing</option>
+          <option>Verviers</option><option>La Louvière</option><option>Tournai</option>
+          <option>Wavre</option><option>Arlon</option>
         </select>
       </div>
       <div class="field"><label for="nDesc">Description</label><textarea id="nDesc" maxlength="800" placeholder="État, dimensions, raison de la vente…"></textarea></div>
@@ -117,7 +118,7 @@ document.addEventListener("DOMContentLoaded",function(){
 (async function(){
   const okAuth = await JP.requireAuth();
   if(!okAuth) return;
-  JP.fillCommuneSelect(document.getElementById('nTown'), {first:'Tout le Jura'});
+  JP.fillCommuneSelect(document.getElementById('nTown'), {first:'Toute la région'});
   document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
 
   const CATS=['Divers','Meubles','Électronique','Véhicules','Vêtements','Maison & Jardin','Loisirs','Enfants','Immobilier','Services','Dons / Gratuit'];
@@ -136,7 +137,7 @@ document.addEventListener("DOMContentLoaded",function(){
     if(p===null||p===undefined) return 'Prix à discuter';
     const n=Number(p);
     if(n===0) return 'Gratuit';
-    return (Number.isInteger(n)?n:n.toFixed(2))+' CHF';
+    return (Number.isInteger(n)?n:n.toFixed(2))+' €';
   }
 
   async function render(){
@@ -151,7 +152,7 @@ document.addEventListener("DOMContentLoaded",function(){
         <div class="mkt-body">
           <div class="mkt-price">${priceLabel(l.price)}</div>
           <div class="mkt-title">${JP.esc(l.title)}</div>
-          <div class="mkt-meta">📍 ${JP.esc(l.town||'Jura')} · ${JP.timeAgo(l.ts)}</div>
+          <div class="mkt-meta">📍 ${JP.esc(l.town||'Belgique')} · ${JP.timeAgo(l.ts)}</div>
         </div>
       </div>`).join('');
     grid.querySelectorAll('.mkt-card').forEach(c=>c.addEventListener('click',()=>openDetail(c.dataset.id)));
@@ -178,12 +179,12 @@ document.addEventListener("DOMContentLoaded",function(){
     document.getElementById('dBody').innerHTML=`
       ${l.status==='sold'?'<div class="alert" style="margin-bottom:12px">Cette annonce est marquée comme vendue.</div>':''}
       <div class="mkt-price" style="font-size:1.5rem;margin-bottom:6px">${priceLabel(l.price)}</div>
-      <div style="font-size:.85rem;color:var(--ink-soft);margin-bottom:14px">${JP.esc(l.category)} · 📍 ${JP.esc(l.town||'Jura')} · ${JP.timeAgo(l.ts)}</div>
+      <div style="font-size:.85rem;color:var(--ink-soft);margin-bottom:14px">${JP.esc(l.category)} · 📍 ${JP.esc(l.town||'Belgique')} · ${JP.timeAgo(l.ts)}</div>
       ${gallery}
       ${l.description?`<p style="white-space:pre-wrap;line-height:1.6;overflow-wrap:anywhere">${JP.esc(l.description)}</p>`:''}
       <div class="pending-row" style="margin-top:16px;border:1px solid var(--line);border-radius:12px;padding:11px 14px">
         ${JP.avatarHTML(l.sellerName,l.sellerAvatar,'av')}
-        <div class="pi"><b>${JP.esc(l.sellerName)}</b><span style="font-size:.8rem;color:var(--ink-soft)">📍 ${JP.esc(l.sellerTown||'Jura')}</span></div>
+        <div class="pi"><b>${JP.esc(l.sellerName)}</b><span style="font-size:.8rem;color:var(--ink-soft)">📍 ${JP.esc(l.sellerTown||'Belgique')}</span></div>
       </div>
       ${owner}`;
     dModal.classList.add('open');

@@ -1,5 +1,5 @@
 // ============================================================
-//  JURAPOTES — Edge Function « og-preview »
+//  BEPOTES — Edge Function « og-preview »
 //  Récupère les métadonnées Open Graph d'une URL (titre, desc,
 //  image, site) côté serveur (contourne le CORS du navigateur).
 //  Appelée par le front à la publication : sb.functions.invoke('og-preview', { body:{ url } })
@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     if (!url || !/^https?:\/\//i.test(url)) return json({});
 
     const res = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; JurapotesBot/1.0; +https://jurapotes-betatest.pages.dev)" },
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; BePotesBot/1.0; +https://bepotes-betatest.pages.dev)" },
       redirect: "follow",
     });
     const ct = res.headers.get("content-type") || "";

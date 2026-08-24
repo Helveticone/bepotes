@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Vidéos dans les publications
+--  BEPOTES — Vidéos dans les publications
 --  À exécuter dans Supabase > SQL Editor. Idempotent.
 --  ------------------------------------------------------------
 --  Une publication peut porter une vidéo (stockée dans le bucket

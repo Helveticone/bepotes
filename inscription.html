@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Inscription gratuite — Jurapotes, le réseau social du Jura</title>
-<meta name="description" content="Inscris-toi gratuitement sur Jurapotes, le réseau social du Jura — et tente de gagner 1 AN DE PIZZA GRATUITE 🍕 ! Grand concours, tirage au sort le 15 juillet. Il suffit de s'inscrire.">
-<link rel="canonical" href="https://jurapotes.ch/inscription.html">
+<title>Inscription gratuite — BePotes, le réseau social de Wallonie et Bruxelles</title>
+<meta name="description" content="Inscris-toi gratuitement sur BePotes, le réseau social de Wallonie et Bruxelles — et tente de gagner 1 AN DE PIZZA GRATUITE 🍕 ! Grand concours, tirage au sort le 15 juillet. Il suffit de s'inscrire.">
+<link rel="canonical" href="https://bepotes.be/inscription.html">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
@@ -17,7 +17,7 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Jurapotes">
+<meta name="apple-mobile-web-app-title" content="BePotes">
 <style>
   /* ===== Concours « 1 an de pizza » (page inscription uniquement) ===== */
   .concours-wrap{max-width:440px;margin:0 auto 12px}
@@ -44,12 +44,13 @@
 </style>
 <script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
 <script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/communes.js?v=1" defer data-turbo-track="reload"></script>
 <script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
 <script src="/assets/pwa.js?v=21" defer data-turbo-track="reload"></script>
 </head>
 <body>
 <nav><div class="wrap nav-inner">
-  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">J</span><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">B</span><span class="wordmark">be<span class="wm-red">potes</span></span></a>
   <div class="nav-links"><a href="fil.html">Le fil</a><a href="evenements.html">Événements</a><a href="connexion.html">Connexion</a></div>
 </div></nav>
 
@@ -58,7 +59,7 @@
   <!-- ===== Concours « 1 an de pizza gratuite » ===== -->
   <div class="concours-wrap">
     <a class="concours" href="#name" aria-label="Grand concours : gagne 1 an de pizza gratuite, inscris-toi">
-      <img src="assets/concours.jpg" alt="Grand concours Jurapotes : gagne 1 an de pizza gratuite — inscris-toi pour participer"
+      <img src="assets/concours.jpg" alt="Grand concours BePotes : gagne 1 an de pizza gratuite — inscris-toi pour participer"
            onerror="this.style.display='none';var f=document.getElementById('ccFallback');if(f)f.style.display='block';">
       <div id="ccFallback" class="concours-fallback" style="display:none">
         <span class="cc-badge">🍕 GRAND CONCOURS</span>
@@ -82,13 +83,13 @@
       <input id="name" type="text" placeholder="Marie Lovis" autocomplete="name">
     </div>
     <div class="field">
-      <label for="town">Ta commune jurassienne</label>
+      <label for="town">Ta commune</label>
       <select id="town">
         <option value="">Choisis…</option>
-        <option>Delémont</option><option>Porrentruy</option><option>Saignelégier</option>
-        <option>Bassecourt</option><option>Courrendlin</option><option>Le Noirmont</option>
-        <option>Les Bois</option><option>Courroux</option><option>Alle</option>
-        <option>Châtenois</option><option>Vicques</option><option>Autre commune du Jura</option>
+        <option>Bruxelles</option><option>Liège</option><option>Charleroi</option>
+        <option>Namur</option><option>Mons</option><option>Seraing</option>
+        <option>Verviers</option><option>La Louvière</option><option>Tournai</option>
+        <option>Wavre</option><option>Arlon</option><option>Autre commune</option>
       </select>
     </div>
     <div class="field">
@@ -211,3 +212,4 @@ document.addEventListener("DOMContentLoaded",function(){
 </script>
 </body>
 </html>
+

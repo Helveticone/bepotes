@@ -1,12 +1,12 @@
 // ============================================================
-//  JURAPOTES — Edge Function « welcome-email »
+//  BEPOTES — Edge Function « welcome-email »
 //  Envoie un e-mail de bienvenue à chaque NOUVEAU membre.
 //  Déclenchée par un Database Webhook sur INSERT de public.profiles.
 //  ------------------------------------------------------------
 //  Variables d'environnement (Supabase > Edge Functions > Secrets) :
 //    RESEND_API_KEY   = clé API Resend (https://resend.com)
-//    FROM_EMAIL       = ex. "Jurapotes <bienvenue@tondomaine.ch>"
-//    SITE_URL         = https://jurapotes-betatest.pages.dev (ou jurapotes.ch)
+//    FROM_EMAIL       = ex. "BePotes <bienvenue@tondomaine.ch>"
+//    SITE_URL         = https://bepotes-betatest.pages.dev (ou bepotes.be)
 //  (SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont injectés automatiquement.)
 //
 //  Déploiement :  supabase functions deploy welcome-email --no-verify-jwt
@@ -16,8 +16,8 @@
 // ============================================================
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const SITE_URL = Deno.env.get("SITE_URL") || "https://jurapotes-betatest.pages.dev";
-const FROM_EMAIL = Deno.env.get("FROM_EMAIL") || "Jurapotes <onboarding@resend.dev>";
+const SITE_URL = Deno.env.get("SITE_URL") || "https://bepotes-betatest.pages.dev";
+const FROM_EMAIL = Deno.env.get("FROM_EMAIL") || "BePotes <onboarding@resend.dev>";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") || "";
 
 const admin = createClient(
@@ -39,10 +39,10 @@ Deno.serve(async (req) => {
     const prenom = (rec.name || "").trim().split(/\s+/)[0] || "à toi";
     const town = (rec.town || "").trim();
 
-    const subject = "Bienvenue sur Jurapotes 👋 — le réseau du Jura";
+    const subject = "Bienvenue sur BePotes 👋 — le réseau du Jura";
     const html = `
       <div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;max-width:520px;margin:0 auto;color:#1A1416">
-        <h2 style="color:#E11D2A;margin:0 0 6px">Bienvenue sur Jurapotes, ${prenom} 🎉</h2>
+        <h2 style="color:#E11D2A;margin:0 0 6px">Bienvenue sur BePotes, ${prenom} 🎉</h2>
         <p style="font-size:16px;line-height:1.5">
           Te voilà sur <b>le réseau social du Jura</b>${town ? `, depuis <b>${town}</b>` : ""} !
           Ici, on retrouve ses potes, ses commerces, les événements et la vie locale — entre Jurassiens.
@@ -54,12 +54,12 @@ Deno.serve(async (req) => {
           <tr><td style="padding:7px 0">✍️ <a href="${SITE_URL}/fil.html" style="color:#E11D2A;font-weight:600;text-decoration:none">Publie ton premier message</a> — présente-toi au Jura !</td></tr>
         </table>
         <p style="margin:26px 0">
-          <a href="${SITE_URL}/fil.html" style="background:#E11D2A;color:#fff;text-decoration:none;padding:12px 24px;border-radius:999px;font-weight:700;display:inline-block">Ouvrir Jurapotes</a>
+          <a href="${SITE_URL}/fil.html" style="background:#E11D2A;color:#fff;text-decoration:none;padding:12px 24px;border-radius:999px;font-weight:700;display:inline-block">Ouvrir BePotes</a>
         </p>
         <p style="font-size:13px;color:#8a7d7d;line-height:1.5">
-          Astuce : installe Jurapotes sur ton téléphone (menu du navigateur → « Ajouter à l'écran d'accueil ») pour l'utiliser comme une vraie app.
+          Astuce : installe BePotes sur ton téléphone (menu du navigateur → « Ajouter à l'écran d'accueil ») pour l'utiliser comme une vraie app.
         </p>
-        <p style="font-size:12px;color:#b3a8a8">Tu reçois cet e-mail car tu viens de créer un compte sur Jurapotes. Tu peux gérer tes e-mails dans Paramètres.</p>
+        <p style="font-size:12px;color:#b3a8a8">Tu reçois cet e-mail car tu viens de créer un compte sur BePotes. Tu peux gérer tes e-mails dans Paramètres.</p>
       </div>`;
 
     if (!RESEND_API_KEY) return new Response("RESEND_API_KEY manquant", { status: 500 });

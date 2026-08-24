@@ -1,4 +1,4 @@
-JURAPOTES — Version connectée à Supabase (réseau partagé)
+BEPOTES — Version connectée à Supabase (réseau partagé)
 ==========================================================
 
 Cette version n'est plus une démo locale : les comptes, publications,
@@ -50,7 +50,7 @@ immédiates (plus simple pour un lancement WhatsApp). Tu pourras
 le réactiver plus tard pour plus de sécurité.
 
 Pense aussi à : Authentication > URL Configuration > Site URL,
-mets l'adresse de ton site (https://jurapotes.ch) pour que les
+mets l'adresse de ton site (https://bepotes.be) pour que les
 e-mails de confirmation pointent au bon endroit.
 
 ------------------------------------------------------------
@@ -152,7 +152,7 @@ déconnecté et redirigé vers banni.html ; il ne peut plus accéder au site.
 PWA (application installable) :
  - Nouveaux fichiers : manifest.json, sw.js, offline.html, dossier icons/
  - Sur mobile, les visiteurs peuvent "Ajouter à l'écran d'accueil" et
-   utiliser Jurapotes comme une vraie app (plein écran, icône).
+   utiliser BePotes comme une vraie app (plein écran, icône).
  - IMPORTANT déploiement : uploade bien manifest.json, sw.js, offline.html
    ET le dossier icons/ à la racine, en plus des HTML et assets.
  - La PWA exige HTTPS (Cloudflare Pages le fournit déjà).

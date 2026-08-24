@@ -1,5 +1,5 @@
 // ============================================================
-//  JURAPOTES — Edge Function « notify-digest »
+//  BEPOTES — Edge Function « notify-digest »
 //  Envoie un RÉSUMÉ QUOTIDIEN aux membres en mode email_mode='daily'.
 //  Déclenchée 1×/jour par pg_cron (voir notifications-digest-GUIDE.md).
 //  ------------------------------------------------------------
@@ -10,8 +10,8 @@
 // ============================================================
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const SITE_URL = Deno.env.get("SITE_URL") || "https://jurapotes-betatest.pages.dev";
-const FROM_EMAIL = Deno.env.get("FROM_EMAIL") || "Jurapotes <onboarding@resend.dev>";
+const SITE_URL = Deno.env.get("SITE_URL") || "https://bepotes-betatest.pages.dev";
+const FROM_EMAIL = Deno.env.get("FROM_EMAIL") || "BePotes <onboarding@resend.dev>";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") || "";
 
 const admin = createClient(
@@ -67,19 +67,19 @@ Deno.serve(async () => {
 
       const html = `
         <div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto">
-          <h2 style="color:#E11D2A;margin:0 0 12px">Jurapotes — ton résumé</h2>
+          <h2 style="color:#E11D2A;margin:0 0 12px">BePotes — ton résumé</h2>
           <p style="font-size:16px;color:#1A1416">Depuis hier, tu as <b>${total}</b> nouvelle${total > 1 ? "s" : ""} interaction${total > 1 ? "s" : ""} :</p>
           <ul style="font-size:15px;color:#1A1416">${lines}</ul>
           <p style="margin:22px 0">
-            <a href="${SITE_URL}/notifications.html" style="background:#E11D2A;color:#fff;text-decoration:none;padding:11px 22px;border-radius:999px;font-weight:600;display:inline-block">Voir sur Jurapotes</a>
+            <a href="${SITE_URL}/notifications.html" style="background:#E11D2A;color:#fff;text-decoration:none;padding:11px 22px;border-radius:999px;font-weight:600;display:inline-block">Voir sur BePotes</a>
           </p>
-          <p style="font-size:12px;color:#8a7d7d">Tu reçois ce résumé quotidien car tu l'as choisi dans tes Paramètres Jurapotes. Tu peux repasser en instantané ou désactiver à tout moment.</p>
+          <p style="font-size:12px;color:#8a7d7d">Tu reçois ce résumé quotidien car tu l'as choisi dans tes Paramètres BePotes. Tu peux repasser en instantané ou désactiver à tout moment.</p>
         </div>`;
 
       const r = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { "Authorization": `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from: FROM_EMAIL, to: toEmail, subject: `Jurapotes — ${total} nouvelle${total > 1 ? "s" : ""} interaction${total > 1 ? "s" : ""}`, html }),
+        body: JSON.stringify({ from: FROM_EMAIL, to: toEmail, subject: `BePotes — ${total} nouvelle${total > 1 ? "s" : ""} interaction${total > 1 ? "s" : ""}`, html }),
       });
       if (r.ok) sent++;
     }

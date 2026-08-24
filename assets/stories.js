@@ -1,5 +1,5 @@
-/* ============================================================
-   Jurapotes — Stories éphémères (24 h)
+﻿/* ============================================================
+   BePotes — Stories éphémères (24 h)
    window.JPStories.mount(el) : rend la barre de stories dans `el`
    + gère la création et la visionneuse plein écran.
    Nécessite JP (app.supabase.js) chargé et l'utilisateur connecté.
@@ -112,3 +112,4 @@ window.JPStories = (function () {
 
   return { mount };
 })();
+

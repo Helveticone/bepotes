@@ -1,5 +1,5 @@
-/* ============================================================
-   Jurapotes — moteur Supabase (réseau partagé entre membres)
+﻿/* ============================================================
+   BePotes — moteur Supabase (réseau partagé entre membres)
    ------------------------------------------------------------
    Remplace l'ancien app.js (localStorage).
    Nécessite, AVANT ce script, dans chaque page :
@@ -2505,3 +2505,4 @@ window.JP = (() => {
     touchLastSeen, adminOverview, adminGrowth, adminRetention, adminTopTowns, adminBusiness, adminModeration, adminAcquisition, adminPagesStatus, adminEngagement, adminActivityByHour, adminAdsActive, adminErrors, logError
   };
 })();
+

@@ -1,5 +1,5 @@
-/* ============================================================
-   Jurapotes — Menu mobile (tiroir latéral gauche, façon Facebook)
+﻿/* ============================================================
+   BePotes — Menu mobile (tiroir latéral gauche, façon Facebook)
    - Bouton ☰ dans la barre du haut
    - Onglet « Menu » (☰) ajouté dans la barre du bas (toujours visible)
    Les deux ouvrent un tiroir gauche avec TOUTES les sections.
@@ -126,3 +126,4 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
+

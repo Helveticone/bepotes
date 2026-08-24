@@ -5,8 +5,8 @@ Envoie automatiquement un e-mail chaleureux à **chaque nouveau membre** (décle
 ## 1. Prérequis (déjà fait si `notify-email` tourne)
 Dans **Supabase → Edge Functions → Secrets**, ces 3 secrets doivent exister :
 - `RESEND_API_KEY` — clé API [Resend](https://resend.com)
-- `FROM_EMAIL` — ex. `Jurapotes <bienvenue@jurapotes.ch>` (⚠️ domaine **vérifié** dans Resend pour envoyer à de vraies adresses ; sinon `onboarding@resend.dev` n'envoie qu'à TA propre adresse Resend en test)
-- `SITE_URL` — `https://jurapotes-betatest.pages.dev` (ou `https://jurapotes.ch`)
+- `FROM_EMAIL` — ex. `BePotes <bienvenue@bepotes.be>` (⚠️ domaine **vérifié** dans Resend pour envoyer à de vraies adresses ; sinon `onboarding@resend.dev` n'envoie qu'à TA propre adresse Resend en test)
+- `SITE_URL` — `https://bepotes-betatest.pages.dev` (ou `https://bepotes.be`)
 
 (`SUPABASE_URL` et `SUPABASE_SERVICE_ROLE_KEY` sont injectés automatiquement.)
 

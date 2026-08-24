@@ -1,12 +1,12 @@
-/* ============================================================
-   Jurapotes — CDN média (Cloudflare devant Supabase Storage)
+﻿/* ============================================================
+   BePotes — CDN média (Cloudflare devant Supabase Storage)
    ------------------------------------------------------------
    Met en cache, au bord du réseau Cloudflare, les fichiers PUBLICS
    du Storage Supabase. Les vues répétées sont servies par Cloudflare
    (egress gratuit) → la bande passante facturée par Supabase chute.
 
    Déploiement : voir cloudflare/CDN-GUIDE.md.
-   Route à associer : cdn.jurapotes.ch/*
+   Route à associer : cdn.bepotes.be/*
    ============================================================ */
 
 // 🔧 Mets ici l'URL de TON projet Supabase (sans slash final) :
@@ -35,9 +35,10 @@ export default {
     res = new Response(res.body, res);
     res.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
     res.headers.set('Access-Control-Allow-Origin', '*');
-    res.headers.set('X-Jurapotes-CDN', '1');
+    res.headers.set('X-BePotes-CDN', '1');
 
     if (res.ok) ctx.waitUntil(cache.put(request, res.clone()));
     return res;
   }
 };
+

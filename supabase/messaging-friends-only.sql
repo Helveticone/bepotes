@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Messagerie réservée aux amis (sécurité base)
+--  BEPOTES — Messagerie réservée aux amis (sécurité base)
 --  À exécuter dans Supabase > SQL Editor APRÈS friendships.sql.
 --  Empêche, au niveau de la base, d'ajouter quelqu'un dans une
 --  conversation 1-à-1 si vous n'êtes pas amis (status accepted).

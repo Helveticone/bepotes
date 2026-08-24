@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Marketplace / petites annonces
+--  BEPOTES — Marketplace / petites annonces
 --  À exécuter dans Supabase > SQL Editor (après TOUT-LE-SQL.sql).
 --  Sûr à ré-exécuter (idempotent).
 --  Acheter · vendre · donner entre habitants du Jura.

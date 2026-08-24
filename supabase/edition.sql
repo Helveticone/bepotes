@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Édition des publications et commentaires
+--  BEPOTES — Édition des publications et commentaires
 --  À exécuter dans Supabase > SQL Editor (après TOUT-LE-SQL.sql).
 --  Sûr à ré-exécuter (idempotent).
 --  Les posts ont déjà une policy UPDATE (auteur). Les commentaires

@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Évolutions : photos multiples, groupes ouverts/
+--  BEPOTES — Évolutions : photos multiples, groupes ouverts/
 --  sur validation, demandes d'adhésion.
 --  À exécuter dans Supabase > SQL Editor.
 -- ============================================================

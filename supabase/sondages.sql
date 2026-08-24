@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Sondages dans les publications
+--  BEPOTES — Sondages dans les publications
 --  À exécuter dans Supabase > SQL Editor. Idempotent.
 --  ------------------------------------------------------------
 --  - Les options du sondage sont stockées sur le post (poll_options).

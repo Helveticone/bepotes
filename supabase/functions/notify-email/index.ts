@@ -1,12 +1,12 @@
 // ============================================================
-//  JURAPOTES — Edge Function « notify-email »
+//  BEPOTES — Edge Function « notify-email »
 //  Envoie un e-mail au destinataire d'une notification.
 //  Déclenchée par un Database Webhook sur INSERT de public.notifications.
 //  ------------------------------------------------------------
 //  Variables d'environnement (Supabase > Edge Functions > Secrets) :
 //    RESEND_API_KEY   = clé API Resend (https://resend.com)
-//    FROM_EMAIL       = ex. "Jurapotes <notifications@tondomaine.ch>"
-//    SITE_URL         = https://jurapotes-betatest.pages.dev
+//    FROM_EMAIL       = ex. "BePotes <notifications@tondomaine.ch>"
+//    SITE_URL         = https://bepotes-betatest.pages.dev
 //  (SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont injectés automatiquement.)
 //
 //  Déploiement :  supabase functions deploy notify-email --no-verify-jwt
@@ -14,8 +14,8 @@
 // ============================================================
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const SITE_URL = Deno.env.get("SITE_URL") || "https://jurapotes-betatest.pages.dev";
-const FROM_EMAIL = Deno.env.get("FROM_EMAIL") || "Jurapotes <onboarding@resend.dev>";
+const SITE_URL = Deno.env.get("SITE_URL") || "https://bepotes-betatest.pages.dev";
+const FROM_EMAIL = Deno.env.get("FROM_EMAIL") || "BePotes <onboarding@resend.dev>";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") || "";
 
 const admin = createClient(
@@ -74,15 +74,15 @@ Deno.serve(async (req) => {
 
     const action = notifText(rec.type);
     const link = deepLink(rec.type, rec.post_id ?? null, rec.actor_id ?? null);
-    const subject = `Jurapotes — ${actorName} ${action}`;
+    const subject = `BePotes — ${actorName} ${action}`;
     const html = `
       <div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto">
-        <h2 style="color:#E11D2A;margin:0 0 12px">Jurapotes</h2>
+        <h2 style="color:#E11D2A;margin:0 0 12px">BePotes</h2>
         <p style="font-size:16px;color:#1A1416"><b>${actorName}</b> ${action}.</p>
         <p style="margin:22px 0">
-          <a href="${link}" style="background:#E11D2A;color:#fff;text-decoration:none;padding:11px 22px;border-radius:999px;font-weight:600;display:inline-block">Voir sur Jurapotes</a>
+          <a href="${link}" style="background:#E11D2A;color:#fff;text-decoration:none;padding:11px 22px;border-radius:999px;font-weight:600;display:inline-block">Voir sur BePotes</a>
         </p>
-        <p style="font-size:12px;color:#8a7d7d">Tu reçois cet e-mail car les notifications sont activées dans tes Paramètres Jurapotes. Tu peux les couper à tout moment.</p>
+        <p style="font-size:12px;color:#8a7d7d">Tu reçois cet e-mail car les notifications sont activées dans tes Paramètres BePotes. Tu peux les couper à tout moment.</p>
       </div>`;
 
     if (!RESEND_API_KEY) return new Response("RESEND_API_KEY manquant", { status: 500 });

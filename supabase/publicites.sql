@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Régie publicitaire (pubs dans le fil)
+--  BEPOTES — Régie publicitaire (pubs dans le fil)
 --  À exécuter dans Supabase > SQL Editor (après TOUT-LE-SQL.sql).
 --  Sûr à ré-exécuter (idempotent).
 --  ------------------------------------------------------------

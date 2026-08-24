@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Likes sur les commentaires
+--  BEPOTES — Likes sur les commentaires
 --  À exécuter dans Supabase > SQL Editor (après TOUT-LE-SQL.sql).
 --  Sûr à ré-exécuter (idempotent).
 --  Permet le tri « le plus aimé » sur les commentaires (façon FB).

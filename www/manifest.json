@@ -1,7 +1,7 @@
-{
-  "name": "Jurapotes — le réseau du Jura",
-  "short_name": "Jurapotes",
-  "description": "Le réseau social local du Jura suisse : amis, groupes, événements et vie locale.",
+﻿{
+  "name": "BePotes — le réseau social local",
+  "short_name": "BePotes",
+  "description": "Le réseau social local de Wallonie et de Bruxelles : amis, groupes, événements et vie locale.",
   "start_url": "/fil.html",
   "scope": "/",
   "display": "standalone",
@@ -15,3 +15,4 @@
     { "src": "/icons/icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
+

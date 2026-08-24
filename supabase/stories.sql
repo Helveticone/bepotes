@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Stories éphémères (24 h)
+--  BEPOTES — Stories éphémères (24 h)
 --  À exécuter dans Supabase > SQL Editor. Idempotent.
 --  ------------------------------------------------------------
 --  Une story = une image/vidéo (+ texte) qui expire après 24 h.

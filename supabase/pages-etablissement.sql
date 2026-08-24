@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Pages d'établissement / club
+--  BEPOTES — Pages d'établissement / club
 --  À exécuter dans Supabase > SQL Editor (après TOUT-LE-SQL.sql).
 --  ------------------------------------------------------------
 --  Une "Page" réutilise la table groups mais avec kind='page'

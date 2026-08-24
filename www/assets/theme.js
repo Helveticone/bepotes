@@ -1,5 +1,5 @@
-/* ============================================================
-   Jurapotes — Mode sombre 🌙
+﻿/* ============================================================
+   BePotes — Mode sombre 🌙
    À charger TÔT (dans <head>, après le <link> du CSS) pour
    appliquer le thème avant le rendu (pas de flash).
    - Préférence mémorisée dans localStorage ('jp-theme').
@@ -36,3 +36,4 @@
     }
   };
 })();
+

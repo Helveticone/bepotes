@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Classement — Jurapotes</title>
+<title>Classement — BePotes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
@@ -15,9 +15,10 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Jurapotes">
+<meta name="apple-mobile-web-app-title" content="BePotes">
 <script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
 <script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/communes.js?v=1" defer data-turbo-track="reload"></script>
 <script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
 <script src="assets/nav.js?v=10" defer data-turbo-track="reload"></script>
 <script src="assets/bell.js?v=23" defer data-turbo-track="reload"></script>
@@ -25,7 +26,7 @@
 </head>
 <body>
 <nav><div class="wrap nav-inner">
-  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">J</span><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">B</span><span class="wordmark">be<span class="wm-red">potes</span></span></a>
   <div class="nav-links">
     <a href="fil.html">Le fil</a>
     <a href="amis.html">Amis</a>
@@ -45,7 +46,7 @@
 
 <div class="page-pad"><div class="narrow">
   <h1 style="font-family:'Fraunces',serif;margin-bottom:4px">🏆 Classement</h1>
-  <p style="color:var(--ink-soft);margin-bottom:18px">Les Jurassiens les plus actifs. Publie, commente, crée des reels et reçois des j'aime pour grimper !</p>
+  <p style="color:var(--ink-soft);margin-bottom:18px">Les membres les plus actifs. Publie, commente, crée des reels et reçois des j'aime pour grimper !</p>
 
   <div class="lb-tabs">
     <button class="active" data-period="month">Ce mois-ci</button>
@@ -87,14 +88,14 @@ document.addEventListener("DOMContentLoaded",function(){
     if(!rows){ rows=await JP.leaderboard(period, 25); cache[period]=rows; }
     if(!rows.length){
       heroBox.innerHTML='';
-      listBox.innerHTML='<div class="empty" style="text-align:center;padding:40px;color:var(--ink-soft)"><p>Pas encore de classement '+(period==='month'?'ce mois-ci':'')+'. Sois le premier à animer le Jura !</p></div>';
+      listBox.innerHTML='<div class="empty" style="text-align:center;padding:40px;color:var(--ink-soft)"><p>Pas encore de classement '+(period==='month'?'ce mois-ci':'')+'. Sois le premier à animer ta région !</p></div>';
       return;
     }
-    // « Jurassien du mois » / champion = 1er
+    // « Pote du mois » / champion = 1er
     const champ=rows[0];
     heroBox.innerHTML=`<div class="lb-hero">
       ${JP.avatarHTML(champ.name,champ.avatar,'av')}
-      <div class="lh-txt"><b>${JP.esc(champ.name)}</b><span>${period==='month'?'Jurassien du mois':'Champion all-time'} · ${champ.score} pts</span></div>
+      <div class="lh-txt"><b>${JP.esc(champ.name)}</b><span>${period==='month'?'Pote du mois':'Champion all-time'} · ${champ.score} pts</span></div>
       <span class="lh-crown">👑</span>
     </div>`;
     heroBox.querySelector('.lb-hero').style.cursor='pointer';
@@ -115,3 +116,4 @@ document.addEventListener("DOMContentLoaded",function(){
 </script>
 </body>
 </html>
+

@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Modération & blocage
+--  BEPOTES — Modération & blocage
 --  À exécuter dans Supabase > SQL Editor (après TOUT-LE-SQL.sql).
 --  Sûr à ré-exécuter.
 -- ============================================================

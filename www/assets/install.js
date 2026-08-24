@@ -1,5 +1,5 @@
-/* ============================================================
-   Jurapotes — Installation de l'app (PWA)
+﻿/* ============================================================
+   BePotes — Installation de l'app (PWA)
    API : window.JPInstall.{state, promptInstall, isStandalone}
    - Android/desktop Chrome : installation native en 1 clic (beforeinstallprompt)
    - iOS : pas d'API d'installation -> on renvoie 'ios' (instructions à montrer),
@@ -43,3 +43,4 @@ window.JPInstall = (function () {
   }
   return { state, promptInstall, isStandalone, isIOS, isIOSSafari };
 })();
+

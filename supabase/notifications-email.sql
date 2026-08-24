@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Notifications par e-mail (préférence membre)
+--  BEPOTES — Notifications par e-mail (préférence membre)
 --  À exécuter dans Supabase > SQL Editor. Idempotent.
 --  ------------------------------------------------------------
 --  Ajoute une préférence par membre : recevoir (ou non) un e-mail

@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Mode d'envoi des e-mails (instantané / quotidien / off)
+--  BEPOTES — Mode d'envoi des e-mails (instantané / quotidien / off)
 --  À exécuter dans Supabase > SQL Editor. Idempotent.
 --  ------------------------------------------------------------
 --  email_mode :

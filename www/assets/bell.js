@@ -1,4 +1,4 @@
-/* Cloche de notifications : compteur initial + mise à jour temps réel.
+﻿/* Cloche de notifications : compteur initial + mise à jour temps réel.
    À inclure après app.supabase.js sur les pages connectées. */
 (async function(){
   // Marquer l'onglet actif dans la barre mobile
@@ -48,3 +48,4 @@
     }
   }catch(e){ /* silencieux */ }
 })();
+

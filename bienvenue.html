@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
-<title>Bienvenue — Jurapotes</title>
+<title>Bienvenue — BePotes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
@@ -16,24 +16,25 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
 <script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/communes.js?v=1" defer data-turbo-track="reload"></script>
 <script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
 </head>
 <body>
 <nav><div class="wrap nav-inner">
-  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">J</span><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">B</span><span class="wordmark">be<span class="wm-red">potes</span></span></a>
 </div></nav>
 
 <div class="page-pad">
   <div class="auth-card">
     <h2>Bienvenue 👋</h2>
-    <p class="sub">Encore une petite étape pour rejoindre le Jura.</p>
+    <p class="sub">Encore une petite étape pour rejoindre la région.</p>
     <div id="err" class="alert" style="display:none"></div>
     <div class="field">
       <label for="name">Nom & prénom</label>
       <input id="name" type="text" placeholder="Marie Lovis" autocomplete="name">
     </div>
     <div class="field">
-      <label for="town">Ta commune jurassienne</label>
+      <label for="town">Ta commune</label>
       <select id="town"><option value="">Choisis…</option></select>
     </div>
     <div class="field">
@@ -76,7 +77,7 @@ document.addEventListener("DOMContentLoaded",function(){
     const gender=document.getElementById('gender').value;
     const birthday=document.getElementById('birthday').value||null;
     if(!name) return showErr("Indique ton nom.");
-    if(!town) return showErr("Choisis ta commune jurassienne.");
+    if(!town) return showErr("Choisis ta commune.");
     btn.disabled=true; btn.textContent='Un instant…';
     const r=await JP.updateProfile({name, town, gender, birthday});
     btn.disabled=false; btn.textContent="C'est parti ! 🚀";
@@ -89,3 +90,4 @@ document.addEventListener("DOMContentLoaded",function(){
 </script>
 </body>
 </html>
+

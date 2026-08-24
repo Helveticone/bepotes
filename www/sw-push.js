@@ -1,5 +1,5 @@
-/* ============================================================
-   Jurapotes — Service Worker : PUSH UNIQUEMENT
+﻿/* ============================================================
+   BePotes — Service Worker : PUSH UNIQUEMENT
    ------------------------------------------------------------
    IMPORTANT : aucun handler `fetch`.
    -> Les navigations (changements de page) NE passent PLUS par le SW,
@@ -26,7 +26,7 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('push', (e) => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data && e.data.text() }; }
-  const title = d.title || 'Jurapotes';
+  const title = d.title || 'BePotes';
   const opts = {
     body: d.body || '',
     icon: '/icons/apple-touch-icon.png',
@@ -48,3 +48,4 @@ self.addEventListener('notificationclick', (e) => {
     if (self.clients.openWindow) return self.clients.openWindow(url);
   })());
 });
+

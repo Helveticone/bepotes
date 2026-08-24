@@ -1,4 +1,4 @@
-/* Service worker neutralisé : il se désinstalle lui-même et vide les caches.
+﻿/* Service worker neutralisé : il se désinstalle lui-même et vide les caches.
    (La PWA sera reconstruite proprement plus tard.) */
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => {
@@ -10,3 +10,4 @@ self.addEventListener('activate', (e) => {
     clients.forEach((c) => c.navigate(c.url));
   })());
 });
+

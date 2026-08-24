@@ -1,4 +1,4 @@
-/* Modale de signalement + helpers de blocage, partagés entre pages.
+﻿/* Modale de signalement + helpers de blocage, partagés entre pages.
    À inclure après app.supabase.js. Expose window.Mod. */
 (function(){
   const REASONS=[
@@ -65,3 +65,4 @@
 
   window.Mod={ openReport, blockUser };
 })();
+

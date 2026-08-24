@@ -1,5 +1,5 @@
-/* ============================================================
-   Jurapotes — Menu mobile (tiroir latéral gauche, façon Facebook)
+﻿/* ============================================================
+   BePotes — Menu mobile (tiroir latéral gauche, façon Facebook)
    - Bouton ☰ dans la barre du haut
    - Onglet « Menu » (☰) ajouté dans la barre du bas (toujours visible)
    Les deux ouvrent un tiroir gauche avec TOUTES les sections.
@@ -44,7 +44,7 @@
     bg.className = 'drawer-bg';
     bg.innerHTML =
       '<aside class="drawer" role="dialog" aria-label="Menu">' +
-        '<div class="drawer-head"><span class="wordmark">jura<span class="wm-red">potes</span></span>' +
+        '<div class="drawer-head"><span class="wordmark">be<span class="wm-red">potes</span></span>' +
         '<button class="drawer-x" type="button" aria-label="Fermer">&times;</button></div>' +
         '<nav class="drawer-links">' +
           link('fil.html', 'Le fil', I.fil) +
@@ -126,3 +126,4 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
+

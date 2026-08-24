@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Le fil — Jurapotes</title>
+<title>Le fil — BePotes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
@@ -15,7 +15,7 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Jurapotes">
+<meta name="apple-mobile-web-app-title" content="BePotes">
 <style>
   /* Composer du fil : la rangée d'options (Photo/Vidéo/Sondage + menus) ne doit
      jamais déborder ni pousser « Publier » hors de la carte. Retour à la ligne
@@ -28,6 +28,7 @@
 </style>
 <script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
 <script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/communes.js?v=1" defer data-turbo-track="reload"></script>
 <script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
 <script src="assets/nav.js?v=10" defer data-turbo-track="reload"></script>
 <script src="assets/moderation.js?v=18" defer data-turbo-track="reload"></script>
@@ -39,7 +40,7 @@
 </head>
 <body>
 <nav><div class="wrap nav-inner">
-  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">J</span><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">B</span><span class="wordmark">be<span class="wm-red">potes</span></span></a>
   <div class="nav-links">
     <form class="nav-search" onsubmit="location.href='recherche.html?q='+encodeURIComponent(this.q.value);return false;">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -91,7 +92,7 @@
       </div>
       <div class="top">
         <div id="compAvBox"></div>
-        <textarea id="compText" placeholder="Quoi de neuf dans le Jura ?" maxlength="500"></textarea>
+        <textarea id="compText" placeholder="Quoi de neuf près de chez toi ?" maxlength="500"></textarea>
       </div>
       <div class="comp-starters" id="compStarters"></div>
       <div class="comp-previews" id="previews"></div>
@@ -116,7 +117,7 @@
             <option>Entraide</option><option>Vendre/Donner</option><option>Question</option>
           </select>
           <select id="compVis" class="chip" style="border:none;cursor:pointer" title="Qui peut voir cette publication">
-            <option value="all">🌍 Tout le Jura</option>
+            <option value="all">🌍 Toute la région</option>
             <option value="friends">👥 Amis seulement</option>
           </select>
         </div>
@@ -144,7 +145,7 @@
       <a href="evenements.html" class="btn btn-ghost btn-sm btn-block" style="margin-top:6px">Tous les événements</a>
     </div>
     <div class="side-card" style="font-size:.82rem;color:var(--ink-soft)">
-      🌿 <b>Réseau du Jura</b> — tes publications sont partagées avec toute la communauté Jurapotes. Sois sympa, reste local !
+      🌿 <b>Réseau local</b> — tes publications sont partagées avec toute la communauté BePotes. Sois sympa, reste local !
     </div>
   </aside>
 
@@ -190,18 +191,18 @@ document.addEventListener("DOMContentLoaded",function(){
       if(st==='installed' || (JPInstall.isStandalone && JPInstall.isStandalone())){ hide(); return; }   // déjà installée → on n'invite plus
       const ICO='<span class="ib-ico">📲</span>';
       if(st==='prompt'){
-        bar.innerHTML=ICO+'<span class="ib-txt">Installe l\'appli Jurapotes — accès direct + notifications</span><button class="ib-go" type="button">Installer</button><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
+        bar.innerHTML=ICO+'<span class="ib-txt">Installe l\'appli BePotes — accès direct + notifications</span><button class="ib-go" type="button">Installer</button><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
         bar.style.display='flex';
         bar.querySelector('.ib-go').addEventListener('click',async()=>{ const r=await JPInstall.promptInstall(); if(r.ok) hide(); });
       } else if(st==='ios'){
-        bar.innerHTML=ICO+'<span class="ib-txt">Ajoute Jurapotes à ton écran d\'accueil : <b>Partager ⬆️ → Sur l\'écran d\'accueil</b></span><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
+        bar.innerHTML=ICO+'<span class="ib-txt">Ajoute BePotes à ton écran d\'accueil : <b>Partager ⬆️ → Sur l\'écran d\'accueil</b></span><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
         bar.style.display='flex';
       } else if(st==='ios-bad-browser'){
-        bar.innerHTML=ICO+'<span class="ib-txt">Pour installer Jurapotes sur iPhone, ouvre le site dans <b>Safari</b>.</span><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
+        bar.innerHTML=ICO+'<span class="ib-txt">Pour installer BePotes sur iPhone, ouvre le site dans <b>Safari</b>.</span><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
         bar.style.display='flex';
       } else {
         // Android sans invite native (Chrome sans engagement, Mi Browser, nav. privée…)
-        bar.innerHTML=ICO+'<span class="ib-txt">Installe l\'appli Jurapotes : menu <b>⋮</b> du navigateur → <b>« Installer l\'application »</b> ou <b>« Ajouter à l\'écran d\'accueil »</b></span><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
+        bar.innerHTML=ICO+'<span class="ib-txt">Installe l\'appli BePotes : menu <b>⋮</b> du navigateur → <b>« Installer l\'application »</b> ou <b>« Ajouter à l\'écran d\'accueil »</b></span><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
         bar.style.display='flex';
       }
       wireX();
@@ -230,7 +231,7 @@ document.addEventListener("DOMContentLoaded",function(){
     // Aperçu = 1ʳᵉ image figée (preload metadata seulement, ~léger). La vidéo
     // ne se télécharge en entier QUE quand on clique (ouverture plein écran).
     const tiles=(_reels||[]).map((r,i)=>`<a class="reel" data-i="${i}"><video src="${r.video}#t=0.1" ${r.cover?`poster="${r.cover}"`:''} muted playsinline preload="${r.cover?'none':'metadata'}"></video><div class="reel-grad"></div><span class="reel-play" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;pointer-events:none">▶</span><span class="reel-name">${JP.esc(r.author)}</span></a>`).join('');
-    d.innerHTML=`<h3 class="rs-title">🎬 Reels du Jura <a href="reels.html" class="rs-all">Voir tout ›</a></h3><div class="reels-row">`+
+    d.innerHTML=`<h3 class="rs-title">🎬 Reels <a href="reels.html" class="rs-all">Voir tout ›</a></h3><div class="reels-row">`+
       `<button type="button" class="reel reel-create" id="reelCreate"><span class="rc-plus">+</span><span class="rc-lbl">Ton reel</span></button>`+
       tiles+`</div>`;
     d.querySelector('#reelCreate').addEventListener('click',()=>document.getElementById('reelFile').click());
@@ -351,7 +352,7 @@ document.addEventListener("DOMContentLoaded",function(){
   function renderFeed(){
     if(!loadedPosts.length){
       feed.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
-        +'<p><b>Le fil n\'attend que toi !</b><br>Sois le premier à publier — présente-toi, partage un bon plan ou pose une question au Jura.</p>'
+        +'<p><b>Le fil n\'attend que toi !</b><br>Sois le premier à publier — présente-toi, partage un bon plan ou pose une question à tes voisins.</p>'
         +'<button class="btn btn-primary btn-sm" id="emptyPost" style="margin-top:12px">✍️ Publier maintenant</button></div>';
       const ep=document.getElementById('emptyPost');
       if(ep) ep.addEventListener('click',()=>{ const t=document.getElementById('compText'); if(t){ t.focus(); t.scrollIntoView({behavior:'smooth',block:'center'}); } });
@@ -916,11 +917,11 @@ document.addEventListener("DOMContentLoaded",function(){
 
   /* ---- Amorces de publication : lèvent la « page blanche » du premier post ---- */
   const STARTERS=[
-    {label:'👋 Je me présente', text:'Salut le Jura ! 👋 Moi c’est '},
-    {label:'💡 Un bon plan',     text:'Mon bon plan dans le Jura : '},
-    {label:'❓ Une question',     text:'Petite question aux Jurapotes : '},
+    {label:'👋 Je me présente', text:'Salut tout le monde ! 👋 Moi c’est '},
+    {label:'💡 Un bon plan',     text:'Mon bon plan du coin : '},
+    {label:'❓ Une question',     text:'Petite question aux BePotes : '},
     {label:'📅 Une sortie',      text:'Qui est partant·e pour '},
-    {label:'😍 Un coup de cœur',  text:'Mon coup de cœur du moment dans le Jura : '}
+    {label:'😍 Un coup de cœur',  text:'Mon coup de cœur du moment : '}
   ];
   const startersEl=document.getElementById('compStarters');
   function paintStarters(){ if(startersEl) startersEl.style.display = compText.value.trim() ? 'none' : 'flex'; }
@@ -949,7 +950,7 @@ document.addEventListener("DOMContentLoaded",function(){
     function paintIdentity(){
       const p=myManagedPages.find(x=>x.id===compAs.value);
       if(compAvBox) compAvBox.innerHTML = p ? JP.avatarHTML(p.name,p.avatar,'av') : JP.avatarHTML(me.name,me.avatar,'av');
-      compText.placeholder = p ? ('Publier en tant que '+p.name+'…') : 'Quoi de neuf dans le Jura ?';
+      compText.placeholder = p ? ('Publier en tant que '+p.name+'…') : 'Quoi de neuf près de chez toi ?';
     }
     compAs.addEventListener('change', paintIdentity);
     paintIdentity();
@@ -1202,8 +1203,8 @@ document.addEventListener("DOMContentLoaded",function(){
     if(!main || !composer) return;
     const card=document.createElement('div'); card.className='welcome-card';
     card.innerHTML=`<button class="wc-x" type="button" aria-label="Fermer">&times;</button>
-      <h3>Bienvenue sur Jurapotes 👋</h3>
-      <p>Trois petits pas pour bien démarrer dans le Jura :</p>
+      <h3>Bienvenue sur BePotes 👋</h3>
+      <p>Trois petits pas pour bien démarrer :</p>
       <div class="wc-steps">
         <a class="wc-step" href="profil.html">🧑 Compléter mon profil (photo, à propos)</a>
         <a class="wc-step" href="amis.html">🤝 Trouver des amis près de chez moi</a>
@@ -1236,3 +1237,4 @@ document.addEventListener("DOMContentLoaded",function(){
 </nav>
 </body>
 </html>
+

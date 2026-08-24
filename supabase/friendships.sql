@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Amitiés (demandes d'ami réciproques)
+--  BEPOTES — Amitiés (demandes d'ami réciproques)
 --  À exécuter dans Supabase > SQL Editor APRÈS le schema.sql.
 --  Complète le système d'abonnements (follows) existant :
 --   - follows  = suivre (unilatéral, façon Instagram)  [déjà en place]

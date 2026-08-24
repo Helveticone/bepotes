@@ -39,8 +39,8 @@ Dashboard → **Edge Functions → notify-email → Secrets** (ou via CLI) :
 
 ```bash
 supabase secrets set RESEND_API_KEY=re_xxxxxxxx
-supabase secrets set FROM_EMAIL="Jurapotes <notifications@helveticonemedia.ch>"
-supabase secrets set SITE_URL=https://jurapotes-betatest.pages.dev
+supabase secrets set FROM_EMAIL="BePotes <notifications@helveticonemedia.ch>"
+supabase secrets set SITE_URL=https://bepotes-betatest.pages.dev
 ```
 
 (`SUPABASE_URL` et `SUPABASE_SERVICE_ROLE_KEY` sont fournis automatiquement.)
@@ -57,7 +57,7 @@ qui envoie l'e-mail si le destinataire a gardé l'option activée.
 
 ## 6. Tester
 - Avec un 2ᵉ compte, envoie-toi une demande d'ami / un message.
-- Tu dois recevoir un e-mail « Jurapotes — X t'a envoyé… » avec un bouton vers le site.
+- Tu dois recevoir un e-mail « BePotes — X t'a envoyé… » avec un bouton vers le site.
 - Logs en cas de souci : Dashboard → Edge Functions → notify-email → **Logs**.
 
 ## Notes

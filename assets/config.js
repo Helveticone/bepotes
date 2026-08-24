@@ -1,7 +1,7 @@
-/* ============================================================
+﻿/* ============================================================
    CONFIGURATION SUPABASE
    ------------------------------------------------------------
-   Clés du projet Jurapotes (clés PUBLIQUES, prévues pour le
+   Clés du projet BePotes (clés PUBLIQUES, prévues pour le
    navigateur ; la sécurité vient de la RLS, pas du secret).
    Ne mets JAMAIS la clé "service_role" ici.
    ============================================================ */
@@ -14,10 +14,13 @@ window.JP_CONFIG = {
   VAPID_PUBLIC: "BDQ6phxYy7ryVbMKWjqfztaBvRUT28m28jVN_rYTpF9_nk7AAHnJ8z7Bn2Jnmt5ln3K4J4RKNNlXGSCLoaOsB8g",
 
   // CDN média (Cloudflare devant Supabase Storage). VIDE = désactivé (médias servis
-  // directement par Supabase). Worker actif sur workers.dev (provisoire avant jurapotes.ch).
-  // Quand jurapotes.ch sera branché : remplacer par "https://cdn.jurapotes.ch".
+  // directement par Supabase). Worker actif sur workers.dev (provisoire avant bepotes.be).
+  // ⚠️ REBRANDING : cette URL pointe encore sur le Worker déployé sous le nom « BePotes ».
+  // Ne la change QUE lorsque le Worker aura été redéployé sous le nom « bepotes »
+  // (wrangler.jsonc → name: "bepotes"), sinon tous les médias cassent.
+  // Quand bepotes.be sera branché : remplacer par "https://cdn.bepotes.be".
   // (voir cloudflare/cdn-worker.js + cloudflare/CDN-GUIDE.md). Aucun autre changement requis.
-  MEDIA_CDN: "https://jurapotes.connect41swiss1.workers.dev",
+  MEDIA_CDN: "https://BePotes.connect41swiss1.workers.dev",
 
   // Anti-bot à l'inscription : clé PUBLIQUE Cloudflare Turnstile (gratuit).
   // VIDE = désactivé (seule la protection honeypot/délai s'applique). Pour activer :
@@ -34,3 +37,4 @@ window.JP_CONFIG = {
   // (Authentication → Providers → Google). Voir supabase/google-auth-GUIDE.md.
   GOOGLE_AUTH: true
 };
+

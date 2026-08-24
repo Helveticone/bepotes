@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Quelques événements de démarrage (optionnel)
+--  BEPOTES — Quelques événements de démarrage (optionnel)
 --  À exécuter une fois si tu veux que la page Événements ne soit
 --  pas vide au lancement. Tu peux les supprimer plus tard.
 -- ============================================================

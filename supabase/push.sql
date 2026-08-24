@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Notifications push (Web Push / PWA)
+--  BEPOTES — Notifications push (Web Push / PWA)
 --  À exécuter dans Supabase > SQL Editor. Idempotent.
 --  ------------------------------------------------------------
 --  Chaque appareil qui accepte les push enregistre un abonnement

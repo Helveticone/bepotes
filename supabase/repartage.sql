@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Repartage de publications
+--  BEPOTES — Repartage de publications
 --  À exécuter dans Supabase > SQL Editor (après TOUT-LE-SQL.sql).
 --  Sûr à ré-exécuter (idempotent).
 --  Une publication peut en "repartager" une autre (shared_post_id).

@@ -1,5 +1,5 @@
-{
-  "name": "jurapotes",
+﻿{
+  "name": "bepotes",
   "version": "1.0.0",
   "description": "",
   "main": "sw-push.js",
@@ -94,14 +94,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Helveticone/jurapotes.git"
+    "url": "git+https://github.com/Helveticone/bepotes.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/Helveticone/jurapotes/issues"
+    "url": "https://github.com/Helveticone/bepotes/issues"
   },
-  "homepage": "https://github.com/Helveticone/jurapotes#readme"
+  "homepage": "https://github.com/Helveticone/bepotes#readme",
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5"
+  }
 }
+

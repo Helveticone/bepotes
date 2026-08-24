@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Fiabiliser TOUTES les policies de lecture
+--  BEPOTES — Fiabiliser TOUTES les policies de lecture
 --  À exécuter dans Supabase > SQL Editor.
 --  Remplace les "auth.role() = 'authenticated'" (fragiles avec
 --  les nouvelles clés JWT) par "auth.uid() is not null" (fiable).

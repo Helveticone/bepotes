@@ -33,7 +33,7 @@ create extension if not exists pg_net;
 -- Remplace <PROJECT_REF> et <SERVICE_ROLE_KEY> (Settings > API).
 -- Tous les jours à 08:00 (heure du serveur, UTC).
 select cron.schedule(
-  'jurapotes-digest-quotidien',
+  'bepotes-digest-quotidien',
   '0 8 * * *',
   $$
   select net.http_post(
@@ -49,7 +49,7 @@ select cron.schedule(
 ```
 
 > Pour changer l'heure : `cron.schedule` réécrit le job du même nom.
-> Pour supprimer : `select cron.unschedule('jurapotes-digest-quotidien');`
+> Pour supprimer : `select cron.unschedule('bepotes-digest-quotidien');`
 
 ## 4. Tester sans attendre 8 h
 Appelle la fonction à la main (un membre doit être en mode « daily » et avoir

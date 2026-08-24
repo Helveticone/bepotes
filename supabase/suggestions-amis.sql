@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Suggestions d'amis (amis communs prioritaires)
+--  BEPOTES — Suggestions d'amis (amis communs prioritaires)
 --  À exécuter dans Supabase > SQL Editor (après TOUT-LE-SQL.sql).
 --  Sûr à ré-exécuter (idempotent).
 --  ------------------------------------------------------------

@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Commune sur les publications (filtre local)
+--  BEPOTES — Commune sur les publications (filtre local)
 --  À exécuter dans Supabase > SQL Editor. Idempotent.
 --  ------------------------------------------------------------
 --  On dénormalise la commune de l'auteur sur le post (posts.town)

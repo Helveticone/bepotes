@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Avis & notes (étoiles) sur les Pages
+--  BEPOTES — Avis & notes (étoiles) sur les Pages
 --  À exécuter dans Supabase > SQL Editor (après TOUT-LE-SQL.sql).
 --  Sûr à ré-exécuter (idempotent).
 --  Une Page (groups.kind='page') peut recevoir des avis notés 1–5.

@@ -1,5 +1,5 @@
-/* ============================================================
-   Jurapotes — Notifications push (côté client)
+﻿/* ============================================================
+   BePotes — Notifications push (côté client)
    API : window.JPPush.{supported, status, enable, disable}
    Nécessite : JP (app.supabase.js) chargé, VAPID_PUBLIC dans config.js,
    et le SW sw-push.js (enregistré par pwa.js).
@@ -53,3 +53,4 @@ window.JPPush = (function () {
   }
   return { supported, status, enable, disable };
 })();
+

@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Événements enrichis (Intéressé + discussion)
+--  BEPOTES — Événements enrichis (Intéressé + discussion)
 --  À exécuter dans Supabase > SQL Editor (après TOUT-LE-SQL.sql).
 --  Sûr à ré-exécuter (idempotent).
 -- ============================================================

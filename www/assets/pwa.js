@@ -1,5 +1,5 @@
-/* ============================================================
-   Jurapotes — PWA / Service Worker
+﻿/* ============================================================
+   BePotes — PWA / Service Worker
    - Désinstalle l'ANCIEN sw.js (il faisait clients.navigate -> rechargements
      en boucle / logo qui « disparaît »).
    - Enregistre le SW push (sw-push.js) : il ne met RIEN en cache.
@@ -19,3 +19,4 @@
   }).catch(() => {});
   navigator.serviceWorker.register('/sw-push.js').catch(() => {});
 })();
+

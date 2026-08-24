@@ -4,9 +4,9 @@ Permet de s'inscrire / se connecter en 1 clic avec un compte Google.
 Tout le code est prêt ; il reste 3 étapes de config (≈ 10 min).
 
 ## 1. Identifiants Google (Google Cloud Console)
-1. Va sur https://console.cloud.google.com/ → crée un projet (ex. « Jurapotes »).
+1. Va sur https://console.cloud.google.com/ → crée un projet (ex. « BePotes »).
 2. **APIs & Services → OAuth consent screen** : type **External**, renseigne le nom
-   « Jurapotes », un e-mail de support, le domaine. Publie (ou laisse en test au début).
+   « BePotes », un e-mail de support, le domaine. Publie (ou laisse en test au début).
 3. **APIs & Services → Credentials → Create Credentials → OAuth client ID** :
    - Type : **Web application**.
    - **Authorized redirect URIs** : ajoute l'URL de callback Supabase :
@@ -19,7 +19,7 @@ Supabase → **Authentication → Providers → Google** :
 - Enregistre.
 
 (Optionnel mais conseillé : Authentication → URL Configuration → **Site URL** =
-`https://jurapotes-betatest.pages.dev` (puis `https://jurapotes.ch`), et ajoute les deux
+`https://bepotes-betatest.pages.dev` (puis `https://bepotes.be`), et ajoute les deux
 dans **Redirect URLs**.)
 
 ## 3. SQL (une fois)

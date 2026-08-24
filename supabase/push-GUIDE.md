@@ -1,7 +1,7 @@
 # Notifications push (Web Push / PWA) — guide d'installation
 
 Le membre reçoit une **vraie notification** sur son téléphone/ordinateur (même
-Jurapotes fermé) à chaque interaction. Il l'active depuis **Paramètres → Notifications push**.
+BePotes fermé) à chaque interaction. Il l'active depuis **Paramètres → Notifications push**.
 
 > Tant que ce n'est pas installé, tout fonctionne : le bouton « Activer » dira
 > simplement que la clé VAPID manque.
@@ -49,7 +49,7 @@ se déclenchent, c'est normal.)
 ## 7. Tester
 1. Sur le site (HTTPS), va dans **Paramètres → Notifications push → « Activer »**,
    accepte la demande du navigateur. (Sur iPhone : il faut d'abord **ajouter
-   Jurapotes à l'écran d'accueil**, le push n'est dispo qu'en mode PWA installée.)
+   BePotes à l'écran d'accueil**, le push n'est dispo qu'en mode PWA installée.)
 2. Déclenche une notif (depuis un 2ᵉ compte, ou via SQL :
    `insert into public.notifications (user_id, actor_id, type) select id,id,'message' from auth.users where email='ton@email';`).
 3. Une notification système doit apparaître. Logs : Edge Functions → notify-push.

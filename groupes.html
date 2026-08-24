@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Groupes — Jurapotes</title>
+<title>Groupes — BePotes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
@@ -15,9 +15,10 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Jurapotes">
+<meta name="apple-mobile-web-app-title" content="BePotes">
 <script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
 <script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/communes.js?v=1" defer data-turbo-track="reload"></script>
 <script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
 <script src="assets/nav.js?v=10" defer data-turbo-track="reload"></script>
 <script src="assets/bell.js?v=23" defer data-turbo-track="reload"></script>
@@ -26,7 +27,7 @@
 </head>
 <body>
 <nav><div class="wrap nav-inner">
-  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">J</span><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">B</span><span class="wordmark">be<span class="wm-red">potes</span></span></a>
   <div class="nav-links">
     <form class="nav-search" onsubmit="location.href='recherche.html?q='+encodeURIComponent(this.q.value);return false;">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -52,7 +53,7 @@
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;gap:14px;flex-wrap:wrap">
     <div>
       <h1 style="font-size:2rem;margin-bottom:6px">Groupes & communautés</h1>
-      <p style="color:var(--ink-soft)">Clubs, quartiers, passions… rejoins les communautés du Jura ou crée la tienne.</p>
+      <p style="color:var(--ink-soft)">Clubs, quartiers, passions… rejoins les communautés de la région ou crée la tienne.</p>
     </div>
     <button class="btn btn-primary" id="newGroupBtn">+ Créer un groupe</button>
   </div>
@@ -63,14 +64,14 @@
   <div class="modal">
     <div class="modal-head"><h3>Créer un groupe</h3><button class="x" id="gClose">&times;</button></div>
     <div class="modal-body">
-      <div class="field"><label for="gName">Nom du groupe</label><input id="gName" type="text" maxlength="60" placeholder="FC Delémont fans, Rando Jura, Troc & dons…"></div>
+      <div class="field"><label for="gName">Nom du groupe</label><input id="gName" type="text" maxlength="60" placeholder="Supporters du Standard, Rando Ardenne, Troc & dons…"></div>
       <div class="field"><label for="gTown">Commune (optionnel)</label>
         <select id="gTown">
-          <option value="">Tout le Jura</option>
-          <option>Delémont</option><option>Porrentruy</option><option>Saignelégier</option>
-          <option>Bassecourt</option><option>Courrendlin</option><option>Le Noirmont</option>
-          <option>Les Bois</option><option>Courroux</option><option>Alle</option>
-          <option>Châtenois</option><option>Vicques</option>
+          <option value="">Toute la région</option>
+          <option>Bruxelles</option><option>Liège</option><option>Charleroi</option>
+          <option>Namur</option><option>Mons</option><option>Seraing</option>
+          <option>Verviers</option><option>La Louvière</option><option>Tournai</option>
+          <option>Wavre</option><option>Arlon</option>
         </select>
       </div>
       <div class="field"><label for="gDesc">Description</label><textarea id="gDesc" maxlength="300" placeholder="De quoi parle ce groupe ?"></textarea></div>
@@ -94,7 +95,7 @@ document.addEventListener("DOMContentLoaded",function(){
 (async function(){
   const okAuth = await JP.requireAuth();
   if(!okAuth) return;
-  JP.fillCommuneSelect(document.getElementById('gTown'), {first:'Tout le Jura'});
+  JP.fillCommuneSelect(document.getElementById('gTown'), {first:'Toute la région'});
   document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
   const grid=document.getElementById('groupGrid');
 
@@ -107,7 +108,7 @@ document.addEventListener("DOMContentLoaded",function(){
         <div class="gcover" ${g.cover?`style="background-image:url(${g.cover})"`:''}></div>
         <div class="gbody">
           <h3>${JP.esc(g.name)}</h3>
-          <div class="gtown">📍 ${JP.esc(g.town||'Tout le Jura')}</div>
+          <div class="gtown">📍 ${JP.esc(g.town||'Toute la région')}</div>
           <div class="gdesc">${JP.esc(g.description||'')}</div>
           <div class="gfoot">
             <span class="gmembers">${g.memberCount} membre${g.memberCount>1?'s':''}</span>
@@ -146,3 +147,4 @@ document.addEventListener("DOMContentLoaded",function(){
 </nav>
 </body>
 </html>
+

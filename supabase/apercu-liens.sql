@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Aperçu de liens (Open Graph) sur les publications
+--  BEPOTES — Aperçu de liens (Open Graph) sur les publications
 --  À exécuter dans Supabase > SQL Editor. Idempotent.
 --  ------------------------------------------------------------
 --  Quand un post contient une URL, on stocke l'aperçu (titre, desc,

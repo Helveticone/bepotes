@@ -26,8 +26,8 @@ sondages, e-mails, vidéos, aperçus, sécurité, email_mode).
 ## 2. Secrets (communs aux fonctions e-mail)
 ```bash
 supabase secrets set RESEND_API_KEY=re_xxxxxxxx
-supabase secrets set FROM_EMAIL="Jurapotes <notifications@helveticonemedia.ch>"
-supabase secrets set SITE_URL=https://jurapotes-betatest.pages.dev
+supabase secrets set FROM_EMAIL="BePotes <notifications@helveticonemedia.ch>"
+supabase secrets set SITE_URL=https://bepotes-betatest.pages.dev
 ```
 (`SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` sont fournis automatiquement.)
 
@@ -57,7 +57,7 @@ create extension if not exists pg_cron;
 create extension if not exists pg_net;
 
 select cron.schedule(
-  'jurapotes-digest-quotidien',
+  'bepotes-digest-quotidien',
   '0 7 * * *',                       -- 07:00 UTC (~08-09h en Suisse)
   $$
   select net.http_post(

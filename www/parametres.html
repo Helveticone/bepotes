@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Paramètres — Jurapotes</title>
+<title>Paramètres — BePotes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
@@ -15,9 +15,10 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Jurapotes">
+<meta name="apple-mobile-web-app-title" content="BePotes">
 <script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
 <script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/communes.js?v=1" defer data-turbo-track="reload"></script>
 <script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
 <script src="assets/nav.js?v=10" defer data-turbo-track="reload"></script>
 <script src="assets/bell.js?v=23" defer data-turbo-track="reload"></script>
@@ -28,7 +29,7 @@
 </head>
 <body>
 <nav><div class="wrap nav-inner">
-  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">J</span><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">B</span><span class="wordmark">be<span class="wm-red">potes</span></span></a>
   <div class="nav-links">
     <a href="fil.html">Le fil</a>
     <a href="amis.html">Amis</a>
@@ -79,16 +80,16 @@
 
   <div class="side-card" id="installCard" style="margin-bottom:18px;display:none">
     <h3 style="font-family:'Plus Jakarta Sans';font-size:1.05rem;margin-bottom:8px">Installer l'application</h3>
-    <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:14px">Ajoute Jurapotes à ton écran d'accueil pour un accès rapide (et les notifications push sur iPhone).</p>
+    <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:14px">Ajoute BePotes à ton écran d'accueil pour un accès rapide (et les notifications push sur iPhone).</p>
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <button class="btn btn-primary btn-sm" id="installBtn" style="display:none">📲 Installer Jurapotes</button>
+      <button class="btn btn-primary btn-sm" id="installBtn" style="display:none">📲 Installer BePotes</button>
       <div id="installHint" style="font-size:.86rem;color:var(--ink-soft);line-height:1.5"></div>
     </div>
   </div>
 
   <div class="side-card" style="margin-bottom:18px">
     <h3 style="font-family:'Plus Jakarta Sans';font-size:1.05rem;margin-bottom:8px">Notifications push (sur cet appareil)</h3>
-    <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:14px">Reçois une notification directement sur ton téléphone/ordinateur, même quand Jurapotes est fermé.</p>
+    <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:14px">Reçois une notification directement sur ton téléphone/ordinateur, même quand BePotes est fermé.</p>
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <button class="btn btn-primary btn-sm" id="pushBtn" disabled>…</button>
       <span id="pushHint" style="font-size:.82rem;color:var(--ink-soft)"></span>
@@ -158,7 +159,7 @@ document.addEventListener("DOMContentLoaded",function(){
         hint.innerHTML='Sur iPhone : appuie sur <b>Partager</b> (le carré avec une flèche ⬆️ en bas de Safari), puis <b>« Sur l\'écran d\'accueil »</b>.';
       } else if(st==='ios-bad-browser'){
         btn.style.display='none';
-        hint.innerHTML='Sur iPhone, l\'installation n\'est possible que depuis <b>Safari</b>. Ouvre <b>jurapotes-betatest.pages.dev</b> dans Safari, puis <b>Partager ⬆️ → Sur l\'écran d\'accueil</b>.';
+        hint.innerHTML='Sur iPhone, l\'installation n\'est possible que depuis <b>Safari</b>. Ouvre <b>bepotes-betatest.pages.dev</b> dans Safari, puis <b>Partager ⬆️ → Sur l\'écran d\'accueil</b>.';
       } else if(window.matchMedia('(max-width:900px)').matches){
         // mobile sans invite native (Android sans prompt, nav. privée…) : on guide
         card.style.display=''; btn.style.display='none';
@@ -221,3 +222,4 @@ document.addEventListener("DOMContentLoaded",function(){
 </nav>
 </body>
 </html>
+

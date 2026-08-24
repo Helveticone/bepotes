@@ -1,33 +1,33 @@
 # CDN média — Cloudflare devant Supabase Storage
 
 But : faire servir les images/vidéos par **Cloudflare** (egress gratuit) au lieu de
-Supabase (egress facturé). À activer **une fois `jurapotes.ch` branché sur Cloudflare**.
+Supabase (egress facturé). À activer **une fois `bepotes.be` branché sur Cloudflare**.
 
 Tout est déjà prêt côté app : un helper `JP.cdnUrl()` réécrit les URL média vers le CDN
 **dès que** `MEDIA_CDN` est renseigné dans `assets/config.js`. Tant que c'est vide → aucun effet.
 
 ## Étapes (≈ 5 min, le jour du branchement du domaine)
 
-1. **Ajouter le domaine `jurapotes.ch`** à ton compte Cloudflare (zone) et faire pointer les
-   DNS (le site reste sur Cloudflare Pages). Brancher aussi `jurapotes.ch` au projet Pages.
+1. **Ajouter le domaine `bepotes.be`** à ton compte Cloudflare (zone) et faire pointer les
+   DNS (le site reste sur Cloudflare Pages). Brancher aussi `bepotes.be` au projet Pages.
 
 2. **DNS** : créer un enregistrement **`cdn`** (type AAAA `100::` ou CNAME vers le domaine),
-   en mode **Proxy activé (nuage orange)**. → `cdn.jurapotes.ch`.
+   en mode **Proxy activé (nuage orange)**. → `cdn.bepotes.be`.
 
 3. **Créer le Worker** : Cloudflare → *Workers & Pages* → *Create Worker* → coller le contenu
    de `cloudflare/cdn-worker.js`. Vérifier la ligne `SUPABASE_ORIGIN` (déjà ton projet).
    *Deploy*.
 
 4. **Route du Worker** : dans le Worker → *Settings* → *Domains & Routes* → *Add route* :
-   `cdn.jurapotes.ch/*` (zone `jurapotes.ch`).
+   `cdn.bepotes.be/*` (zone `bepotes.be`).
 
 5. **Vérifier** : ouvre dans le navigateur
-   `https://cdn.jurapotes.ch/storage/v1/object/public/posts/...` (une URL d'image existante,
-   en remplaçant le host). L'image doit s'afficher, avec l'en-tête `X-Jurapotes-CDN: 1`
+   `https://cdn.bepotes.be/storage/v1/object/public/posts/...` (une URL d'image existante,
+   en remplaçant le host). L'image doit s'afficher, avec l'en-tête `X-BePotes-CDN: 1`
    (2ᵉ chargement = `cf-cache-status: HIT`).
 
 6. **Activer côté app** : dans `assets/config.js`, mettre
-   `MEDIA_CDN: "https://cdn.jurapotes.ch"`. (Pas de `?v` sur config.js : pris en compte direct.)
+   `MEDIA_CDN: "https://cdn.bepotes.be"`. (Pas de `?v` sur config.js : pris en compte direct.)
    → toutes les nouvelles vues média passent par le CDN.
 
 ## Notes

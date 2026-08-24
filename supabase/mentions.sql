@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — @mentions (notifier les personnes mentionnées)
+--  BEPOTES — @mentions (notifier les personnes mentionnées)
 --  À exécuter dans Supabase > SQL Editor (après TOUT-LE-SQL.sql).
 --  Sûr à ré-exécuter (idempotent).
 --  ------------------------------------------------------------

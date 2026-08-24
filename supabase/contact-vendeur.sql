@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Contacter un vendeur (Marché) sans être amis
+--  BEPOTES — Contacter un vendeur (Marché) sans être amis
 --  À exécuter dans Supabase > SQL Editor (après TOUT-LE-SQL.sql).
 --  Sûr à ré-exécuter (idempotent).
 --  ------------------------------------------------------------

@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Messagerie de groupe (policies complémentaires)
+--  BEPOTES — Messagerie de groupe (policies complémentaires)
 --  À exécuter dans Supabase > SQL Editor. Idempotent.
 --  ------------------------------------------------------------
 --  Le schéma gère déjà les groupes (conversations.is_group + title).

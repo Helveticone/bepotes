@@ -1,6 +1,6 @@
 # Aperçu de liens (Open Graph) — guide d'installation
 
-Quand un membre colle une URL dans une publication, Jurapotes affiche une
+Quand un membre colle une URL dans une publication, BePotes affiche une
 **carte d'aperçu** (titre, description, image, site). Les métadonnées sont
 récupérées **une seule fois à la publication** par une Edge Function (le
 navigateur ne peut pas lire un autre site à cause du CORS), puis **stockées

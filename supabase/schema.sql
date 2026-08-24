@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Schéma Supabase complet
+--  BEPOTES — Schéma Supabase complet
 --  À coller dans : Supabase > SQL Editor > New query > Run
 --  Couvre : profils, abonnements, publications, commentaires,
 --  likes, événements, messagerie, notifications, groupes,

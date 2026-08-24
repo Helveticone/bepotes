@@ -7,7 +7,7 @@
 --
 --  ⚠️ Pré-requis : la colonne profiles.is_admin doit exister
 --     (TOUT-LE-SQL.sql section 6). Et tu dois t'être déjà inscrit
---     sur Jurapotes avec cet e-mail.
+--     sur BePotes avec cet e-mail.
 --  ⚠️ Remplace l'e-mail si tu utilises un autre compte.
 -- ============================================================
 

@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Durcissement sécurité RLS (avant lancement)
+--  BEPOTES — Durcissement sécurité RLS (avant lancement)
 --  À exécuter dans Supabase > SQL Editor. Idempotent.
 --  ------------------------------------------------------------
 --  1) Anti-escalade de privilèges : la policy UPDATE de `profiles`

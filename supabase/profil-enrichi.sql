@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Profil enrichi (« À propos »)
+--  BEPOTES — Profil enrichi (« À propos »)
 --  À exécuter dans Supabase > SQL Editor. Idempotent.
 --  ------------------------------------------------------------
 --  Ajoute quelques champs « À propos » au profil :

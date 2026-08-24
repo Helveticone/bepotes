@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mon profil — Jurapotes</title>
+<title>Mon profil — BePotes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
@@ -15,9 +15,10 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Jurapotes">
+<meta name="apple-mobile-web-app-title" content="BePotes">
 <script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
 <script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/communes.js?v=1" defer data-turbo-track="reload"></script>
 <script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
 <script src="assets/nav.js?v=10" defer data-turbo-track="reload"></script>
 <script src="assets/bell.js?v=23" defer data-turbo-track="reload"></script>
@@ -26,7 +27,7 @@
 </head>
 <body>
 <nav><div class="wrap nav-inner">
-  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">J</span><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">B</span><span class="wordmark">be<span class="wm-red">potes</span></span></a>
   <div class="nav-links">
     <form class="nav-search" onsubmit="location.href='recherche.html?q='+encodeURIComponent(this.q.value);return false;">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -119,10 +120,10 @@
       <div class="field">
         <label for="mTown">Commune</label>
         <select id="mTown">
-          <option>Delémont</option><option>Porrentruy</option><option>Saignelégier</option>
-          <option>Bassecourt</option><option>Courrendlin</option><option>Le Noirmont</option>
-          <option>Les Bois</option><option>Courroux</option><option>Alle</option>
-          <option>Châtenois</option><option>Vicques</option><option>Autre commune du Jura</option>
+          <option>Bruxelles</option><option>Liège</option><option>Charleroi</option>
+          <option>Namur</option><option>Mons</option><option>Seraing</option>
+          <option>Verviers</option><option>La Louvière</option><option>Tournai</option>
+          <option>Wavre</option><option>Arlon</option><option>Autre commune</option>
         </select>
       </div>
       <div class="field">
@@ -199,7 +200,7 @@ document.addEventListener("DOMContentLoaded",function(){
     const cbtn=document.getElementById('coverBtn');
     if(cbtn){ const svg=cbtn.querySelector('svg'); cbtn.innerHTML=(svg?svg.outerHTML:'')+(me.cover?' Modifier la couverture':' Ajouter une couverture — paysage ≈ 1600 × 600 px'); }
     document.getElementById('name').textContent=me.name;
-    const since = me.joined ? new Date(me.joined).toLocaleDateString('fr-CH',{month:'long',year:'numeric'}) : 'récemment';
+    const since = me.joined ? new Date(me.joined).toLocaleDateString('fr-BE',{month:'long',year:'numeric'}) : 'récemment';
     document.getElementById('loc').textContent='📍 '+(me.town||'')+' · Membre depuis '+since;
     const bio=document.getElementById('bio');
     if(me.bio){ bio.textContent=me.bio; bio.classList.remove('empty-bio'); }
@@ -268,7 +269,7 @@ document.addEventListener("DOMContentLoaded",function(){
   /* ---- Modale édition ---- */
   const modal=document.getElementById('modal');
   const openM=()=>{ document.getElementById('mName').value=me.name;
-    JP.fillCommuneSelect(document.getElementById('mTown'), {selected: me.town||'Delémont'});
+    JP.fillCommuneSelect(document.getElementById('mTown'), {selected: me.town||''});
     JP.fillCommuneSelect(document.getElementById('mOrigin'), {first:'Non précisée', selected: me.origin||''});
     document.getElementById('mBio').value=me.bio||'';
     document.getElementById('mGender').value=me.gender||'';
@@ -398,7 +399,7 @@ document.addEventListener("DOMContentLoaded",function(){
     document.getElementById('blockedList').innerHTML=list.map(b=>`
       <div class="result-member">
         ${JP.avatarHTML(b.name,b.avatar,'av')}
-        <div class="ri"><b>${JP.esc(b.name)}</b><span>📍 ${JP.esc(b.town||'Jura')}</span></div>
+        <div class="ri"><b>${JP.esc(b.name)}</b><span>📍 ${JP.esc(b.town||'Belgique')}</span></div>
         <div class="ra"><button class="btn btn-ghost btn-sm unblock" data-uid="${b.id}">Débloquer</button></div>
       </div>`).join('');
     document.querySelectorAll('.unblock').forEach(btn=>btn.addEventListener('click',async()=>{
@@ -420,3 +421,4 @@ document.addEventListener("DOMContentLoaded",function(){
 </nav>
 </body>
 </html>
+

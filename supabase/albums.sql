@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Albums photos (profil)
+--  BEPOTES — Albums photos (profil)
 --  À exécuter dans Supabase > SQL Editor. Idempotent.
 --  ------------------------------------------------------------
 --  Un membre organise ses photos en albums. Visibles par les membres

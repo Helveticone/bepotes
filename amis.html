@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Amis — Jurapotes</title>
+<title>Amis — BePotes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
@@ -15,9 +15,10 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Jurapotes">
+<meta name="apple-mobile-web-app-title" content="BePotes">
 <script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
 <script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/communes.js?v=1" defer data-turbo-track="reload"></script>
 <script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
 <script src="assets/nav.js?v=10" defer data-turbo-track="reload"></script>
 <script src="assets/bell.js?v=23" defer data-turbo-track="reload"></script>
@@ -26,7 +27,7 @@
 </head>
 <body>
 <nav><div class="wrap nav-inner">
-  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">J</span><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">B</span><span class="wordmark">be<span class="wm-red">potes</span></span></a>
   <div class="nav-links">
     <form class="nav-search" onsubmit="location.href='recherche.html?q='+encodeURIComponent(this.q.value);return false;">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -79,7 +80,7 @@ document.addEventListener("DOMContentLoaded",function(){
       document.getElementById('requests').innerHTML=reqs.map(r=>`
         <div class="result-member" data-id="${r.id}">
           <a href="membre.html?id=${r.userId}" style="text-decoration:none">${JP.avatarHTML(r.name,r.avatar,'av')}</a>
-          <div class="ri"><b><a href="membre.html?id=${r.userId}" style="color:inherit;text-decoration:none">${JP.esc(r.name)}</a></b><span>📍 ${JP.esc(r.town||'Jura')}</span></div>
+          <div class="ri"><b><a href="membre.html?id=${r.userId}" style="color:inherit;text-decoration:none">${JP.esc(r.name)}</a></b><span>📍 ${JP.esc(r.town||'Belgique')}</span></div>
           <div class="ra">
             <button class="btn btn-primary btn-sm accept" data-fid="${r.id}">Accepter</button>
             <button class="btn btn-ghost btn-sm decline" data-fid="${r.id}">Refuser</button>
@@ -105,7 +106,7 @@ document.addEventListener("DOMContentLoaded",function(){
     wrap.innerHTML=fr.map(f=>`
       <div class="result-member">
         <a href="membre.html?id=${f.id}" style="text-decoration:none">${JP.avatarHTML(f.name,f.avatar,'av')}</a>
-        <div class="ri"><b><a href="membre.html?id=${f.id}" style="color:inherit;text-decoration:none">${JP.esc(f.name)}</a></b><span>📍 ${JP.esc(f.town||'Jura')}</span></div>
+        <div class="ri"><b><a href="membre.html?id=${f.id}" style="color:inherit;text-decoration:none">${JP.esc(f.name)}</a></b><span>📍 ${JP.esc(f.town||'Belgique')}</span></div>
         <div class="ra">
           <a href="messages.html?to=${f.id}" class="btn btn-ghost btn-sm">✉ <span class="lbl">Message</span></a>
           <button class="btn btn-ghost btn-sm rm" data-fid="${f.friendshipId}">Retirer</button>
@@ -131,3 +132,4 @@ document.addEventListener("DOMContentLoaded",function(){
 </nav>
 </body>
 </html>
+

@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — Réponses aux commentaires (fils, 1 niveau)
+--  BEPOTES — Réponses aux commentaires (fils, 1 niveau)
 --  À exécuter dans Supabase > SQL Editor (après TOUT-LE-SQL.sql).
 --  Sûr à ré-exécuter (idempotent).
 --  Une réponse est un commentaire avec parent_id = commentaire parent.

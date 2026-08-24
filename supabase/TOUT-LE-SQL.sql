@@ -1,5 +1,5 @@
 -- ============================================================
---  JURAPOTES — TOUT LE SQL À JOUR (à coller d'un bloc)
+--  BEPOTES — TOUT LE SQL À JOUR (à coller d'un bloc)
 --  ------------------------------------------------------------
 --  Ce fichier regroupe, dans le bon ordre, toutes les évolutions
 --  depuis le schéma de base. Il est SÛR à ré-exécuter : tout est
