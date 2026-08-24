@@ -1,6 +1,6 @@
 {
-  "name": "Jurapotes — le réseau du Jura",
-  "short_name": "Jurapotes",
+  "name": "BePotes — le réseau du Jura",
+  "short_name": "BePotes",
   "description": "Le réseau social local du Jura suisse : amis, groupes, événements et vie locale.",
   "start_url": "/fil.html",
   "scope": "/",
