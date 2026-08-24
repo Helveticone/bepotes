@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Le fil — Jurapotes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"></noscript>
+<link rel="stylesheet" href="assets/style.css?v=92">
+<script>(function(){function s(){return window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches}function t(){try{return localStorage.getItem("jp-theme")}catch(e){return null}}function a(m){if(m==="dark")document.documentElement.setAttribute("data-theme","dark");else document.documentElement.removeAttribute("data-theme")}var p=t();a(p?p:(s()?"dark":"light"));window.JPTheme={get:function(){return document.documentElement.getAttribute("data-theme")==="dark"?"dark":"light"},set:function(m){a(m);try{localStorage.setItem("jp-theme",m)}catch(e){}document.dispatchEvent(new CustomEvent("jp-theme-change",{detail:this.get()}))},toggle:function(){this.set(this.get()==="dark"?"light":"dark");return this.get()}}})();</script>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#E11D2A">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jurapotes">
+<style>
+  /* Composer du fil : la rangée d'options (Photo/Vidéo/Sondage + menus) ne doit
+     jamais déborder ni pousser « Publier » hors de la carte. Retour à la ligne
+     autorisé à toutes les largeurs ; « Publier » reste toujours visible. */
+  .composer{overflow:hidden}
+  .composer .bar{flex-wrap:wrap;gap:10px;row-gap:12px}
+  .composer .opts{flex-wrap:wrap;min-width:0;flex:1 1 auto}
+  .composer .opts .chip{max-width:100%;min-width:0}
+  .composer .bar #compGo{flex:0 0 auto;margin-left:auto}
+</style>
+<script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
+<script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
+<script src="assets/nav.js?v=10" defer data-turbo-track="reload"></script>
+<script src="assets/moderation.js?v=18" defer data-turbo-track="reload"></script>
+<script src="assets/bell.js?v=23" defer data-turbo-track="reload"></script>
+<script src="assets/calls.js?v=3" defer data-turbo-track="reload"></script>
+<script src="assets/install.js?v=1" defer data-turbo-track="reload"></script>
+<script src="assets/stories.js?v=3" defer data-turbo-track="reload"></script>
+<script src="/assets/pwa.js?v=21" defer data-turbo-track="reload"></script>
+</head>
+<body>
+<nav><div class="wrap nav-inner">
+  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">J</span><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <div class="nav-links">
+    <form class="nav-search" onsubmit="location.href='recherche.html?q='+encodeURIComponent(this.q.value);return false;">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input name="q" type="search" placeholder="Rechercher…" aria-label="Rechercher">
+    </form>
+    
+    <a href="fil.html" class="active">Le fil</a>
+    <a href="amis.html">Amis</a>
+    <a href="groupes.html">Groupes</a>
+    <a href="pages.html">Pages</a>
+    <a href="marketplace.html">Marché</a>
+    <a href="evenements.html">Événements</a>
+    <a href="messages.html">Messages</a>
+    <a href="profil.html">Profil</a>
+    <a href="notifications.html" class="nav-bell" id="bell" aria-label="Notifications" title="Notifications">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="badge-count" id="bellCount">0</span>
+    </a>
+    <a href="#" id="logout" class="btn btn-ghost btn-sm">Déconnexion</a>
+  </div>
+</div></nav>
+
+<div class="page-pad"><div class="wrap app-grid">
+
+  <aside class="side side-l">
+    <div class="side-card">
+      <div class="profile-mini">
+        <div id="meAvBox" style="display:flex;justify-content:center;margin-bottom:10px"></div>
+        <b id="meName"></b>
+        <span id="meTown"></span>
+      </div>
+    </div>
+    <div class="side-card">
+      <nav class="side-nav">
+        <a href="fil.html" class="active"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> Accueil</a>
+        <a href="evenements.html"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Événements</a>
+        <a href="profil.html"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/></svg> Mon profil</a>
+      </nav>
+    </div>
+  </aside>
+
+  <main>
+    <div id="installBar" class="install-bar" style="display:none"></div>
+    <div id="storiesBar" class="stories-bar"></div>
+    <div class="composer">
+      <div class="comp-identity" id="compIdentityRow" style="display:none">
+        <span>Tu publies en tant que</span>
+        <select id="compAs" title="Choisir l'identité de publication"></select>
+      </div>
+      <div class="top">
+        <div id="compAvBox"></div>
+        <textarea id="compText" placeholder="Quoi de neuf dans le Jura ?" maxlength="500"></textarea>
+      </div>
+      <div class="comp-starters" id="compStarters"></div>
+      <div class="comp-previews" id="previews"></div>
+      <div class="comp-video" id="videoPrev" style="display:none"></div>
+      <div class="poll-editor" id="pollEditor" style="display:none"></div>
+      <div class="bar">
+        <div class="opts">
+          <button class="icon-btn" id="photoBtn">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            Photo
+          </button>
+          <button class="icon-btn" id="videoBtn">
+            <svg viewBox="0 0 24 24"><rect x="2" y="5" width="14" height="14" rx="2"/><path d="M16 9l6-3v12l-6-3"/></svg>
+            Vidéo
+          </button>
+          <button class="icon-btn" id="pollBtn">
+            <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M20 20H2"/></svg>
+            Sondage
+          </button>
+          <select id="compTag" class="chip" style="border:none;cursor:pointer">
+            <option>Général</option><option>Sorties</option><option>Bons plans</option>
+            <option>Entraide</option><option>Vendre/Donner</option><option>Question</option>
+          </select>
+          <select id="compVis" class="chip" style="border:none;cursor:pointer" title="Qui peut voir cette publication">
+            <option value="all">🌍 Tout le Jura</option>
+            <option value="friends">👥 Amis seulement</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-sm" id="compGo">Publier</button>
+      </div>
+    </div>
+    <div id="bdayCard"></div>
+    <div id="suggestStrip"></div>
+    <div class="feed-toolbar">
+      <div class="search-tabs" id="feedTabs">
+        <button data-s="recent" class="active">Récent</button>
+        <button data-s="pertinent">Pertinent</button>
+      </div>
+      <select id="communeFilter" class="commune-filter" aria-label="Filtrer par commune"></select>
+    </div>
+    <div id="feed"></div>
+    <div id="feedSentinel" style="height:1px"></div>
+  </main>
+
+  <aside class="side side-r">
+    <div id="suggestCard"></div>
+    <div class="side-card">
+      <h3 style="font-family:'Plus Jakarta Sans';font-size:1rem;margin-bottom:12px">À venir près de chez toi</h3>
+      <div id="evMini"></div>
+      <a href="evenements.html" class="btn btn-ghost btn-sm btn-block" style="margin-top:6px">Tous les événements</a>
+    </div>
+    <div class="side-card" style="font-size:.82rem;color:var(--ink-soft)">
+      🌿 <b>Réseau du Jura</b> — tes publications sont partagées avec toute la communauté Jurapotes. Sois sympa, reste local !
+    </div>
+  </aside>
+
+</div></div>
+
+<input type="file" id="photoFile" accept="image/*" multiple style="display:none">
+<input type="file" id="videoFile" accept="video/*" style="display:none">
+<input type="file" id="reelFile" accept="video/*" style="display:none">
+
+<div class="reel-viewer" id="reelViewer">
+  <button class="rv-close" aria-label="Fermer">&times;</button>
+  <button class="rv-nav rv-up" aria-label="Précédent">&#8249;</button>
+  <button class="rv-nav rv-down" aria-label="Suivant">&#8250;</button>
+  <div class="rv-stage" id="rvStage"></div>
+</div>
+
+<div class="lightbox" id="lightbox"><button class="lb-close" aria-label="Fermer">&times;</button><button class="lb-nav lb-prev" aria-label="Précédent">&#8249;</button><img id="lbImg" alt=""><button class="lb-nav lb-next" aria-label="Suivant">&#8250;</button><span class="lb-count"></span><button class="lb-tag" type="button" style="display:none">🏷️ Identifier</button></div>
+
+<script>
+document.addEventListener("DOMContentLoaded",function(){
+(async function(){
+  const okAuth = await JP.requireAuth();
+  if(!okAuth) return;
+  const me=JP.user();
+  document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
+
+  document.getElementById('meAvBox').innerHTML=JP.avatarHTML(me.name,me.avatar,'av','width:60px;height:60px;font-size:1.3rem');
+  document.getElementById('compAvBox').innerHTML=JP.avatarHTML(me.name,me.avatar,'av');
+  document.getElementById('meName').textContent=me.name;
+  document.getElementById('meTown').textContent='\u{1F4CD} '+(me.town||'');
+
+  /* ---- Bannière « Installer l'app » (mobile, discrète, fermable) ---- */
+  (function installBar(){
+    const bar=document.getElementById('installBar');
+    if(!bar || !window.JPInstall) return;
+    let dismissed=false; try{ dismissed=localStorage.getItem('jp-install-dismissed')==='1'; }catch(e){}
+    const isMobile=()=>window.matchMedia('(max-width:900px)').matches;
+    const hide=()=>{ bar.style.display='none'; };
+    function wireX(){ const x=bar.querySelector('.ib-x'); if(x) x.addEventListener('click',()=>{ dismissed=true; try{localStorage.setItem('jp-install-dismissed','1');}catch(e){} hide(); }); }
+    function paint(){
+      if(dismissed || !isMobile()){ hide(); return; }
+      const st=JPInstall.state();
+      if(st==='installed' || (JPInstall.isStandalone && JPInstall.isStandalone())){ hide(); return; }   // déjà installée → on n'invite plus
+      const ICO='<span class="ib-ico">📲</span>';
+      if(st==='prompt'){
+        bar.innerHTML=ICO+'<span class="ib-txt">Installe l\'appli Jurapotes — accès direct + notifications</span><button class="ib-go" type="button">Installer</button><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
+        bar.style.display='flex';
+        bar.querySelector('.ib-go').addEventListener('click',async()=>{ const r=await JPInstall.promptInstall(); if(r.ok) hide(); });
+      } else if(st==='ios'){
+        bar.innerHTML=ICO+'<span class="ib-txt">Ajoute Jurapotes à ton écran d\'accueil : <b>Partager ⬆️ → Sur l\'écran d\'accueil</b></span><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
+        bar.style.display='flex';
+      } else if(st==='ios-bad-browser'){
+        bar.innerHTML=ICO+'<span class="ib-txt">Pour installer Jurapotes sur iPhone, ouvre le site dans <b>Safari</b>.</span><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
+        bar.style.display='flex';
+      } else {
+        // Android sans invite native (Chrome sans engagement, Mi Browser, nav. privée…)
+        bar.innerHTML=ICO+'<span class="ib-txt">Installe l\'appli Jurapotes : menu <b>⋮</b> du navigateur → <b>« Installer l\'application »</b> ou <b>« Ajouter à l\'écran d\'accueil »</b></span><button class="ib-x" type="button" aria-label="Fermer">&times;</button>';
+        bar.style.display='flex';
+      }
+      wireX();
+    }
+    document.addEventListener('jp-install-available', paint);
+    document.addEventListener('jp-installed', hide);
+    paint();
+  })();
+
+  /* ---- Stories éphémères ---- */
+  if(window.JPStories) JPStories.mount(document.getElementById('storiesBar'));
+
+  /* ---- Reels + suggestions groupes/pages : intercalés DANS le fil (façon FB) ----
+     Préchargés une fois, puis insérés comme « cartes » à des positions espacées. */
+  let _reels=null, _gsuggGroup=null, _gsuggPage=null;
+  async function prefetchExtras(){
+    const [r,g,p]=await Promise.all([
+      JP.reels(12).catch(()=>[]),
+      JP.suggestGroups('group',10).catch(()=>[]),
+      JP.suggestGroups('page',10).catch(()=>[])
+    ]);
+    _reels=r||[]; _gsuggGroup=g||[]; _gsuggPage=p||[];
+  }
+  function reelsCardEl(){
+    const d=document.createElement('div'); d.className='side-card feed-extra';
+    // Aperçu = 1ʳᵉ image figée (preload metadata seulement, ~léger). La vidéo
+    // ne se télécharge en entier QUE quand on clique (ouverture plein écran).
+    const tiles=(_reels||[]).map((r,i)=>`<a class="reel" data-i="${i}"><video src="${r.video}#t=0.1" ${r.cover?`poster="${r.cover}"`:''} muted playsinline preload="${r.cover?'none':'metadata'}"></video><div class="reel-grad"></div><span class="reel-play" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;pointer-events:none">▶</span><span class="reel-name">${JP.esc(r.author)}</span></a>`).join('');
+    d.innerHTML=`<h3 class="rs-title">🎬 Reels du Jura <a href="reels.html" class="rs-all">Voir tout ›</a></h3><div class="reels-row">`+
+      `<button type="button" class="reel reel-create" id="reelCreate"><span class="rc-plus">+</span><span class="rc-lbl">Ton reel</span></button>`+
+      tiles+`</div>`;
+    d.querySelector('#reelCreate').addEventListener('click',()=>document.getElementById('reelFile').click());
+    d.querySelectorAll('.reel[data-i]').forEach(a=>a.addEventListener('click',()=>{
+      JPReels.open(_reels, +a.dataset.i);   // lecture animée + son en plein écran
+    }));
+    return d;
+  }
+
+  function suggCardEl(list, kind, title){
+    if(!list || !list.length) return null;
+    const d=document.createElement('div'); d.className='side-card feed-extra';
+    d.innerHTML=`<h3 class="rs-title">${title}</h3><div class="gsugg-row">`+
+      list.map(g=>`<div class="gsugg"><a href="groupe.html?id=${g.id}"><div class="gsugg-cover" ${g.cover?`style="background-image:url(${g.cover})"`:''}></div></a><b>${JP.esc(g.name)}</b><span>${g.memberCount} ${kind==='page'?'abonné'+(g.memberCount>1?'s':''):'membre'+(g.memberCount>1?'s':'')}</span><button class="btn btn-primary btn-sm gsugg-join" data-id="${g.id}">${kind==='page'?'Voir':'Rejoindre'}</button></div>`).join('')+
+      `</div>`;
+    d.querySelectorAll('.gsugg-join').forEach(b=>b.addEventListener('click',async()=>{
+      if(kind==='page'){ location.href='groupe.html?id='+b.dataset.id; return; }
+      b.disabled=true;
+      const r=await JP.joinGroup(b.dataset.id);
+      if(r && r.ok){ JP.toast(r.pending?'Demande envoyée 👋':'Groupe rejoint ✅'); b.textContent=r.pending?'En attente':'✓ Rejoint'; }
+      else { JP.toast((r&&r.msg)||'Échec'); b.disabled=false; }
+    }));
+    return d;
+  }
+  function insertFeedExtras(){
+    feed.querySelectorAll('.feed-extra').forEach(el=>el.remove());   // idempotent
+    const posts=[...feed.querySelectorAll('.post:not(.ad-post)')];
+    if(!posts.length) return;
+    const place=(el,pos)=>{ if(!el) return; const anchor=posts[pos]||null; if(anchor) feed.insertBefore(el,anchor); else feed.appendChild(el); };
+    place(reelsCardEl(), 1);
+    place(suggCardEl(_gsuggGroup,'group','👥 Groupes suggérés'), 4);
+    place(suggCardEl(_gsuggPage,'page','⭐ Pages à découvrir'), 8);
+  }
+
+  const feed=document.getElementById('feed');
+  let pendingImages=[];   // jusqu'à 6 fichiers File
+  const expandedPosts=new Set();   // posts dont les commentaires sont dépliés (persiste au re-rendu)
+
+  /* ---- Tri du fil : 'recent' (chrono) | 'pertinent' (algo léger) ---- */
+  let feedSort = (function(){ try{ return localStorage.getItem('jp-feed-sort')||'recent'; }catch(e){ return 'recent'; } })();
+  const friendSet = new Set();   // ids de mes amis (bonus d'affinité)
+  function scorePost(p){
+    const ageH = (Date.now()-new Date(p.ts).getTime())/3600000;
+    const freshness = Math.exp(-ageH/18);                       // récence (demi-vie ~12 h)
+    const eng = Math.log(1 + (p.likes||0) + 2*(p.comments?.length||0));
+    const affinity = friendSet.has(p.authorEmail) ? 1 : 0;      // ami = coup de pouce
+    const newGuard = ageH < 2 ? 0.5 : 0;                        // garde-fou : un post récent remonte toujours
+    return 1.0*freshness + 0.5*eng + 0.6*affinity + newGuard;
+  }
+  function orderPosts(posts){
+    if(feedSort!=='pertinent') return posts;                    // 'recent' = ordre chronologique d'origine
+    return posts.slice().sort((a,b)=> scorePost(b)-scorePost(a));
+  }
+  document.querySelectorAll('#feedTabs button').forEach(b=>{
+    if(b.dataset.s===feedSort){ b.classList.add('active'); } else b.classList.remove('active');
+    b.addEventListener('click',()=>{
+      if(feedSort===b.dataset.s) return;
+      feedSort=b.dataset.s; try{ localStorage.setItem('jp-feed-sort', feedSort); }catch(e){}
+      document.querySelectorAll('#feedTabs button').forEach(x=>x.classList.toggle('active', x.dataset.s===feedSort));
+      renderFeed();   // re-classe les posts déjà chargés, sans refetch
+    });
+  });
+
+  /* ---- Filtre par commune ---- */
+  let feedTown = (function(){ try{ return localStorage.getItem('jp-feed-commune')||''; }catch(e){ return ''; } })();
+  const communeFilter=document.getElementById('communeFilter');
+  if(communeFilter){
+    JP.fillCommuneSelect(communeFilter, {first:'📍 Toutes les communes', selected:feedTown});
+    communeFilter.value=feedTown||'';
+    communeFilter.addEventListener('change',()=>{
+      feedTown=communeFilter.value||'';
+      try{ localStorage.setItem('jp-feed-commune', feedTown); }catch(e){}
+      render();   // recharge le fil filtré depuis la 1ère page
+    });
+  }
+
+  /* ---- Photos dans le composer (multi, max 6) ---- */
+  const photoFile=document.getElementById('photoFile');
+  document.getElementById('photoBtn').addEventListener('click',()=>photoFile.click());
+  photoFile.addEventListener('change',e=>{
+    const files=[...e.target.files].filter(f=>f.type.startsWith('image/'));
+    for(const f of files){ if(pendingImages.length<6) pendingImages.push(f); }
+    if([...e.target.files].length && pendingImages.length>=6) JP.toast('6 photos maximum');
+    renderPreviews();
+    photoFile.value='';
+  });
+  function renderPreviews(){
+    const box=document.getElementById('previews');
+    box.innerHTML=pendingImages.map((f,i)=>`<div class="thumb"><img src="${URL.createObjectURL(f)}"><button class="rm" data-i="${i}">&times;</button></div>`).join('');
+    box.querySelectorAll('.rm').forEach(b=>b.addEventListener('click',()=>{
+      pendingImages.splice(+b.dataset.i,1); renderPreviews();
+    }));
+  }
+
+  /* ---- Vidéo dans le composer (1 max) ---- */
+  let pendingVideo=null;
+  const videoFile=document.getElementById('videoFile');
+  const videoPrev=document.getElementById('videoPrev');
+  document.getElementById('videoBtn').addEventListener('click',()=>videoFile.click());
+  videoFile.addEventListener('change',e=>{
+    const f=e.target.files[0]; videoFile.value='';
+    if(!f) return;
+    if(!f.type.startsWith('video/')){ JP.toast('Choisis un fichier vidéo'); return; }
+    if(f.size>300*1024*1024){ JP.toast('Vidéo trop lourde (300 Mo max)'); return; }
+    pendingVideo=f; renderVideoPrev();
+  });
+  function renderVideoPrev(){
+    if(!pendingVideo){ videoPrev.style.display='none'; videoPrev.innerHTML=''; return; }
+    videoPrev.style.display='';
+    videoPrev.innerHTML=`<video src="${URL.createObjectURL(pendingVideo)}" controls preload="metadata" playsinline></video><button class="rm" type="button" aria-label="Retirer la vidéo">&times;</button>`;
+    videoPrev.querySelector('.rm').addEventListener('click',()=>{ pendingVideo=null; renderVideoPrev(); });
+  }
+
+  /* ---- Fil paginé + scroll infini ---- */
+  const PAGE=20;
+  let loadedPosts=[], loadingMore=false, reachedEnd=false, feedToken=0, feedRevealed=false;
+
+  function renderFeed(){
+    if(!loadedPosts.length){
+      feed.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
+        +'<p><b>Le fil n\'attend que toi !</b><br>Sois le premier à publier — présente-toi, partage un bon plan ou pose une question au Jura.</p>'
+        +'<button class="btn btn-primary btn-sm" id="emptyPost" style="margin-top:12px">✍️ Publier maintenant</button></div>';
+      const ep=document.getElementById('emptyPost');
+      if(ep) ep.addEventListener('click',()=>{ const t=document.getElementById('compText'); if(t){ t.focus(); t.scrollIntoView({behavior:'smooth',block:'center'}); } });
+      return;
+    }
+    const tok=++feedToken;   // jeton anti-course (insertions async)
+    const list=orderPosts(loadedPosts);
+    feed.innerHTML=list.map(p=>postHTML(p)).join('');
+    if(!feedRevealed){ feedRevealed=true; feed.classList.add('feed-in'); setTimeout(()=>feed.classList.remove('feed-in'),700); }
+    list.forEach(p=>bind(p));
+    wireFollowButtons();
+    wireFriendButtons();
+    feed.querySelectorAll('.gimg').forEach(img=>img.addEventListener('click',()=>{
+      const pid=img.closest('.post')?.dataset.id;
+      const post=loadedPosts.find(x=>String(x.id)===String(pid));
+      const full=img.dataset.full||img.src;
+      const imgs=(post && post.images && post.images.length) ? post.images.filter(Boolean) : [full];
+      const idx=Math.max(0, imgs.indexOf(full));
+      const mine = post && post.authorEmail===me.id;
+      JPLightbox.open(imgs, idx, { canTag:!!mine, onTag: async()=>{
+        let ex=[]; try{ const m=await JP.postTags([pid]); ex=(m[pid]||[]).map(t=>t.id); }catch(e){}
+        openTagModal(pid, ex);
+      }});
+    }));
+    insertFeedAds(tok);
+    insertFeedExtras();
+    decorateTags();
+  }
+
+  /* ---- Tags de personnes : remplit « 🏷️ Avec … » dans le bloc .photo-tags
+     (le bouton « Identifier » est déjà rendu par postHTML pour mes posts). ---- */
+  async function decorateTags(){
+    const boxes=[...feed.querySelectorAll('.photo-tags[data-pid]')];
+    if(!boxes.length) return;
+    const ids=boxes.map(b=>b.dataset.pid);
+    let map={}; try{ map=await JP.postTags(ids); }catch(e){ return; }
+    feed.querySelectorAll('.photo-tags[data-pid]').forEach(box=>{
+      const pid=box.dataset.pid;
+      const tags=map[pid]||[];
+      // on retire seulement l'ancienne ligne de noms ; le bouton « Identifier »
+      // (rendu par postHTML) n'est JAMAIS supprimé.
+      box.querySelectorAll('.pt-list').forEach(n=>n.remove());
+      if(tags.length){
+        const names=`<span class="pt-list">🏷️ Avec ${tags.map(t=>`<a href="membre.html?id=${t.id}">${JP.esc(t.name)}</a>`).join(', ')}</span>`;
+        box.insertAdjacentHTML('afterbegin', names);
+      }
+    });
+  }
+  // Clic sur « Identifier » (délégation : survit aux re-rendus du fil)
+  feed.addEventListener('click', async e=>{
+    const b=e.target.closest && e.target.closest('.pt-edit'); if(!b) return;
+    const pid=b.dataset.id;
+    let ex=[]; try{ const m=await JP.postTags([pid]); ex=(m[pid]||[]).map(t=>t.id); }catch(err){}
+    openTagModal(pid, ex);
+  });
+
+  /* Envoyer une publication en message privé (choisir un ami) */
+  async function shareToMessage(pid){
+    const mates = await JP.friends();
+    if(!mates.length){ JP.toast('Ajoute des amis pour partager en message'); return; }
+    const url = location.origin + '/post.html?id=' + pid;
+    const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.display='flex';
+    bg.innerHTML=`<div class="modal"><div class="modal-head"><h3>Envoyer en message</h3><button class="x" type="button">&times;</button></div>
+      <div class="modal-body">
+        <input id="shmSearch" type="text" placeholder="Chercher un ami…" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font-family:inherit;margin-bottom:10px;background:var(--paper);color:inherit">
+        <div id="shmList"></div>
+      </div></div>`;
+    document.body.appendChild(bg);
+    const close=()=>bg.remove();
+    bg.querySelector('.x').addEventListener('click',close);
+    bg.addEventListener('click',e=>{ if(e.target===bg) close(); });
+    const list=bg.querySelector('#shmList'), search=bg.querySelector('#shmSearch');
+    function paint(q){
+      const f=mates.filter(m=>!q || (m.name||'').toLowerCase().includes(q.toLowerCase())).slice(0,20);
+      list.innerHTML = f.map(m=>`<div class="pending-row" style="margin-bottom:6px;flex-wrap:wrap;row-gap:6px">
+          ${JP.avatarHTML(m.name,m.avatar,'av')}
+          <div class="pi" style="flex:1;min-width:0"><b>${JP.esc(m.name)}</b></div>
+          <button class="btn btn-primary btn-sm shm-send" data-id="${m.id}" data-name="${JP.esc(m.name)}">Envoyer</button>
+        </div>`).join('') || '<div style="color:var(--ink-soft);padding:8px">Aucun ami.</div>';
+      list.querySelectorAll('.shm-send').forEach(b=>b.addEventListener('click',async()=>{
+        b.disabled=true;
+        const conv=await JP.openConversationWith(b.dataset.id);
+        if(typeof conv==='string'){ await JP.sendMessage(conv, {text:url}); JP.toast('Envoyé à '+b.dataset.name+' ✉'); close(); }
+        else { JP.toast('Envoi impossible'); b.disabled=false; }
+      }));
+    }
+    search.addEventListener('input',()=>paint(search.value.trim()));
+    paint('');
+  }
+
+  async function openTagModal(postId, existingIds){
+    const mates=await JP.friends();
+    if(!mates.length){ JP.toast('Ajoute des amis pour pouvoir les identifier'); return; }
+    const have=new Set(existingIds||[]);
+    const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.display='flex';
+    bg.innerHTML=`<div class="modal"><div class="modal-head"><h3>Identifier des amis</h3><button class="x" type="button">&times;</button></div>
+      <div class="modal-body"><div class="tag-list">`+
+      mates.map(f=>`<label class="tag-row"><input type="checkbox" value="${f.id}" ${have.has(f.id)?'checked':''}>${JP.avatarHTML(f.name,f.avatar,'av')}<span>${JP.esc(f.name)}</span></label>`).join('')+
+      `</div></div><div class="modal-foot"><button class="btn btn-primary" id="tagSave">Enregistrer</button></div></div>`;
+    document.body.appendChild(bg);
+    const close=()=>bg.remove();
+    bg.addEventListener('click',e=>{ if(e.target===bg) close(); });
+    bg.querySelector('.x').addEventListener('click',close);
+    bg.querySelector('#tagSave').addEventListener('click',async()=>{
+      const checked=new Set([...bg.querySelectorAll('input:checked')].map(i=>i.value));
+      const toAdd=[...checked].filter(id=>!have.has(id));
+      const toRemove=[...have].filter(id=>!checked.has(id));
+      if(toAdd.length){ const r=await JP.tagPeople(postId,toAdd); if(r && !r.ok){ JP.toast(r.msg||'Échec'); } }
+      for(const id of toRemove){ await JP.untagPerson(postId,id); }
+      close(); JP.toast('Identifications mises à jour 🏷️'); decorateTags();
+    });
+  }
+
+  // Recharge complète depuis la 1ère page (après une action : publier, voter…)
+  function skeletonHTML(n=3){
+    const card=`<div class="sk-card"><div class="sk-row"><div class="sk sk-av"></div><div style="flex:1"><div class="sk sk-line" style="width:40%;margin-bottom:7px"></div><div class="sk sk-line" style="width:25%"></div></div></div><div class="sk sk-line" style="width:90%;margin-bottom:7px"></div><div class="sk sk-line" style="width:70%"></div><div class="sk sk-img"></div></div>`;
+    return card.repeat(n);
+  }
+  async function render(){
+    feed.innerHTML=skeletonHTML(3);
+    reachedEnd=false;
+    loadedPosts=await JP.posts({limit:PAGE, town:feedTown||undefined});
+    reachedEnd = loadedPosts.length<PAGE;
+    renderFeed();
+  }
+
+  async function loadMore(){
+    if(loadingMore || reachedEnd || !loadedPosts.length) return;
+    loadingMore=true;
+    const before=loadedPosts[loadedPosts.length-1].ts;
+    const more=await JP.posts({before, limit:PAGE, town:feedTown||undefined});
+    if(more.length<PAGE) reachedEnd=true;
+    const have=new Set(loadedPosts.map(p=>p.id));
+    loadedPosts.push(...more.filter(p=>!have.has(p.id)));
+    renderFeed();
+    loadingMore=false;
+  }
+
+  // Déclencheur : sentinelle observée en bas de page
+  const sentinel=document.getElementById('feedSentinel');
+  if(sentinel && 'IntersectionObserver' in window){
+    new IntersectionObserver(es=>{ if(es.some(e=>e.isIntersecting)) loadMore(); },
+      {rootMargin:'600px'}).observe(sentinel);
+  }
+
+  /* ---- Publicités dans le fil (cartes « Sponsorisé » espacées, façon FB) ----
+     Plusieurs encarts répartis (1ère après la 3e publi, puis toutes les ~5),
+     ordre mélangé à chaque chargement (pas toujours la même en tête), chaque
+     annonce affichée au plus une fois par chargement. */
+  function buildAdCard(ad){
+    const isExt=/^https?:\/\//i.test(ad.link||'');
+    const linkAttr = ad.link ? `href="${JP.esc(ad.link)}" ${isExt?'target="_blank" rel="noopener nofollow sponsored"':''}` : '';
+    const card=document.createElement('article');
+    card.className='post ad-post';
+    card.innerHTML=`<div class="ad-head"><span class="ad-label">Sponsorisé</span>${ad.title?`<b class="ad-title">${JP.esc(ad.title)}</b>`:''}</div>
+      ${ad.body?`<div class="ad-body">${JP.esc(ad.body).replace(/\n/g,'<br>')}</div>`:''}
+      <a class="ad-media" ${linkAttr}>
+        <img src="${ad.image}" alt="${JP.esc(ad.title||'Publicité')}" loading="lazy">
+      </a>`;
+    const media=card.querySelector('.ad-media');
+    if(media && ad.link) media.addEventListener('click',()=>{ JP.adClick(ad.id); });
+    return card;
+  }
+  async function insertFeedAds(tok){
+    try{
+      let ads=(await JP.activeAds()).filter(a=>a && a.image);
+      // dédoublonnage par id (jamais 2× la même annonce)
+      const seen=new Set(); ads=ads.filter(a=>{ if(seen.has(a.id)) return false; seen.add(a.id); return true; });
+      if(tok!==undefined && tok!==feedToken) return;   // rendu obsolète → on abandonne
+      feed.querySelectorAll('.ad-post').forEach(el=>el.remove());   // idempotent (pas de doublon)
+      if(!ads.length) return;
+      const shuffled=ads.slice().sort(()=>Math.random()-0.5);   // variété d'affichage
+      const posts=[...feed.querySelectorAll('.post:not(.ad-post)')];
+      if(!posts.length) return;
+      const FIRST=3, GAP=5;
+      const slots=[];
+      for(let pos=FIRST; pos<=posts.length; pos+=GAP) slots.push(pos);
+      const n=Math.min(slots.length, shuffled.length);  // chaque annonce au plus 1×
+      for(let i=0;i<n;i++){
+        const ad=shuffled[i], pos=slots[i];
+        const card=buildAdCard(ad);
+        const anchor=posts[pos]||null;
+        if(anchor) feed.insertBefore(card, anchor); else feed.appendChild(card);
+        JP.adImpression(ad.id);   // compte l'affichage (sans bloquer)
+      }
+    }catch(e){ /* pas de pub : silencieux */ }
+  }
+
+  async function wireFriendButtons(){
+    const btns=[...feed.querySelectorAll('.friend-btn')];
+    const targets=[...new Set(btns.map(b=>b.dataset.target))];
+    if(!targets.length) return;
+    let states={};
+    try{ states=await JP.friendStatuses(targets); }catch(e){}   // 1 requête au lieu de N
+    btns.forEach(b=>{
+      const t=b.dataset.target;
+      const stt=states[t]||{status:'none'};
+      applyFriendState(b, stt);
+      // Afficher le bouton message uniquement si on est amis
+      if(stt.status==='friends'){
+        feed.querySelectorAll(`.msg-btn[data-target="${t}"]`).forEach(m=>m.style.display='');
+      }
+      b.addEventListener('click',async()=>{
+        const st=await JP.friendStatus(t);
+        b.disabled=true;
+        if(st.status==='none'){ await JP.sendFriendRequest(t); JP.toast('Demande envoyée 👋'); }
+        else if(st.status==='pending_received'){ await JP.acceptFriend(st.id); JP.toast('Vous êtes amis ! 🎉'); }
+        else if(st.status==='pending_sent'){ await JP.removeFriend(st.id); JP.toast('Demande annulée'); }
+        else if(st.status==='friends'){ if(confirm('Retirer cet ami ?')){ await JP.removeFriend(st.id); JP.toast('Ami retiré'); } }
+        const ns=await JP.friendStatus(t);
+        feed.querySelectorAll(`.friend-btn[data-target="${t}"]`).forEach(o=>applyFriendState(o, ns));
+        b.disabled=false;
+      });
+    });
+  }
+  function applyFriendState(b, st){
+    const map={
+      none:        {txt:'+ Ami',          primary:false},
+      pending_sent:{txt:'Demande envoyée', primary:false},
+      pending_received:{txt:'Accepter',    primary:true},
+      friends:     {txt:'✓ Amis',          primary:true}
+    };
+    const s=map[st.status]||map.none;
+    b.textContent=s.txt;
+    b.classList.toggle('btn-primary', s.primary);
+    b.classList.toggle('btn-ghost', !s.primary);
+  }
+
+  async function wireFollowButtons(){
+    const btns=[...feed.querySelectorAll('.follow-btn')];
+    // dédupliquer par auteur pour limiter les requêtes
+    const targets=[...new Set(btns.map(b=>b.dataset.target))];
+    if(!targets.length) return;
+    let followingSet=new Set();
+    try{ followingSet=await JP.followingSet(targets); }catch(e){}   // 1 requête au lieu de N
+    btns.forEach(b=>{
+      const t=b.dataset.target;
+      setFollowBtn(b, followingSet.has(t));
+      b.addEventListener('click',async()=>{
+        const following=b.dataset.following==='1';
+        b.disabled=true;
+        if(following){ await JP.unfollow(t); setFollowBtn(b,false); JP.toast('Désabonné'); }
+        else { await JP.follow(t); setFollowBtn(b,true); JP.toast('Abonné·e ✅'); }
+        // mettre à jour tous les boutons du même auteur
+        feed.querySelectorAll(`.follow-btn[data-target="${t}"]`).forEach(o=>setFollowBtn(o, !following));
+        b.disabled=false;
+      });
+    });
+  }
+  function setFollowBtn(b, following){
+    b.dataset.following=following?'1':'0';
+    b.textContent=following?'✓ Suivi':'Suivre';
+    b.classList.toggle('btn-primary', following);
+    b.classList.toggle('btn-ghost', !following);
+  }
+
+  function galleryHTML(images){
+    const imgs=(images||[]).filter(Boolean);
+    if(!imgs.length) return '';
+    const show=Math.min(imgs.length,5), extra=imgs.length-show;
+    let tiles='';
+    for(let i=0;i<show;i++){
+      const full=imgs[i], thumb=JP.thumbUrl(full);
+      const more=(i===show-1 && extra>0)?`<div class="more">+${extra}</div>`:'';
+      // Réserver la place via les dimensions encodées (__LxH). Photo unique : on respecte
+      // le format (vertical/carré/paysage), borné façon Insta (4:5 → 1.91:1) pour rester lisible.
+      const m=full.match(/__(\d+)x(\d+)/); let dimAttr='', ar='';
+      if(m){ dimAttr=` width="${m[1]}" height="${m[2]}"`;
+        if(show===1){ let r=(+m[1])/(+m[2]); r=Math.max(0.8,Math.min(1.91,r)); ar=` style="aspect-ratio:${r.toFixed(3)}"`; } }
+      tiles+=`<div class="gtile"><img src="${thumb}" data-full="${full}" alt="" class="gimg"${dimAttr} loading="lazy"${ar} onerror="this.onerror=null;this.src=this.dataset.full">${more}</div>`;
+    }
+    return `<div class="post-gallery g${show}">${tiles}</div>`;
+  }
+
+  /* Carte « événement partagé » : couverture cliquable -> page de l'événement */
+  function eventCardHTML(p){
+    const img = (p.images&&p.images[0]) || p.image;
+    return `<a href="evenement.html?id=${p.eventId}" class="event-card">
+      ${img?`<img src="${img}" alt="" loading="lazy">`:''}
+      <span class="ev-cta">📅 Voir l'événement →</span>
+    </a>`;
+  }
+
+  function pollHTML(poll){
+    if(!poll) return '';
+    const total=poll.total||0;
+    return `<div class="poll">`+
+      poll.options.map((o,i)=>{
+        const c=poll.counts[i]||0;
+        const pct=total?Math.round(c/total*100):0;
+        const mine=poll.myChoice===i;
+        return `<button type="button" class="poll-opt ${mine?'mine':''}" data-choice="${i}">
+          <span class="fill" style="width:${pct}%"></span>
+          <span class="lbl">${mine?'✓ ':''}${JP.esc(o)}</span>
+          <span class="pct">${pct}% · ${c}</span>
+        </button>`;
+      }).join('')+
+      `<div class="poll-meta"><span>${total} vote${total>1?'s':''}</span>${poll.myChoice!=null?'<button type="button" class="poll-clear">Retirer mon vote</button>':''}</div>`+
+    `</div>`;
+  }
+
+  function sharedCardHTML(s){
+    return `<a href="post.html?id=${s.id}" class="shared-card">
+      ${s.author?`<div class="sc-head">${JP.avatarHTML(s.author,s.authorAvatar,'av')}<b>${JP.esc(s.author)}</b></div>`:''}
+      ${s.text?`<div class="sc-text">${JP.esc(s.text)}</div>`:''}
+      ${s.image?`<img src="${s.image}" alt="" class="sc-img">`:''}
+      ${(!s.image&&s.video)?`<video class="sc-vid" src="${s.video}#t=0.1" muted playsinline preload="metadata"></video>`:''}
+    </a>`;
+  }
+
+  function linkCardHTML(lp){
+    if(!lp || !lp.url) return '';
+    let host=''; try{ host=new URL(lp.url).hostname.replace(/^www\./,''); }catch(e){}
+    return `<a href="${JP.esc(lp.url)}" target="_blank" rel="noopener nofollow" class="link-card">
+      ${lp.image?`<img src="${JP.esc(lp.image)}" alt="" class="lc-img" loading="lazy">`:''}
+      <div class="lc-body">
+        <span class="lc-site">${JP.esc(lp.site||host)}</span>
+        <b class="lc-title">${JP.esc(lp.title||lp.url)}</b>
+        ${lp.desc?`<span class="lc-desc">${JP.esc(lp.desc)}</span>`:''}
+      </div>
+    </a>`;
+  }
+
+  function postHTML(p){
+    const mine=p.authorEmail===me.id;
+    const prof = p.asPage ? `groupe.html?id=${p.pageId}` : `membre.html?id=${p.authorEmail}`;
+    const showPerson = !mine && !p.asPage;   // boutons personne masqués pour un post de page
+    const vis = p.visibility==='friends' ? ' · 👥 Amis' : '';
+    const meta = (p.asPage ? `${JP.timeAgo(p.ts)} · 📄 Page` : `${JP.esc(p.town)} · ${JP.timeAgo(p.ts)}`) + vis;
+    return `<article class="post" data-id="${p.id}" data-author="${p.authorEmail}">
+      <div class="post-head">
+        <a href="${prof}" style="text-decoration:none">${JP.avatarHTML(p.author,p.authorAvatar,'av')}</a>
+        <div class="meta"><b><a href="${prof}" style="color:inherit;text-decoration:none">${JP.esc(p.author)}</a></b><span>${meta}</span></div>
+        ${showPerson?`<a href="messages.html?to=${p.authorEmail}" class="btn btn-ghost btn-sm msg-btn" data-target="${p.authorEmail}" style="flex:0 0 auto;display:none" title="Envoyer un message">✉</a>`:''}
+        ${showPerson?`<button class="btn btn-ghost btn-sm friend-btn" data-target="${p.authorEmail}">+ Ami</button>`:''}
+        ${showPerson?`<button class="btn btn-ghost btn-sm follow-btn" data-target="${p.authorEmail}">Suivre</button>`:''}
+        <span class="tag">${JP.esc(p.tag)}</span>
+        ${mine?`<div class="post-menu"><button class="dots">\u22EF</button>
+          <div class="pop"><button class="edit-post">\u270F\uFE0F Modifier</button>${(p.images&&p.images.length)?`<button class="pt-edit" data-id="${p.id}">\uD83C\uDFF7\uFE0F Identifier</button>`:''}<button class="del"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg> Supprimer</button></div>
+        </div>`:`<div class="post-menu"><button class="dots">\u22EF</button>
+          <div class="pop"><button class="report-post" data-pid="${p.id}">Signaler</button><button class="block-author" data-uid="${p.authorEmail}">Bloquer l'auteur</button></div>
+        </div>`}
+      </div>
+      <div class="post-body">${JP.mentionHTML(p.text)}</div>
+      ${pollHTML(p.poll)}
+      ${p.video?`<video class="post-video" src="${p.video}" controls preload="metadata" playsinline></video>`:''}
+      ${p.eventId ? eventCardHTML(p) : galleryHTML(p.images)}
+      ${(!p.eventId && p.images&&p.images.length)?`<div class="photo-tags" data-pid="${p.id}">${mine?`<button type="button" class="pt-edit" data-id="${p.id}">🏷️ Identifier</button>`:''}</div>`:''}
+      ${linkCardHTML(p.linkPreview)}
+      ${p.shared?sharedCardHTML(p.shared):''}
+      <div class="post-actions">
+        <div class="act-react">
+          <button class="act like ${p.myReaction?'reacted':''}">
+            <span class="rx-face">${p.myReaction?JP.reactionMeta(p.myReaction).emoji:'👍'}</span>
+            <span class="rx-label">${p.myReaction?JP.reactionMeta(p.myReaction).label:"J'aime"}</span>
+            <span class="lc">${p.likes}</span>
+          </button>
+          <div class="react-picker">${JP.REACTIONS.map(r=>`<button type="button" class="rx" data-t="${r.type}" title="${r.label}">${r.emoji}</button>`).join('')}</div>
+        </div>
+        <button class="act cbtn">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span class="cc">${p.commentCount||0}</span>
+        </button>
+        <div class="act-share">
+          <button class="act share">
+            <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+            Partager
+          </button>
+          <div class="share-menu">
+            <button class="sh-link" type="button">Copier le lien</button>
+            <button class="sh-reshare" type="button">Partager dans mon fil</button>
+            <button class="sh-msg" type="button">Envoyer en message</button>
+          </div>
+        </div>
+      </div>
+      <div class="comments open">
+        <div class="comments-controls" style="display:none">
+          <select class="csort">
+            <option value="all">Tous les commentaires</option>
+            <option value="recent">Les plus récents</option>
+            <option value="top">Le plus de like</option>
+          </select>
+        </div>
+        <button class="see-all" type="button" style="display:none"></button>
+        <div class="comment-list"></div>
+        <div class="comment-form">
+          <input type="text" placeholder="Écris un commentaire…" maxlength="240">
+          <button class="btn btn-primary btn-sm csend">Envoyer</button>
+        </div>
+      </div>
+    </article>`;
+  }
+
+  function bind(p){
+    const pid=p.id;
+    const el=feed.querySelector(`[data-id="${pid}"]`);
+    /* ---- Réactions multiples (tap = J'aime, appui long = choisir) ---- */
+    const likeBtn=el.querySelector('.like');
+    const picker=el.querySelector('.react-picker');
+    const lc=el.querySelector('.lc'), face=el.querySelector('.rx-face'), lbl=el.querySelector('.rx-label');
+    let myReact=p.myReaction;
+    function paintReact(){
+      likeBtn.classList.toggle('reacted',!!myReact);
+      const m=myReact?JP.reactionMeta(myReact):null;
+      face.textContent=m?m.emoji:'👍'; lbl.textContent=m?m.label:"J'aime";
+    }
+    async function setReact(type){
+      const had=!!myReact, will=!!type; let c=parseInt(lc.textContent)||0;
+      if(had&&!will)c--; else if(!had&&will)c++;
+      lc.textContent=Math.max(0,c); myReact=type||null; paintReact();
+      await JP.reactPost(pid, myReact);
+    }
+    let lpTimer=null, longPressed=false;
+    const cancelLp=()=>clearTimeout(lpTimer);
+    likeBtn.addEventListener('pointerdown',()=>{ longPressed=false; lpTimer=setTimeout(()=>{ longPressed=true; picker.classList.add('open'); },380); });
+    likeBtn.addEventListener('pointerup',()=>{ clearTimeout(lpTimer); if(longPressed) return; setReact(myReact?'':'like'); });
+    likeBtn.addEventListener('pointerleave',cancelLp);
+    likeBtn.addEventListener('pointercancel',cancelLp);
+    likeBtn.addEventListener('click',e=>e.stopPropagation());
+    picker.querySelectorAll('.rx').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); picker.classList.remove('open'); setReact(b.dataset.t); }));
+    document.addEventListener('click',()=>picker.classList.remove('open'));
+    /* ---- Commentaires : aperçu (2) + voir tous + tri + like + réponses (façon FB) ---- */
+    const cstate={expanded:expandedPosts.has(pid), sort:'recent'};
+    const cList=el.querySelector('.comment-list');
+    const cCtrls=el.querySelector('.comments-controls');
+    const cSel=el.querySelector('.csort');
+    const cSeeAll=el.querySelector('.see-all');
+    function commentHTML(c, depth){
+      const mineC=c.authorId===me.id;
+      const cap=Math.min(depth||0,5);
+      const ind = depth>0 ? ` style="margin-left:calc(${cap} * var(--cind))"` : '';
+      return `<div class="comment ${depth>0?'reply':''}" data-cid="${c.id}"${ind}>
+        ${JP.avatarHTML(c.author,c.avatar,'av')}
+        <div class="bubble"><b>${JP.esc(c.author)}</b><p>${JP.mentionHTML(c.text)}</p>
+          <button class="clike ${c.liked?'liked':''}" type="button" data-cid="${c.id}">♥ <span class="cl-count">${c.likes}</span></button>
+          <button class="creply" type="button" data-parent="${c.id}">Répondre</button>
+          ${mineC?`<button class="cedit" type="button" data-cid="${c.id}">Modifier</button>`:''}
+        </div></div>`;
+    }
+    // Charge les commentaires complets à la demande (fil allégé : on n'avait que le nombre)
+    async function ensureComments(){
+      if(p.commentsLoaded) return;
+      try{ p.comments=await JP.commentsOf(pid); }catch(e){ p.comments=[]; }
+      p.commentsLoaded=true; p.commentCount=p.comments.length;
+    }
+    function paintComments(){
+      const byRecent=(a,b)=>new Date(b.ts)-new Date(a.ts);
+      const byOld=(a,b)=>new Date(a.ts)-new Date(b.ts);
+      const sorters={ all:byOld, recent:byRecent, top:(a,b)=>(b.likes-a.likes)||byRecent(a,b) };
+      if(cstate.expanded && !p.commentsLoaded){
+        cCtrls.style.display='none'; cSeeAll.style.display='none';
+        cList.innerHTML='<div style="color:var(--ink-soft);font-size:.85rem;padding:6px">Chargement…</div>';
+        ensureComments().then(paintComments);
+        return;
+      }
+      // Arbre de commentaires (profondeur illimitée) : enfants par parent
+      const kids={}; (p.comments||[]).forEach(c=>{ const k=c.parentId||'__root'; (kids[k]=kids[k]||[]).push(c); });
+      const tops=kids['__root']||[];
+      if(cstate.expanded){
+        cCtrls.style.display=''; cSeeAll.style.display='none';
+        if(cSel) cSel.value=cstate.sort;
+        const ordered=tops.slice().sort(sorters[cstate.sort]||sorters.all);
+        const rows=[];
+        const walk=(parentId,depth)=>{ (kids[parentId]||[]).slice().sort(byOld).forEach(c=>{ rows.push([c,depth]); walk(c.id,depth+1); }); };
+        ordered.forEach(top=>{ rows.push([top,0]); walk(top.id,1); });
+        cList.innerHTML=rows.map(([c,d])=>commentHTML(c,d)).join('');
+      } else {
+        cCtrls.style.display='none';
+        const nb=p.commentCount||0;
+        cSeeAll.textContent='Voir les '+nb+' commentaire'+(nb>1?'s':'');
+        cSeeAll.style.display = nb>0 ? '' : 'none';
+        cList.innerHTML='';
+      }
+      cList.querySelectorAll('.clike').forEach(b=>b.addEventListener('click',async()=>{
+        const cid=b.dataset.cid, c=p.comments.find(x=>x.id===cid); if(!c) return;
+        c.liked=!c.liked; c.likes=Math.max(0,c.likes+(c.liked?1:-1));
+        b.classList.toggle('liked',c.liked);
+        const cc=b.querySelector('.cl-count'); if(cc) cc.textContent=c.likes;
+        await JP.toggleCommentLike(cid);
+      }));
+      cList.querySelectorAll('.cedit').forEach(b=>b.addEventListener('click',async()=>{
+        const cid=b.dataset.cid, c=p.comments.find(x=>x.id===cid); if(!c) return;
+        const v=(prompt('Modifier ton commentaire :', c.text)||'').trim();
+        if(!v || v===c.text) return;
+        const r=await JP.editComment(cid, v);
+        if(r.ok){ c.text=v; paintComments(); JP.toast('Commentaire modifié'); }
+        else JP.toast(r.msg||'Échec');
+      }));
+      cList.querySelectorAll('.creply').forEach(b=>b.addEventListener('click',async()=>{
+        const v=(prompt('Ta réponse :','')||'').trim(); if(!v) return;
+        await JP.addComment(pid, v, b.dataset.parent);
+        expandedPosts.add(pid); JP.toast('Réponse envoyée'); await render();
+      }));
+    }
+    if(cSel) cSel.addEventListener('change',()=>{ cstate.sort=cSel.value; paintComments(); });
+    if(cSeeAll) cSeeAll.addEventListener('click',()=>{ cstate.expanded=true; cstate.sort='all'; expandedPosts.add(pid); paintComments(); });
+    el.querySelector('.cbtn').addEventListener('click',()=>{ cstate.expanded=!cstate.expanded; if(cstate.expanded) expandedPosts.add(pid); else expandedPosts.delete(pid); paintComments(); if(cstate.expanded){ const i=el.querySelector('.comment-form input'); if(i) i.focus(); } });
+    paintComments();
+    const shareMenu=el.querySelector('.share-menu');
+    el.querySelector('.share').addEventListener('click',e=>{ e.stopPropagation(); shareMenu.classList.toggle('open'); });
+    document.addEventListener('click',()=>shareMenu.classList.remove('open'));
+    el.querySelector('.sh-link').addEventListener('click',()=>{
+      const url=location.origin+'/post.html?id='+pid;
+      if(navigator.clipboard) navigator.clipboard.writeText(url).then(()=>JP.toast('Lien copié \u{1F517}'),()=>JP.toast('Lien : '+url));
+      else JP.toast('Lien : '+url);
+    });
+    el.querySelector('.sh-reshare').addEventListener('click',async()=>{
+      const cap=(prompt('Ajoute un mot (optionnel) :','')||'').trim();
+      await JP.sharePost(pid, cap);
+      JP.toast('Partagé dans ton fil ! \u{1F501}'); await render();
+    });
+    el.querySelector('.sh-msg').addEventListener('click',()=>shareToMessage(pid));
+    const pollEl=el.querySelector('.poll');
+    if(pollEl){
+      pollEl.querySelectorAll('.poll-opt').forEach(b=>b.addEventListener('click',async()=>{
+        await JP.votePoll(pid, +b.dataset.choice); await render();
+      }));
+      const clr=pollEl.querySelector('.poll-clear');
+      if(clr) clr.addEventListener('click',async()=>{ await JP.removePollVote(pid); await render(); });
+    }
+    const inp=el.querySelector('.comment-form input');
+    JP.attachMentions(inp);
+    const send=async()=>{ const raw=inp.value.trim(); if(!raw) return;
+      const t=JP.tokenizeMentions(raw, inp._mentions); inp.value=''; inp._mentions=[];
+      await JP.addComment(pid,t); expandedPosts.add(pid); await render();
+    };
+    el.querySelector('.csend').addEventListener('click',send);
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter')send();});
+    const menu=el.querySelector('.post-menu');
+    if(menu){
+      const pop=menu.querySelector('.pop');
+      menu.querySelector('.dots').addEventListener('click',e=>{e.stopPropagation();pop.classList.toggle('open');});
+      document.addEventListener('click',()=>pop.classList.remove('open'));
+      const del=menu.querySelector('.del');
+      if(del) del.addEventListener('click',async()=>{
+        if(confirm('Supprimer cette publication ?')){ await JP.deletePost(pid); JP.toast('Publication supprimée'); await render(); }
+      });
+      const editP=menu.querySelector('.edit-post');
+      if(editP) editP.addEventListener('click',()=>{
+        const body=el.querySelector('.post-body');
+        if(el.querySelector('.edit-ta')) return;
+        body.innerHTML=`<textarea class="edit-ta" maxlength="500" style="width:100%;min-width:0;min-height:80px;border:1.5px solid var(--line);border-radius:12px;padding:10px;font-family:inherit;font-size:1rem;resize:vertical">${JP.esc(p.text)}</textarea>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="btn btn-ghost btn-sm cancel-edit" type="button">Annuler</button><button class="btn btn-primary btn-sm save-edit" type="button">Enregistrer</button></div>`;
+        const ta=body.querySelector('.edit-ta'); ta.focus();
+        body.querySelector('.cancel-edit').addEventListener('click',()=>{ body.textContent=p.text; });
+        body.querySelector('.save-edit').addEventListener('click',async()=>{
+          const v=ta.value.trim(); if(!v){ JP.toast('Le texte ne peut pas être vide'); return; }
+          const r=await JP.editPost(pid, v);
+          if(r.ok){ p.text=v; body.textContent=v; JP.toast('Publication modifiée'); }
+          else JP.toast(r.msg||'Échec');
+        });
+      });
+      const rep=menu.querySelector('.report-post');
+      if(rep) rep.addEventListener('click',()=>Mod.openReport({postId:rep.dataset.pid}));
+      const blk=menu.querySelector('.block-author');
+      if(blk) blk.addEventListener('click',async()=>{ if(await Mod.blockUser(blk.dataset.uid)) await render(); });
+    }
+  }
+
+  const compText=document.getElementById('compText');
+  JP.attachMentions(compText);
+
+  /* ---- Amorces de publication : lèvent la « page blanche » du premier post ---- */
+  const STARTERS=[
+    {label:'👋 Je me présente', text:'Salut le Jura ! 👋 Moi c’est '},
+    {label:'💡 Un bon plan',     text:'Mon bon plan dans le Jura : '},
+    {label:'❓ Une question',     text:'Petite question aux Jurapotes : '},
+    {label:'📅 Une sortie',      text:'Qui est partant·e pour '},
+    {label:'😍 Un coup de cœur',  text:'Mon coup de cœur du moment dans le Jura : '}
+  ];
+  const startersEl=document.getElementById('compStarters');
+  function paintStarters(){ if(startersEl) startersEl.style.display = compText.value.trim() ? 'none' : 'flex'; }
+  if(startersEl){
+    startersEl.innerHTML=STARTERS.map((s,i)=>`<button type="button" class="comp-starter" data-i="${i}">${s.label}</button>`).join('');
+    startersEl.querySelectorAll('.comp-starter').forEach(b=>b.addEventListener('click',()=>{
+      const s=STARTERS[+b.dataset.i]; compText.value=s.text; compText.focus();
+      try{ compText.setSelectionRange(s.text.length,s.text.length); }catch(e){}
+      compText.scrollIntoView({behavior:'smooth',block:'center'});
+      paintStarters();
+    }));
+    compText.addEventListener('input', paintStarters);
+    paintStarters();
+  }
+
+  /* ---- Publier en tant que : Toi ou une de tes pages ---- */
+  const compAs=document.getElementById('compAs');
+  const compAvBox=document.getElementById('compAvBox');
+  let myManagedPages=[];
+  (async()=>{
+    try{ myManagedPages=await JP.myPages(); }catch(e){ myManagedPages=[]; }
+    if(!myManagedPages.length) return;
+    document.getElementById('compIdentityRow').style.display='';
+    compAs.innerHTML='<option value="">🙂 Toi ('+JP.esc(me.name)+')</option>'
+      + myManagedPages.map(p=>`<option value="${p.id}">📄 ${JP.esc(p.name)}</option>`).join('');
+    function paintIdentity(){
+      const p=myManagedPages.find(x=>x.id===compAs.value);
+      if(compAvBox) compAvBox.innerHTML = p ? JP.avatarHTML(p.name,p.avatar,'av') : JP.avatarHTML(me.name,me.avatar,'av');
+      compText.placeholder = p ? ('Publier en tant que '+p.name+'…') : 'Quoi de neuf dans le Jura ?';
+    }
+    compAs.addEventListener('change', paintIdentity);
+    paintIdentity();
+  })();
+
+  /* ---- Anniversaires du jour (amis) ---- */
+  (async()=>{
+    let list=[]; try{ list=await JP.birthdaysToday(); }catch(e){}
+    if(!list.length) return;
+    const el=document.getElementById('bdayCard'); if(!el) return;
+    el.innerHTML = `<div class="side-card" style="margin-bottom:16px">
+      <h3 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:1rem;margin:0 0 10px">🎂 Anniversaires aujourd'hui</h3>`
+      + list.map(p=>`<div class="pending-row" style="margin-bottom:6px;flex-wrap:wrap;row-gap:6px">
+          <a href="membre.html?id=${p.id}" style="text-decoration:none">${JP.avatarHTML(p.name,p.avatar,'av')}</a>
+          <div class="pi" style="flex:1;min-width:0"><b><a href="membre.html?id=${p.id}" style="color:inherit;text-decoration:none">${JP.esc(p.name)}</a></b></div>
+          <a class="btn btn-primary btn-sm" href="messages.html?to=${p.id}">🎉 Souhaiter</a>
+        </div>`).join('')
+      + `</div>`;
+  })();
+
+  /* ---- Éditeur de sondage ---- */
+  const pollBtn=document.getElementById('pollBtn');
+  const pollEditor=document.getElementById('pollEditor');
+  let pollOn=false;
+  function buildPollEditor(){
+    pollEditor.innerHTML=`<div class="pe-head"><span>📊 Sondage — ta publication sert de question</span><button type="button" id="pollOff" aria-label="Retirer le sondage">&times;</button></div><div id="pollRows"></div><button type="button" class="btn btn-ghost btn-sm" id="pollAdd" style="align-self:flex-start">+ Ajouter une option</button>`;
+    const rows=pollEditor.querySelector('#pollRows');
+    function addRow(){
+      if(rows.children.length>=6){ JP.toast('6 options maximum'); return; }
+      const div=document.createElement('div'); div.className='pe-row';
+      const inp=document.createElement('input'); inp.type='text'; inp.maxLength=80; inp.placeholder='Option '+(rows.children.length+1);
+      const rm=document.createElement('button'); rm.type='button'; rm.className='pe-rm'; rm.textContent='✕';
+      rm.addEventListener('click',()=>{ if(rows.children.length>2) div.remove(); else JP.toast('Minimum 2 options'); });
+      div.appendChild(inp); div.appendChild(rm); rows.appendChild(div);
+    }
+    addRow(); addRow();
+    pollEditor.querySelector('#pollAdd').addEventListener('click',addRow);
+    pollEditor.querySelector('#pollOff').addEventListener('click',()=>{ pollOn=false; pollEditor.style.display='none'; });
+  }
+  pollBtn.addEventListener('click',()=>{
+    pollOn=!pollOn;
+    if(pollOn){ buildPollEditor(); pollEditor.style.display=''; }
+    else pollEditor.style.display='none';
+  });
+
+  const compGo=document.getElementById('compGo');
+  compGo.addEventListener('click',async()=>{
+    const raw=compText.value.trim();
+    let pollOptions=null;
+    if(pollOn){
+      pollOptions=[...pollEditor.querySelectorAll('#pollRows input')].map(i=>i.value.trim()).filter(Boolean);
+      if(pollOptions.length<2){ JP.toast('Ajoute au moins 2 options au sondage'); return; }
+    }
+    if(!raw && !pendingImages.length && !pollOptions && !pendingVideo){JP.toast('Écris un mot, ajoute une photo, une vidéo ou un sondage \u{1F642}');return;}
+    if(pollOptions && !raw){ JP.toast('Écris la question du sondage dans le texte'); return; }
+    const t=JP.tokenizeMentions(raw, compText._mentions);
+    compGo.disabled=true; compGo.textContent='Publication…';
+    if(pendingVideo) JP.toast('Envoi de la vidéo… (ça peut prendre un moment)');
+    const pageId = (compAs && compAs.value) ? compAs.value : null;
+    const visibility = (document.getElementById('compVis')||{}).value || 'all';
+    await JP.addPost({text:t, tag:document.getElementById('compTag').value, images:pendingImages, pollOptions, video:pendingVideo, pageId, visibility});
+    compGo.disabled=false; compGo.textContent='Publier';
+    compText.value=''; compText._mentions=[];
+    pendingImages=[]; pendingVideo=null; renderVideoPrev();
+    pollOn=false; pollEditor.style.display='none'; pollEditor.innerHTML='';
+    renderPreviews();
+    JP.toast('Publié ! \u{1F389}');
+    await render();
+    window.scrollTo({top:0, behavior:'smooth'});   // remonte voir sa publication
+  });
+
+  /* Mini événements (non bloquant : ne retarde pas le rendu du fil) */
+  JP.events().then(evs=>{ const evMini=document.getElementById('evMini'); if(evMini) evMini.innerHTML=evs.slice(0,3).map(e=>`
+    <div style="display:flex;gap:11px;align-items:center;margin-bottom:12px">
+      <div style="background:var(--rouge-soft);color:var(--rouge-dark);border-radius:11px;padding:6px 10px;text-align:center;min-width:46px">
+        <div style="font-family:'Fraunces',serif;font-weight:700;font-size:1.1rem;line-height:1">${e.day}</div>
+        <div style="font-size:.68rem;text-transform:uppercase">${e.month}</div>
+      </div>
+      <div><b style="font-size:.88rem;display:block">${JP.esc(e.title)}</b><span style="font-size:.78rem;color:var(--ink-soft)">${JP.esc(e.town)}</span></div>
+    </div>`).join('') || '<div style="font-size:.85rem;color:var(--ink-soft)">Aucun événement pour l\'instant.</div>'; }).catch(()=>{});
+
+  /* ---- Suggestions d'amis (amis communs prioritaires) ---- */
+  async function renderSuggestions(){
+    const strip=document.getElementById('suggestStrip');
+    const card=document.getElementById('suggestCard');
+    const sugg=await JP.friendSuggestions(10);
+    if(!sugg.length){ if(strip) strip.innerHTML=''; if(card) card.innerHTML=''; return; }
+    const mut=s=> s.mutual>0 ? (s.mutual+' ami'+(s.mutual>1?'s':'')+' en commun') : (s.town?('📍 '+JP.esc(s.town)):'Suggéré pour toi');
+
+    // Bande horizontale dans le fil
+    if(strip){
+      strip.innerHTML=`<div class="side-card sugg-stripwrap">
+        <h3 style="font-family:'Plus Jakarta Sans';font-size:1rem;margin-bottom:12px">Des personnes que tu connais peut-être</h3>
+        <div class="sugg-strip">${sugg.map(s=>`
+          <div class="sugg-card" data-id="${s.id}">
+            <a href="membre.html?id=${s.id}" style="text-decoration:none;color:inherit;display:flex;flex-direction:column;align-items:center;gap:6px">
+              ${JP.avatarHTML(s.name,s.avatar,'av','width:64px;height:64px;font-size:1.4rem')}
+              <b style="font-size:.9rem;text-align:center;line-height:1.2">${JP.esc(s.name)}</b>
+            </a>
+            <span class="sugg-mut">${mut(s)}</span>
+            <button class="btn btn-primary btn-sm sugg-add" data-id="${s.id}">+ Ajouter</button>
+          </div>`).join('')}</div>
+      </div>`;
+    }
+    // Liste verticale (colonne droite)
+    if(card){
+      card.innerHTML=`<div class="side-card">
+        <h3 style="font-family:'Plus Jakarta Sans';font-size:1rem;margin-bottom:12px">Suggestions d'amis</h3>
+        ${sugg.slice(0,5).map(s=>`
+          <div class="sugg-row" data-id="${s.id}">
+            <a href="membre.html?id=${s.id}" style="text-decoration:none">${JP.avatarHTML(s.name,s.avatar,'av')}</a>
+            <div class="si"><b>${JP.esc(s.name)}</b><span>${mut(s)}</span></div>
+            <button class="btn btn-primary btn-sm sugg-add" data-id="${s.id}">+</button>
+          </div>`).join('')}
+      </div>`;
+    }
+    // Wiring des boutons "Ajouter" (fil + colonne droite)
+    document.querySelectorAll('.sugg-add').forEach(b=>b.addEventListener('click',async()=>{
+      const id=b.dataset.id;
+      await JP.sendFriendRequest(id);
+      JP.toast('Demande envoyée 👋');
+      document.querySelectorAll(`.sugg-add[data-id="${id}"]`).forEach(o=>{ o.textContent='Demande envoyée'; o.disabled=true; o.classList.remove('btn-primary'); o.classList.add('btn-ghost'); });
+    }));
+  }
+
+  const friendsReady = JP.friends().then(list=>{ (list||[]).forEach(f=>{ if(f && f.id) friendSet.add(f.id); }); }).catch(()=>{});
+
+  /* ---- Visionneuse photos (galerie : précédent / suivant / swipe) ---- */
+  window.JPLightbox = (function(){
+    const lb=document.getElementById('lightbox');
+    const img=document.getElementById('lbImg');
+    const prev=lb.querySelector('.lb-prev'), next=lb.querySelector('.lb-next'), cnt=lb.querySelector('.lb-count'), tagBtn=lb.querySelector('.lb-tag');
+    let imgs=[], idx=0, cfg={};
+    function paint(){
+      img.src=imgs[idx]||'';
+      const multi=imgs.length>1;
+      if(prev) prev.style.display=multi?'':'none';
+      if(next) next.style.display=multi?'':'none';
+      if(cnt){ cnt.style.display=multi?'':'none'; cnt.textContent=`${idx+1} / ${imgs.length}`; }
+    }
+    function go(d){ if(!imgs.length) return; idx=(idx+d+imgs.length)%imgs.length; paint(); }
+    function open(list, start, opts){ imgs=(list||[]).filter(Boolean); idx=start||0; cfg=opts||{}; if(!imgs.length) return; paint();
+      if(tagBtn){ tagBtn.style.display=cfg.canTag?'':'none'; tagBtn.onclick=()=>{ close(); if(cfg.onTag) cfg.onTag(); }; }
+      lb.classList.add('open'); }
+    function close(){ lb.classList.remove('open'); imgs=[]; }
+    if(prev) prev.addEventListener('click',e=>{ e.stopPropagation(); go(-1); });
+    if(next) next.addEventListener('click',e=>{ e.stopPropagation(); go(1); });
+    lb.querySelector('.lb-close').addEventListener('click',close);
+    lb.addEventListener('click',e=>{ if(e.target===lb) close(); });
+    document.addEventListener('keydown',e=>{ if(!lb.classList.contains('open')) return; if(e.key==='Escape')close(); else if(e.key==='ArrowLeft')go(-1); else if(e.key==='ArrowRight')go(1); });
+    // swipe tactile
+    let x0=null;
+    lb.addEventListener('touchstart',e=>{ x0=e.touches[0].clientX; },{passive:true});
+    lb.addEventListener('touchend',e=>{ if(x0==null)return; const dx=e.changedTouches[0].clientX-x0; if(Math.abs(dx)>40) go(dx<0?1:-1); x0=null; },{passive:true});
+    return { open, close };
+  })();
+
+  /* ---- Lecteur de Reels plein écran (défilement vertical) ---- */
+  window.JPReels = (function(){
+    const vw=document.getElementById('reelViewer');
+    const stage=document.getElementById('rvStage');
+    const up=vw.querySelector('.rv-up'), down=vw.querySelector('.rv-down');
+    let list=[], idx=0;
+    function paint(){
+      const r=list[idx]; if(!r){ close(); return; }
+      const mine = me && r.authorId===me.id;
+      stage.innerHTML=`<video src="${r.video}" ${r.cover?`poster="${r.cover}"`:''} playsinline autoplay loop preload="auto"></video>
+        <div class="rv-grad"></div>
+        ${mine?'<button class="rv-del" type="button" aria-label="Supprimer ce reel">🗑 Supprimer</button>':''}
+        <div class="rv-actions">
+          <button class="rv-like ${r.likedByMe?'on':''}" type="button" aria-label="J'aime">
+            <span class="rv-heart">${r.likedByMe?'❤️':'🤍'}</span><span class="rv-lc">${r.likes||0}</span>
+          </button>
+        </div>
+        <div class="rv-info"><div class="rv-author">${JP.avatarHTML(r.author,r.avatar,'av')}<b>${JP.esc(r.author)}</b></div>${r.caption?`<div class="rv-cap">${JP.esc(r.caption)}</div>`:''}</div>`;
+      const v=stage.querySelector('video');
+      const likeBtn=stage.querySelector('.rv-like');
+      if(likeBtn) likeBtn.addEventListener('click',async ev=>{
+        ev.stopPropagation();
+        const on=!r.likedByMe; r.likedByMe=on; r.likes=(r.likes||0)+(on?1:-1);
+        likeBtn.classList.toggle('on',on);
+        likeBtn.querySelector('.rv-heart').textContent=on?'❤️':'🤍';
+        likeBtn.querySelector('.rv-lc').textContent=r.likes;
+        try{ await JP.toggleLike(r.id); }catch(e){}
+      });
+      v.muted=false;
+      v.play().catch(()=>{ v.muted=true; v.play().catch(()=>{}); });
+      v.addEventListener('click',()=>{ if(v.paused) v.play(); else v.pause(); });
+      const del=stage.querySelector('.rv-del');
+      if(del) del.addEventListener('click',async ev=>{
+        ev.stopPropagation();
+        if(!confirm('Supprimer ce reel ?')) return;
+        await JP.deletePost(r.id);
+        JP.toast('Reel supprimé');
+        list.splice(idx,1);
+        try{ _reels=await JP.reels(20); }catch(e){}
+        renderFeed();
+        if(!list.length){ close(); return; }
+        if(idx>=list.length) idx=list.length-1;
+        paint();
+      });
+      up.style.display=idx>0?'':'none';
+      down.style.display=idx<list.length-1?'':'none';
+    }
+    function go(d){ const n=idx+d; if(n<0||n>=list.length) return; idx=n; paint(); }
+    function open(reels, start){ list=reels||[]; idx=start||0; if(!list.length) return; vw.classList.add('open'); document.body.style.overflow='hidden'; paint(); }
+    function close(){ vw.classList.remove('open'); document.body.style.overflow=''; stage.innerHTML=''; list=[]; }
+    up.addEventListener('click',e=>{ e.stopPropagation(); go(-1); });
+    down.addEventListener('click',e=>{ e.stopPropagation(); go(1); });
+    vw.querySelector('.rv-close').addEventListener('click',close);
+    document.addEventListener('keydown',e=>{ if(!vw.classList.contains('open'))return; if(e.key==='Escape')close(); else if(e.key==='ArrowUp'||e.key==='ArrowLeft')go(-1); else if(e.key==='ArrowDown'||e.key==='ArrowRight')go(1); });
+    let y0=null;
+    vw.addEventListener('touchstart',e=>{ y0=e.touches[0].clientY; },{passive:true});
+    vw.addEventListener('touchend',e=>{ if(y0==null)return; const dy=e.changedTouches[0].clientY-y0; if(Math.abs(dy)>50) go(dy<0?1:-1); y0=null; },{passive:true});
+    return { open, close };
+  })();
+
+  /* ---- Création d'un reel (upload vidéo + légende) ---- */
+  document.getElementById('reelFile').addEventListener('change', async e=>{
+    const file=e.target.files && e.target.files[0];
+    e.target.value='';
+    if(!file) return;
+    const caption=prompt('Une légende pour ton reel ? (optionnel)')||'';
+    JP.toast('Publication du reel…');
+    const r=await JP.addReel(file, caption);
+    if(r && r.ok){
+      JP.toast('Reel publié ! 🎬');
+      try{ _reels=await JP.reels(20); }catch(err){ _reels=_reels||[]; }
+      renderFeed();
+    } else {
+      JP.toast((r&&r.msg)||'Échec de la publication', {error:true});
+    }
+  });
+
+  /* ---- Bouton « retour en haut » ---- */
+  (function backToTop(){
+    const b=document.createElement('button'); b.className='to-top'; b.type='button'; b.setAttribute('aria-label','Remonter en haut');
+    b.innerHTML='<svg viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>';
+    document.body.appendChild(b);
+    b.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+    const onScroll=()=>b.classList.toggle('show', window.scrollY>700);
+    window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+  })();
+
+  /* ---- Carte de bienvenue (nouveaux membres, fermable une fois) ---- */
+  (function welcome(){
+    let dismissed=false; try{ dismissed=localStorage.getItem('jp-welcome-dismissed')==='1'; }catch(e){}
+    if(dismissed) return;
+    const main=document.querySelector('main'); const composer=main && main.querySelector('.composer');
+    if(!main || !composer) return;
+    const card=document.createElement('div'); card.className='welcome-card';
+    card.innerHTML=`<button class="wc-x" type="button" aria-label="Fermer">&times;</button>
+      <h3>Bienvenue sur Jurapotes 👋</h3>
+      <p>Trois petits pas pour bien démarrer dans le Jura :</p>
+      <div class="wc-steps">
+        <a class="wc-step" href="profil.html">🧑 Compléter mon profil (photo, à propos)</a>
+        <a class="wc-step" href="amis.html">🤝 Trouver des amis près de chez moi</a>
+        <a class="wc-step" href="#" id="wcPost">✍️ Publier mon premier message</a>
+      </div>`;
+    main.insertBefore(card, composer);
+    card.querySelector('.wc-x').addEventListener('click',()=>{ try{localStorage.setItem('jp-welcome-dismissed','1');}catch(e){} card.remove(); });
+    const wp=card.querySelector('#wcPost');
+    if(wp) wp.addEventListener('click',e=>{ e.preventDefault(); const t=document.getElementById('compText'); if(t){ t.focus(); t.scrollIntoView({behavior:'smooth',block:'center'}); } });
+  })();
+
+  // Le fil s'affiche AU PLUS VITE : on ne bloque plus sur reels/suggestions/amis.
+  const extrasReady = prefetchExtras();          // reels + suggestions groupes/pages (en parallèle)
+  await render();                                 // squelette immédiat puis posts → 1er rendu rapide
+  // Quand amis + extras sont prêts, on ré-affiche (sans réseau) pour intégrer
+  // l'état des boutons d'amitié et les cartes reels/groupes intercalées.
+  Promise.all([friendsReady, extrasReady]).then(()=>{ if(loadedPosts.length) renderFeed(); });
+  renderSuggestions();
+})();
+
+});
+</script>
+<nav class="mobile-nav">
+<a href="fil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Fil</span></a>
+<a href="recherche.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg><span>Recherche</span></a>
+<a href="amis.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"/></svg><span>Amis</span></a>
+<a href="messages.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span>Messages</span></a>
+<a href="notifications.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><span class="mn-badge" id="mnBell">0</span><span>Alertes</span></a>
+<a href="profil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M4 21v-1a6 6 0 0112 0v1"/></svg><span>Profil</span></a>
+</nav>
+</body>
+</html>

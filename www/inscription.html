@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inscription gratuite — Jurapotes, le réseau social du Jura</title>
+<meta name="description" content="Inscris-toi gratuitement sur Jurapotes, le réseau social du Jura — et tente de gagner 1 AN DE PIZZA GRATUITE 🍕 ! Grand concours, tirage au sort le 15 juillet. Il suffit de s'inscrire.">
+<link rel="canonical" href="https://jurapotes.ch/inscription.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"></noscript>
+<link rel="stylesheet" href="assets/style.css?v=92">
+<script>(function(){function s(){return window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches}function t(){try{return localStorage.getItem("jp-theme")}catch(e){return null}}function a(m){if(m==="dark")document.documentElement.setAttribute("data-theme","dark");else document.documentElement.removeAttribute("data-theme")}var p=t();a(p?p:(s()?"dark":"light"));window.JPTheme={get:function(){return document.documentElement.getAttribute("data-theme")==="dark"?"dark":"light"},set:function(m){a(m);try{localStorage.setItem("jp-theme",m)}catch(e){}document.dispatchEvent(new CustomEvent("jp-theme-change",{detail:this.get()}))},toggle:function(){this.set(this.get()==="dark"?"light":"dark");return this.get()}}})();</script>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#E11D2A">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jurapotes">
+<style>
+  /* ===== Concours « 1 an de pizza » (page inscription uniquement) ===== */
+  .concours-wrap{max-width:440px;margin:0 auto 12px}
+  .concours{display:block;border-radius:18px;overflow:hidden;text-decoration:none;
+    border:2px solid var(--rouge);box-shadow:0 12px 34px rgba(225,29,42,.20);
+    transition:transform .15s ease, box-shadow .15s ease}
+  .concours:hover{transform:translateY(-2px);box-shadow:0 16px 40px rgba(225,29,42,.28)}
+  .concours img{display:block;width:100%;height:auto}
+  .concours-fallback{background:linear-gradient(135deg,#E11D2A 0%,#a30f1a 100%);color:#fff;
+    padding:26px 20px;text-align:center}
+  .cc-badge{display:inline-block;background:#1A1416;color:#fff;font-weight:800;
+    letter-spacing:.6px;padding:6px 15px;border-radius:999px;font-size:13px}
+  .cc-prize{font-size:33px;font-weight:800;line-height:1.04;margin:13px 0 7px;
+    font-family:'Fraunces',Georgia,serif}
+  .cc-sub{font-size:14px;opacity:.95;line-height:1.4}
+  .concours-cta{max-width:440px;margin:0 auto 22px;background:#1A1416;color:#fff;
+    border-radius:14px;padding:13px 16px;text-align:center;box-shadow:0 8px 22px rgba(0,0,0,.14)}
+  .cc-count{display:block;font-weight:800;font-size:17px;animation:ccPulse 1.8s ease-in-out infinite}
+  .cc-hint{display:block;font-size:13.5px;opacity:.92;margin-top:4px}
+  .cc-fine{display:block;text-align:center;font-size:11px;color:var(--muted,#8a7d7d);
+    max-width:440px;margin:-14px auto 18px;line-height:1.4}
+  @keyframes ccPulse{0%,100%{opacity:1}50%{opacity:.62}}
+  @media (max-width:480px){ .cc-prize{font-size:29px} }
+</style>
+<script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
+<script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
+<script src="/assets/pwa.js?v=21" defer data-turbo-track="reload"></script>
+</head>
+<body>
+<nav><div class="wrap nav-inner">
+  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">J</span><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <div class="nav-links"><a href="fil.html">Le fil</a><a href="evenements.html">Événements</a><a href="connexion.html">Connexion</a></div>
+</div></nav>
+
+<div class="page-pad">
+
+  <!-- ===== Concours « 1 an de pizza gratuite » ===== -->
+  <div class="concours-wrap">
+    <a class="concours" href="#name" aria-label="Grand concours : gagne 1 an de pizza gratuite, inscris-toi">
+      <img src="assets/concours.jpg" alt="Grand concours Jurapotes : gagne 1 an de pizza gratuite — inscris-toi pour participer"
+           onerror="this.style.display='none';var f=document.getElementById('ccFallback');if(f)f.style.display='block';">
+      <div id="ccFallback" class="concours-fallback" style="display:none">
+        <span class="cc-badge">🍕 GRAND CONCOURS</span>
+        <div class="cc-prize">Gagne 1&nbsp;AN<br>de PIZZA GRATUITE</div>
+        <div class="cc-sub">12 pizzas offertes — 1 par mois 🍕<br>Offert par <b>Tchie nos Pizzeria</b></div>
+      </div>
+    </a>
+  </div>
+  <div class="concours-cta">
+    <span class="cc-count" id="ccCount">⏳ Tirage au sort le 15 juillet</span>
+    <span class="cc-hint">Pour participer, il suffit de t'inscrire ci-dessous 👇</span>
+  </div>
+  <span class="cc-fine">*Tirage au sort parmi tous les membres inscrits au 15&nbsp;juillet&nbsp;2026. Lot offert par Tchie nos Pizzeria. Sans obligation d'achat.</span>
+
+  <div class="auth-card">
+    <h2>Rejoins les potes 👋</h2>
+    <p class="sub">Crée ton compte en 30&nbsp;secondes — et tu participes au concours <b>1&nbsp;an de pizza</b> 🍕</p>
+    <div id="err" class="alert" style="display:none"></div>
+    <div class="field">
+      <label for="name">Nom & prénom</label>
+      <input id="name" type="text" placeholder="Marie Lovis" autocomplete="name">
+    </div>
+    <div class="field">
+      <label for="town">Ta commune jurassienne</label>
+      <select id="town">
+        <option value="">Choisis…</option>
+        <option>Delémont</option><option>Porrentruy</option><option>Saignelégier</option>
+        <option>Bassecourt</option><option>Courrendlin</option><option>Le Noirmont</option>
+        <option>Les Bois</option><option>Courroux</option><option>Alle</option>
+        <option>Châtenois</option><option>Vicques</option><option>Autre commune du Jura</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="gender">Tu es…</label>
+      <select id="gender">
+        <option value="">Choisis…</option>
+        <option value="Femme">Une femme</option>
+        <option value="Homme">Un homme</option>
+        <option value="Autre">Autre</option>
+        <option value="Ne se prononce pas">Je préfère ne pas dire</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="birthday">Date de naissance</label>
+      <input id="birthday" type="date">
+    </div>
+    <div class="field">
+      <label for="email">E-mail</label>
+      <input id="email" type="email" placeholder="toi@email.ch" autocomplete="email">
+    </div>
+    <div class="field">
+      <label for="pw">Mot de passe</label>
+      <input id="pw" type="password" placeholder="••••••••" autocomplete="new-password">
+    </div>
+    <div class="field">
+      <label for="howknow">Comment nous as-tu connus ? <span style="font-weight:400;color:var(--ink-soft);font-size:.85em">(optionnel)</span></label>
+      <select id="howknow">
+        <option value="">Choisis…</option>
+        <option value="bouche-à-oreille">Bouche-à-oreille</option>
+        <option value="concours pizza">Le concours pizza 🍕</option>
+        <option value="réseaux sociaux">Réseaux sociaux</option>
+        <option value="presse-affichage">Presse / affichage</option>
+        <option value="autre">Autre</option>
+      </select>
+    </div>
+    <!-- piège anti-bot : invisible aux humains, rempli par les robots -->
+    <input id="hp_site" name="site_web" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+    <div id="cfTurnstile" style="margin:6px 0"></div>
+    <button class="btn btn-primary btn-block" id="go">Créer mon compte</button>
+    <div id="oauthWrap" style="display:none">
+      <div style="display:flex;align-items:center;gap:10px;color:var(--ink-soft);font-size:.85rem;margin:16px 0"><span style="flex:1;height:1px;background:var(--line)"></span>ou<span style="flex:1;height:1px;background:var(--line)"></span></div>
+      <button class="btn btn-block" id="googleBtn" type="button" style="background:#fff;color:#1A1416;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;gap:10px">
+        <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Continuer avec Google
+      </button>
+    </div>
+    <div class="auth-foot">Déjà un compte ? <a href="connexion.html">Se connecter</a></div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded",function(){
+  (async()=>{ await JP.loadMe(); if(JP.user()) location.href='fil.html'; })();
+
+  /* ---- Concours : compte à rebours jusqu'au tirage du 15 juillet ---- */
+  (function(){
+    const el=document.getElementById('ccCount'); if(!el) return;
+    const draw=new Date(2026,6,15,23,59,59);            // 6 = juillet
+    const ms=draw-new Date();
+    if(ms<=0){ el.textContent='🎉 Concours terminé — merci à tous !'; return; }
+    const days=Math.ceil(ms/86400000);
+    if(days<=1) el.textContent='⏳ DERNIER JOUR pour t\'inscrire — tirage ce 15 juillet !';
+    else el.textContent='⏳ Tirage le 15 juillet — plus que '+days+' jours pour participer';
+  })();
+  JP.fillCommuneSelect(document.getElementById('town'), {first:'Choisis ta commune…'});
+  const err=document.getElementById('err');
+  function showErr(m){err.textContent=m;err.style.display='block';err.style.background='var(--rouge-soft)';err.style.color='var(--rouge-dark)';}
+  function showOk(m){err.textContent=m;err.style.display='block';err.style.background='#E6F4EA';err.style.color='#1E5631';}
+
+  /* ---- Anti-bot : honeypot + délai mini + Turnstile (si configuré) ---- */
+  const formLoadedAt = Date.now();
+  let cfToken = '';
+  const CF_KEY = (window.JP_CONFIG && JP_CONFIG.TURNSTILE_SITEKEY) || '';
+  if(CF_KEY){
+    window.onCfVerify = t => { cfToken = t; };
+    const s=document.createElement('script');
+    s.src='https://challenges.cloudflare.com/turnstile/v0/api.js'; s.async=true; s.defer=true;
+    document.head.appendChild(s);
+    const box=document.getElementById('cfTurnstile');
+    box.className='cf-turnstile';
+    box.setAttribute('data-sitekey', CF_KEY);
+    box.setAttribute('data-callback', 'onCfVerify');
+  }
+
+  const btn=document.getElementById('go');
+  btn.addEventListener('click',async()=>{
+    const name=document.getElementById('name').value.trim();
+    const town=document.getElementById('town').value;
+    const gender=document.getElementById('gender').value;
+    const birthday=document.getElementById('birthday').value||null;
+    const email=document.getElementById('email').value.trim();
+    const password=document.getElementById('pw').value;
+    // pièges anti-bot
+    if(document.getElementById('hp_site').value){ return; }                 // honeypot rempli = bot
+    if(Date.now()-formLoadedAt < 2500){ return showErr("Petite seconde… réessaie 🙂"); } // trop rapide
+    if(!name) return showErr("Indique ton nom.");
+    if(!town) return showErr("Choisis ta commune.");
+    if(!/^\S+@\S+\.\S+$/.test(email)) return showErr("E-mail invalide.");
+    if(password.length<6) return showErr("Mot de passe trop court (min. 6 caractères).");
+    if(CF_KEY && !cfToken) return showErr("Confirme que tu n'es pas un robot 🤖");
+    btn.disabled=true; btn.textContent='Création…';
+    let _src=null; try{ _src=localStorage.getItem('jp-src'); }catch(e){}
+    const source = _src || document.getElementById('howknow').value || undefined;
+    const r=await JP.register({name,town,gender,birthday,email,password,captchaToken:cfToken||undefined, source});
+    btn.disabled=false; btn.textContent='Créer mon compte';
+    if(!r.ok){ if(window.turnstile&&CF_KEY){ try{turnstile.reset();}catch(e){} cfToken=''; } return showErr(r.msg); }
+    if(r.confirm){ showOk("Compte créé ! Vérifie ta boîte mail pour confirmer ton adresse, puis connecte-toi."); return; }
+    location.href='fil.html';
+  });
+  document.getElementById('pw').addEventListener('keydown',e=>{if(e.key==='Enter')btn.click();});
+
+  /* Inscription Google (affichée seulement si activée dans config.js) */
+  if(window.JP_CONFIG && JP_CONFIG.GOOGLE_AUTH){
+    const w=document.getElementById('oauthWrap'); if(w) w.style.display='';
+    const g=document.getElementById('googleBtn');
+    if(g) g.addEventListener('click',async()=>{ g.disabled=true; const r=await JP.signInWithProvider('google'); if(!r.ok){ g.disabled=false; showErr(r.msg||'Inscription Google indisponible pour le moment.'); } });
+  }
+
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Groupe — Jurapotes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"></noscript>
+<link rel="stylesheet" href="assets/style.css?v=92">
+<script>(function(){function s(){return window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches}function t(){try{return localStorage.getItem("jp-theme")}catch(e){return null}}function a(m){if(m==="dark")document.documentElement.setAttribute("data-theme","dark");else document.documentElement.removeAttribute("data-theme")}var p=t();a(p?p:(s()?"dark":"light"));window.JPTheme={get:function(){return document.documentElement.getAttribute("data-theme")==="dark"?"dark":"light"},set:function(m){a(m);try{localStorage.setItem("jp-theme",m)}catch(e){}document.dispatchEvent(new CustomEvent("jp-theme-change",{detail:this.get()}))},toggle:function(){this.set(this.get()==="dark"?"light":"dark");return this.get()}}})();</script>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#E11D2A">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jurapotes">
+<style>
+  /* Anti-débordement du composer (toutes largeurs) : le textarea et la barre
+     d'actions ne doivent jamais pousser la carte au-delà de sa largeur. */
+  .composer{overflow:hidden}
+  .composer .top{min-width:0}
+  .composer textarea{min-width:0}
+  .composer .bar{flex-wrap:wrap;gap:10px}
+  .composer .opts{min-width:0;flex-wrap:wrap}
+  .composer .bar .btn{flex:0 0 auto}
+</style>
+<script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
+<script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
+<script src="assets/nav.js?v=10" defer data-turbo-track="reload"></script>
+<script src="assets/bell.js?v=23" defer data-turbo-track="reload"></script>
+<script src="assets/calls.js?v=3" defer data-turbo-track="reload"></script>
+<script src="/assets/pwa.js?v=21" defer data-turbo-track="reload"></script>
+</head>
+<body>
+<nav><div class="wrap nav-inner">
+  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">J</span><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <div class="nav-links">
+    <form class="nav-search" onsubmit="location.href='recherche.html?q='+encodeURIComponent(this.q.value);return false;">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input name="q" type="search" placeholder="Rechercher…" aria-label="Rechercher">
+    </form>
+    <a href="fil.html">Le fil</a>
+    <a href="amis.html">Amis</a>
+    <a href="groupes.html" class="active">Groupes</a>
+    <a href="pages.html">Pages</a>
+    <a href="marketplace.html">Marché</a>
+    <a href="evenements.html">Événements</a>
+    <a href="messages.html">Messages</a>
+    <a href="profil.html">Profil</a>
+    <a href="notifications.html" class="nav-bell" id="bell" aria-label="Notifications">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="badge-count" id="bellCount">0</span>
+    </a>
+    <a href="#" id="logout" class="btn btn-ghost btn-sm">Déconnexion</a>
+  </div>
+</div></nav>
+
+<div class="page-pad"><div class="narrow">
+  <a href="groupes.html" id="backLink" style="color:var(--ink-soft);text-decoration:none;font-size:.9rem;display:inline-block;margin-bottom:14px">‹ Retour</a>
+  <div id="header"></div>
+  <div id="composerArea"></div>
+  <div id="manageArea"></div>
+  <div id="pendingArea"></div>
+  <div id="aboutArea"></div>
+  <div id="reviewsArea"></div>
+  <div id="feed"></div>
+</div></div>
+
+<input type="file" id="photoFile" accept="image/*" multiple style="display:none">
+
+<script>
+document.addEventListener("DOMContentLoaded",function(){
+(async function(){
+  const okAuth = await JP.requireAuth();
+  if(!okAuth) return;
+  const me=JP.user();
+  document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
+
+  const groupId=new URLSearchParams(location.search).get('id');
+  if(!groupId){ location.href='groupes.html'; return; }
+
+  const feed=document.getElementById('feed');
+  let group=null, pendingImages=[], manageOpen=false;
+  const expandedPosts=new Set();
+
+  async function loadHeader(){
+    group=await JP.getGroup(groupId);
+    if(!group){ document.getElementById('header').innerHTML='<div class="empty"><p>Groupe introuvable.</p></div>'; return; }
+    const isPage = group.kind==='page';
+    const bl=document.getElementById('backLink');
+    if(bl){ bl.href = isPage?'pages.html':'groupes.html'; bl.textContent = isPage?'‹ Toutes les pages':'‹ Tous les groupes'; }
+    let joinBtn='';
+    if(group.isOwner) joinBtn='<span class="btn btn-ghost btn-sm" style="cursor:default">'+(isPage?'Propriétaire':'👑 Créateur')+'</span>';
+    else if(group.isAdmin) joinBtn='<button class="btn btn-ghost btn-sm" id="joinBtn">🛡️ Admin</button>';
+    else if(group.isMember) joinBtn='<button class="btn btn-ghost btn-sm" id="joinBtn">'+(isPage?'✓ Abonné':'✓ Membre')+'</button>';
+    else if(group.isPending) joinBtn='<button class="btn btn-ghost btn-sm" id="joinBtn">Demande envoyée</button>';
+    else joinBtn=`<button class="btn btn-primary btn-sm" id="joinBtn">${isPage?'Suivre':(group.isPrivate?'Demander à rejoindre':'Rejoindre')}</button>`;
+
+    const contact = isPage ? `
+      ${group.category?`<div class="gh-meta">${JP.esc(group.category)}</div>`:''}
+      ${group.address?`<div class="gh-meta">📍 ${JP.esc(group.address)}</div>`:''}
+      ${group.phone?`<div class="gh-meta">📞 ${JP.esc(group.phone)}</div>`:''}
+      ${group.website?`<div class="gh-meta">🔗 <a href="${JP.esc(group.website)}" target="_blank" rel="noopener" style="color:var(--rouge)">${JP.esc(group.website)}</a></div>`:''}
+    ` : '';
+
+    document.getElementById('header').innerHTML=`
+      <div class="group-header">
+        <div class="gh-cover" id="ghCover" ${group.cover?`style="background-image:url(${group.cover})"`:''}>
+          ${group.isManager?'<button class="cover-edit" id="ghCoverBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> '+(group.cover?'Couverture':'Couverture — paysage ≈ 1600 × 600 px')+'</button>':''}
+        </div>
+        <div class="gh-body">
+          <div>
+            <h1>${JP.esc(group.name)} ${(!isPage && group.isPrivate)?'🔒':''}</h1>
+            <div class="gh-meta">📍 ${JP.esc(group.town||'Tout le Jura')} · ${group.memberCount} ${isPage?'abonné':'membre'}${group.memberCount>1?'s':''}</div>
+            ${contact}
+            ${group.description?`<div class="gh-desc">${JP.esc(group.description)}</div>`:''}
+          </div>
+          ${joinBtn}
+        </div>
+      </div>`;
+
+    const jb=document.getElementById('joinBtn');
+    if(jb && !group.isOwner){
+      jb.addEventListener('click',async()=>{
+        if(group.isMember || group.isPending){ await JP.leaveGroup(groupId); JP.toast(group.isPending?'Demande annulée':(isPage?'Tu ne suis plus la page':'Tu as quitté le groupe')); }
+        else { const r=await JP.joinGroup(groupId); JP.toast(r.pending?'Demande envoyée ✋':'Bienvenue ! 🎉'); }
+        await loadHeader(); renderComposer(); await renderPending();
+      });
+    }
+    // bouton couverture (owner ou admin)
+    const cb=document.getElementById('ghCoverBtn');
+    if(cb){
+      cb.addEventListener('click',()=>{
+        const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+        inp.onchange=async e=>{
+          const f=e.target.files[0]; if(!f) return;
+          const blob=await JP.cropImage(f,{aspect:2.7,round:false,outW:1600,title:(isPage?'Repositionne la couverture de la page':'Repositionne la couverture du groupe')+' — image paysage conseillée (≈ 1600 × 600 px)'});
+          if(!blob) return;
+          JP.toast('Envoi de la couverture…');
+          const r=await JP.updateGroupCover(groupId, blob);
+          if(r.ok){ JP.toast('Couverture mise à jour ✨'); await loadHeader(); renderComposer(); await renderPending(); }
+          else JP.toast(r.msg||'Échec');
+        };
+        inp.click();
+      });
+    }
+    renderAbout();
+    await renderReviews();
+    await renderManage();
+    renderComposer();
+    await renderPending();
+  }
+
+  async function renderPending(){
+    const area=document.getElementById('pendingArea');
+    if(!area) return;
+    if(!group || !group.isManager){ area.innerHTML=''; return; }
+    const reqs=await JP.pendingMembers(groupId);
+    if(!reqs.length){ area.innerHTML=''; return; }
+    area.innerHTML=`<div class="side-card" style="margin-bottom:20px">
+      <h3 style="font-family:'Plus Jakarta Sans';font-size:1rem;margin-bottom:12px">Demandes d'adhésion (${reqs.length})</h3>
+      ${reqs.map(r=>`<div class="pending-row" data-uid="${r.userId}">
+        ${JP.avatarHTML(r.name,r.avatar,'av')}
+        <div class="pi"><b>${JP.esc(r.name)}</b><span style="font-size:.8rem;color:var(--ink-soft)">📍 ${JP.esc(r.town||'Jura')}</span></div>
+        <button class="btn btn-primary btn-sm appr" data-uid="${r.userId}">Accepter</button>
+        <button class="btn btn-ghost btn-sm rej" data-uid="${r.userId}">Refuser</button>
+      </div>`).join('')}
+    </div>`;
+    area.querySelectorAll('.appr').forEach(b=>b.addEventListener('click',async()=>{
+      await JP.approveMember(groupId, b.dataset.uid); JP.toast('Membre accepté ✅'); await loadHeader(); await renderPending();
+    }));
+    area.querySelectorAll('.rej').forEach(b=>b.addEventListener('click',async()=>{
+      await JP.rejectMember(groupId, b.dataset.uid); JP.toast('Demande refusée'); await renderPending();
+    }));
+  }
+
+  /* ---- À propos : règles + administrateurs (visible par tous) ---- */
+  function renderAbout(){
+    const area=document.getElementById('aboutArea');
+    if(!area) return;
+    if(!group){ area.innerHTML=''; return; }
+    const mgr=group.isManager;
+    const isPage = group.kind==='page';
+    const showRules = !isPage && (group.rules || mgr);   // les règles ne concernent que les groupes
+    const admins=(group.managers||[]).map(m=>`
+      <div class="pending-row" style="margin-bottom:8px;flex-wrap:wrap;row-gap:6px">
+        ${JP.avatarHTML(m.name,m.avatar,'av')}
+        <div class="pi"><b>${JP.esc(m.name)}</b>
+          <span style="font-size:.78rem;color:var(--ink-soft)">${m.role==='owner'?'👑 Créateur':'🛡️ Administrateur'}</span>
+        </div>
+      </div>`).join('');
+    area.innerHTML=`
+      ${showRules?`<div class="side-card" style="margin-bottom:18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+          <h3 style="font-family:'Plus Jakarta Sans';font-size:1rem;margin:0">📋 Règles du groupe</h3>
+          ${mgr?`<button class="btn btn-ghost btn-sm" id="editRules">${group.rules?'Modifier':'Ajouter'}</button>`:''}
+        </div>
+        ${group.rules?`<div class="gh-desc" style="white-space:pre-wrap;margin:0;overflow-wrap:anywhere">${JP.esc(group.rules)}</div>`
+                     :`<div style="color:var(--ink-soft);font-size:.9rem">Aucune règle pour l'instant.</div>`}
+        <div id="rulesEditor"></div>
+      </div>`:''}
+      <div class="side-card" style="margin-bottom:18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+          <h3 style="font-family:'Plus Jakarta Sans';font-size:1rem;margin:0">Administrateurs</h3>
+          ${mgr?'<button class="btn btn-primary btn-sm" id="manageBtn">⚙️ Gérer / Paramètres</button>':''}
+        </div>
+        ${admins||'<div style="color:var(--ink-soft);font-size:.9rem">—</div>'}
+      </div>`;
+    const er=document.getElementById('editRules');
+    if(er) er.addEventListener('click',openRulesEditor);
+    const mb=document.getElementById('manageBtn');
+    if(mb) mb.addEventListener('click',toggleManage);
+  }
+
+  /* ---- Avis & notes (Pages uniquement) ---- */
+  function starsHTML(n){
+    const full=Math.round(n);
+    let s='';
+    for(let i=1;i<=5;i++) s+=`<span class="star ${i<=full?'on':''}">★</span>`;
+    return `<span class="stars">${s}</span>`;
+  }
+  async function renderReviews(){
+    const area=document.getElementById('reviewsArea');
+    if(!area) return;
+    if(!group || group.kind!=='page'){ area.innerHTML=''; return; }
+    const r=await JP.pageReviews(groupId);
+    const canReview = !group.isOwner;   // une page ne se note pas elle-même
+    let draftRating = r.mine ? r.mine.rating : 0;
+
+    const form = canReview ? `
+      <div style="border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px">
+        <div style="font-weight:600;margin-bottom:8px">${r.mine?'Ton avis':'Laisse ton avis'}</div>
+        <div class="star-pick" id="starPick">${[1,2,3,4,5].map(i=>`<button type="button" class="star ${i<=draftRating?'on':''}" data-v="${i}">★</button>`).join('')}</div>
+        <textarea id="revText" maxlength="500" placeholder="Partage ton expérience…" style="width:100%;min-width:0;min-height:70px;border:1.5px solid var(--line);border-radius:12px;padding:10px;font-family:inherit;font-size:.92rem;resize:vertical;margin-top:10px">${JP.esc(r.mine?r.mine.text:'')}</textarea>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap">
+          ${r.mine?'<button class="btn btn-ghost btn-sm" id="revDel" style="color:var(--rouge)">Supprimer</button>':''}
+          <button class="btn btn-primary btn-sm" id="revSave">${r.mine?'Modifier mon avis':'Publier mon avis'}</button>
+        </div>
+      </div>` : '';
+
+    const listHTML = r.list.length ? r.list.map(rv=>`
+      <div class="pending-row" style="align-items:flex-start;margin-bottom:10px;flex-wrap:wrap;row-gap:4px">
+        ${JP.avatarHTML(rv.author,rv.avatar,'av')}
+        <div class="pi" style="min-width:0">
+          <b>${JP.esc(rv.author)}</b>
+          <div style="margin:2px 0">${starsHTML(rv.rating)}</div>
+          ${rv.text?`<div style="font-size:.92rem;color:var(--ink);overflow-wrap:anywhere">${JP.esc(rv.text)}</div>`:''}
+          <span style="font-size:.75rem;color:var(--ink-soft)">${JP.timeAgo(rv.ts)}</span>
+        </div>
+      </div>`).join('') : '<div style="color:var(--ink-soft);font-size:.9rem">Aucun avis pour l\'instant.</div>';
+
+    area.innerHTML=`<div class="side-card" style="margin-bottom:18px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+        <h3 style="font-family:'Plus Jakarta Sans';font-size:1rem;margin:0">Avis</h3>
+        ${r.count?`<div style="display:flex;align-items:center;gap:6px"><b style="font-family:'Fraunces',serif;font-size:1.2rem;color:var(--rouge)">${r.avg.toFixed(1)}</b>${starsHTML(r.avg)}<span style="font-size:.8rem;color:var(--ink-soft)">(${r.count} avis)</span></div>`:'<span style="font-size:.85rem;color:var(--ink-soft)">Pas encore noté</span>'}
+      </div>
+      ${form}
+      ${listHTML}
+    </div>`;
+
+    if(canReview){
+      const pick=document.getElementById('starPick');
+      pick.querySelectorAll('.star').forEach(b=>b.addEventListener('click',()=>{
+        draftRating=+b.dataset.v;
+        pick.querySelectorAll('.star').forEach(s=>s.classList.toggle('on', (+s.dataset.v)<=draftRating));
+      }));
+      document.getElementById('revSave').addEventListener('click',async()=>{
+        if(!draftRating){ JP.toast('Choisis une note (étoiles)'); return; }
+        const res=await JP.saveReview(groupId,{rating:draftRating, text:document.getElementById('revText').value.trim()});
+        if(res.ok){ JP.toast('Merci pour ton avis ⭐'); await renderReviews(); }
+        else JP.toast(res.msg||'Échec');
+      });
+      const del=document.getElementById('revDel');
+      if(del) del.addEventListener('click',async()=>{
+        if(!confirm('Supprimer ton avis ?')) return;
+        const res=await JP.deleteMyReview(groupId);
+        if(res.ok){ JP.toast('Avis supprimé'); await renderReviews(); }
+        else JP.toast(res.msg||'Échec');
+      });
+    }
+  }
+
+  function openRulesEditor(){
+    const box=document.getElementById('rulesEditor'); if(!box) return;
+    if(box.dataset.open==='1'){ box.innerHTML=''; box.dataset.open='0'; return; }
+    box.dataset.open='1';
+    box.innerHTML=`<div style="margin-top:12px">
+      <textarea id="rulesText" maxlength="2000" placeholder="1. Sois respectueux·se…&#10;2. Reste dans le sujet du groupe…" style="width:100%;min-width:0;min-height:130px;border:1.5px solid var(--line);border-radius:12px;padding:12px;font-family:inherit;font-size:.95rem;resize:vertical">${JP.esc(group.rules||'')}</textarea>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" id="rulesCancel">Annuler</button>
+        <button class="btn btn-primary btn-sm" id="rulesSave">Enregistrer</button>
+      </div></div>`;
+    document.getElementById('rulesCancel').addEventListener('click',()=>{ box.innerHTML=''; box.dataset.open='0'; });
+    document.getElementById('rulesSave').addEventListener('click',async()=>{
+      const val=document.getElementById('rulesText').value.trim();
+      const r=await JP.updateGroupRules(groupId, val);
+      if(r.ok){ JP.toast('Règles mises à jour ✅'); await loadHeader(); }
+      else JP.toast(r.msg||'Échec');
+    });
+  }
+
+  /* ---- Gestion des membres / administrateurs (managers) ---- */
+  function toggleManage(){ manageOpen=!manageOpen; renderManage(); }
+  async function renderManage(){
+    const area=document.getElementById('manageArea'); if(!area) return;
+    if(!manageOpen || !group || !group.isManager){ area.innerHTML=''; return; }
+    area.innerHTML='<div class="side-card" style="margin-bottom:18px"><p style="color:var(--ink-soft);margin:0">Chargement…</p></div>';
+    const mems=await JP.groupMembers(groupId);
+    const order={owner:0,admin:1,member:2};
+    mems.sort((a,b)=>((order[a.role]??3)-(order[b.role]??3)) || a.name.localeCompare(b.name));
+    const isGrp = group.kind!=='page';
+    const setRow=(id,checked,title,desc)=>`<label style="display:flex;gap:10px;align-items:flex-start;padding:9px 0;cursor:pointer">
+        <input type="checkbox" id="${id}" ${checked?'checked':''} style="margin-top:3px;width:18px;height:18px;flex:0 0 auto">
+        <span style="display:flex;flex-direction:column"><b style="font-size:.9rem">${title}</b><small style="color:var(--ink-soft);font-size:.78rem;line-height:1.3">${desc}</small></span>
+      </label>`;
+    const inStyle="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font-family:inherit;background:var(--paper);color:inherit;box-sizing:border-box";
+    const settingsHTML = `
+      <p style="color:var(--ink-soft);font-size:.82rem;margin:0 0 8px;line-height:1.4">En tant qu'administrateur, tu peux modifier le nom, la couverture, les infos${isGrp?', les règles':' (catégorie, adresse, téléphone, site)'}, les membres et les administrateurs${isGrp?', et les réglages ci-dessous.':'. Seuls les administrateurs publient en tant que page.'}</p>
+      <div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:14px">
+        <label style="display:block;font-size:.82rem;font-weight:700;margin-bottom:4px">Nom ${isGrp?'du groupe':'de la page'}</label>
+        <input id="setName" type="text" value="${JP.esc(group.name||'')}" maxlength="80" style="${inStyle};margin-bottom:10px">
+        <label style="display:block;font-size:.82rem;font-weight:700;margin-bottom:4px">Description</label>
+        <textarea id="setDesc" rows="3" maxlength="500" style="${inStyle};resize:vertical">${JP.esc(group.description||'')}</textarea>
+        <button class="btn btn-primary btn-sm" id="saveInfo" style="margin-top:10px">Enregistrer</button>
+      </div>
+      ${isGrp ? `<div style="border:1px solid var(--line);border-radius:12px;padding:6px 12px;margin-bottom:14px">
+        ${setRow('setPrivate', group.isPrivate, "Valider les demandes d'adhésion", "Les nouveaux membres doivent être acceptés par un admin avant de rejoindre.")}
+        ${setRow('setAdminsOnly', group.postPolicy==='admins', "Seuls les admins peuvent publier", "Les membres peuvent lire et commenter, mais pas créer de publication.")}
+        ${setRow('setApproval', group.postApproval, "Valider les publications avant parution", "Les posts des membres passent en file d'attente jusqu'à validation par un admin.")}
+      </div>` : ''}`;
+    area.innerHTML=`<div class="side-card" style="margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <h3 style="font-family:'Plus Jakarta Sans';font-size:1.05rem;margin:0">⚙️ Paramètres ${isGrp?'du groupe':'de la page'}</h3>
+        <button class="btn btn-ghost btn-sm" id="closeManage">Fermer</button>
+      </div>
+      ${settingsHTML}
+      <div style="margin-bottom:14px">
+        <button class="btn btn-ghost btn-sm" id="addAdminToggle">➕ Ajouter un administrateur</button>
+        <div id="addAdminPanel" style="display:none;margin-top:10px">
+          <input id="adminSearch" type="text" placeholder="Chercher une personne par son nom…" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font-family:inherit;background:var(--paper);color:inherit">
+          <div id="adminResults" style="margin-top:8px"></div>
+        </div>
+      </div>
+      <h3 style="font-family:'Plus Jakarta Sans';font-size:.95rem;margin:4px 0 10px">${isGrp?'Membres':'Abonnés'} & administrateurs (${mems.length})</h3>
+      ${mems.map(m=>{
+        const isOwnerRow=m.role==='owner';
+        const tag=isOwnerRow?'👑 Créateur':(m.role==='admin'?'🛡️ Admin':'Membre');
+        let actions='';
+        if(!isOwnerRow && m.userId!==me.id){
+          actions += m.role==='admin'
+            ? `<button class="btn btn-ghost btn-sm setrole" data-uid="${m.userId}" data-role="member">Retirer admin</button>`
+            : `<button class="btn btn-ghost btn-sm setrole" data-uid="${m.userId}" data-role="admin">Nommer admin</button>`;
+          actions += `<button class="btn btn-ghost btn-sm kick" data-uid="${m.userId}" style="color:var(--rouge)">Retirer</button>`;
+        }
+        return `<div class="pending-row" style="margin-bottom:8px;flex-wrap:wrap;row-gap:8px">
+          ${JP.avatarHTML(m.name,m.avatar,'av')}
+          <div class="pi" style="min-width:0"><b>${JP.esc(m.name)}</b><span style="font-size:.78rem;color:var(--ink-soft)">${tag}</span></div>
+          ${actions?`<div style="flex:1 1 100%;display:flex;gap:8px;flex-wrap:wrap">${actions}</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>`;
+    document.getElementById('closeManage').addEventListener('click',toggleManage);
+    // Réglages (groupe) : enregistrement immédiat à chaque changement
+    const wireSet=(id, field, val)=>{ const el=document.getElementById(id); if(!el) return;
+      el.addEventListener('change',async()=>{
+        const r=await JP.updateGroupInfo(groupId, {[field]: val(el.checked)});
+        if(r.ok){ JP.toast('Paramètre enregistré ✓'); await loadHeader(); }
+        else { JP.toast(r.msg||'Échec'); el.checked=!el.checked; }
+      });
+    };
+    wireSet('setPrivate','is_private', c=>c);
+    wireSet('setAdminsOnly','post_policy', c=>c?'admins':'all');
+    wireSet('setApproval','post_approval', c=>c);
+    // Renommer / modifier la description (owner ou admin)
+    const saveInfo=document.getElementById('saveInfo');
+    if(saveInfo){
+      saveInfo.addEventListener('click',async()=>{
+        const name=document.getElementById('setName').value.trim();
+        const description=document.getElementById('setDesc').value.trim();
+        if(!name){ JP.toast('Le nom ne peut pas être vide'); return; }
+        saveInfo.disabled=true; const old=saveInfo.textContent; saveInfo.textContent='Enregistrement…';
+        const r=await JP.updateGroupInfo(groupId, {name, description});
+        saveInfo.disabled=false; saveInfo.textContent=old;
+        if(r.ok){ JP.toast('Enregistré ✓'); await loadHeader(); }
+        else JP.toast(r.msg||'Échec — réessaie');
+      });
+    }
+    // Ajouter un administrateur (recherche d'une personne par nom)
+    const addAdminToggle=document.getElementById('addAdminToggle');
+    if(addAdminToggle){
+      const panel=document.getElementById('addAdminPanel');
+      const inp=document.getElementById('adminSearch');
+      const res=document.getElementById('adminResults');
+      addAdminToggle.addEventListener('click',()=>{ const show=panel.style.display==='none'; panel.style.display=show?'':'none'; if(show) inp.focus(); });
+      let t=null;
+      inp.addEventListener('input',()=>{ clearTimeout(t); const q=inp.value.trim();
+        t=setTimeout(async()=>{
+          if(q.length<2){ res.innerHTML=''; return; }
+          let people=[]; try{ people=await JP.members(q); }catch(e){}
+          const existing=new Set((group.managers||[]).map(m=>m.userId));
+          res.innerHTML = people.slice(0,8).map(p=>`<div class="pending-row" style="margin-bottom:6px;flex-wrap:wrap;row-gap:6px">
+              ${JP.avatarHTML(p.name,p.avatar,'av')}
+              <div class="pi" style="flex:1;min-width:0"><b>${JP.esc(p.name)}</b><span style="font-size:.76rem;color:var(--ink-soft)">${JP.esc(p.town||'')}</span></div>
+              ${existing.has(p.id)?'<span style="font-size:.78rem;color:var(--ink-soft)">Déjà admin</span>':`<button class="btn btn-primary btn-sm addadm" data-uid="${p.id}" data-name="${JP.esc(p.name)}">Nommer admin</button>`}
+            </div>`).join('') || '<div style="color:var(--ink-soft);font-size:.85rem;padding:6px">Aucun résultat.</div>';
+          res.querySelectorAll('.addadm').forEach(b=>b.addEventListener('click',async()=>{
+            b.disabled=true;
+            const r=await JP.addGroupAdmin(groupId, b.dataset.uid);
+            if(r.ok){ JP.toast(b.dataset.name+' est administrateur ✅'); await loadHeader(); }
+            else { JP.toast(r.msg||'Échec'); b.disabled=false; }
+          }));
+        }, 300);
+      });
+    }
+    area.querySelectorAll('.setrole').forEach(b=>b.addEventListener('click',async()=>{
+      b.disabled=true;
+      const r=await JP.setMemberRole(groupId, b.dataset.uid, b.dataset.role);
+      if(r.ok){ JP.toast(b.dataset.role==='admin'?'Nommé administrateur ✅':'Admin retiré'); await loadHeader(); await renderManage(); }
+      else { JP.toast(r.msg||'Échec'); b.disabled=false; }
+    }));
+    area.querySelectorAll('.kick').forEach(b=>b.addEventListener('click',async()=>{
+      if(!confirm(isGrp?'Retirer ce membre du groupe ?':'Retirer cet abonné de la page ?')) return;
+      b.disabled=true;
+      const r=await JP.removeMember(groupId, b.dataset.uid);
+      if(r.ok){ JP.toast('Membre retiré'); await loadHeader(); await renderManage(); }
+      else { JP.toast(r.msg||'Échec'); b.disabled=false; }
+    }));
+  }
+
+  function renderComposer(){
+    const area=document.getElementById('composerArea');
+    if(!group){ area.innerHTML=''; return; }
+    if(group.kind==='page'){
+      // Sur une page, seuls les gestionnaires (owner/admin) publient — et en tant que page.
+      if(!group.isManager){ area.innerHTML=''; return; }
+    } else {
+      if(!group.isMember){
+        area.innerHTML='<div class="side-card" style="text-align:center;color:var(--ink-soft);margin-bottom:20px">'+(group.isPending?'Ta demande est en attente de validation.':'Rejoins le groupe pour publier.')+'</div>'; return;
+      }
+      if(group.postPolicy==='admins' && !group.isManager){
+        area.innerHTML='<div class="side-card" style="text-align:center;color:var(--ink-soft);margin-bottom:20px">📢 Seuls les administrateurs peuvent publier dans ce groupe.</div>'; return;
+      }
+    }
+    area.innerHTML=`
+      <div class="composer">
+        <div class="top">
+          ${JP.avatarHTML(me.name,me.avatar,'av')}
+          <textarea id="compText" placeholder="Partage quelque chose dans ${JP.esc(group.name)}…" maxlength="500"></textarea>
+        </div>
+        <div class="comp-previews" id="previews"></div>
+        <div class="bar">
+          <div class="opts"><button class="icon-btn" id="photoBtn"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg> Photos (max 6)</button></div>
+          <button class="btn btn-primary btn-sm" id="compGo">Publier</button>
+        </div>
+      </div>`;
+    const photoFile=document.getElementById('photoFile');
+    document.getElementById('photoBtn').addEventListener('click',()=>photoFile.click());
+    photoFile.onchange=e=>{
+      const files=[...e.target.files].filter(f=>f.type.startsWith('image/'));
+      for(const f of files){ if(pendingImages.length<6) pendingImages.push(f); }
+      renderPreviews(); photoFile.value='';
+    };
+    renderPreviews();
+    const compText=document.getElementById('compText'); JP.attachMentions(compText);
+    document.getElementById('compGo').addEventListener('click',async()=>{
+      const raw=compText.value.trim();
+      if(!raw && !pendingImages.length){ JP.toast('Écris un mot ou ajoute une photo'); return; }
+      const t=JP.tokenizeMentions(raw, compText._mentions);
+      let pendingFlag=false;
+      if(group.kind==='page'){ await JP.addPost({text:t, tag:'Page', images:pendingImages, pageId:groupId}); }
+      else { pendingFlag = !!(group.postApproval && !group.isManager);
+             await JP.addGroupPost(groupId, {text:t, tag:'Groupe', images:pendingImages, pending:pendingFlag}); }
+      pendingImages=[]; compText.value=''; compText._mentions=[];
+      JP.toast(pendingFlag?'Envoyé ! En attente de validation par un admin ⏳':'Publié ! 🎉');
+      await render();
+    });
+  }
+  function renderPreviews(){
+    const box=document.getElementById('previews'); if(!box) return;
+    box.innerHTML=pendingImages.map((f,i)=>`<div class="thumb"><img src="${URL.createObjectURL(f)}"><button class="rm" data-i="${i}">&times;</button></div>`).join('');
+    box.querySelectorAll('.rm').forEach(b=>b.addEventListener('click',()=>{ pendingImages.splice(+b.dataset.i,1); renderPreviews(); }));
+  }
+
+  async function render(){
+    feed.innerHTML='<div class="empty"><p>Chargement…</p></div>';
+    // File d'attente de validation (gestionnaires, groupes avec approbation)
+    let pendingHTML='';
+    if(group && group.kind!=='page' && group.isManager){
+      let pend=[]; try{ pend=await JP.pendingGroupPosts(groupId); }catch(e){}
+      if(pend.length){
+        pendingHTML=`<div class="side-card" style="margin-bottom:16px;border:1.5px solid var(--rouge-soft)">
+          <h3 style="font-family:'Plus Jakarta Sans';font-size:1rem;margin:0 0 10px">⏳ Publications à valider (${pend.length})</h3>`
+          + pend.map(p=>`<div class="pending-row" style="flex-wrap:wrap;row-gap:8px;margin-bottom:10px">
+              ${JP.avatarHTML(p.author,p.authorAvatar,'av')}
+              <div class="pi" style="min-width:0;flex:1 1 55%"><b>${JP.esc(p.author)}</b><span style="display:block;font-size:.85rem;color:var(--ink-soft)">${JP.esc((p.text||'(photo)').slice(0,160))}</span></div>
+              <div style="display:flex;gap:8px;flex:1 1 100%">
+                <button class="btn btn-primary btn-sm appr" data-pid="${p.id}">Approuver</button>
+                <button class="btn btn-ghost btn-sm rej" data-pid="${p.id}" style="color:var(--rouge)">Refuser</button>
+              </div></div>`).join('')
+          + `</div>`;
+      }
+    }
+    const posts = group && group.kind==='page' ? await JP.pagePosts(groupId) : await JP.groupPosts(groupId);
+    if(!posts.length && !pendingHTML){ feed.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><p>'+(group.kind==='page'?'Aucune publication sur cette page pour l\'instant.':'Aucune publication dans ce groupe. Lance la discussion !')+'</p></div>'; return; }
+    feed.innerHTML=pendingHTML + posts.map(postHTML).join('');
+    posts.forEach(p=>bind(p));
+    feed.querySelectorAll('.appr').forEach(b=>b.addEventListener('click',async()=>{ b.disabled=true; const r=await JP.approveGroupPost(b.dataset.pid); if(r.ok){ JP.toast('Publication validée ✅'); await render(); } else { JP.toast(r.msg||'Échec'); b.disabled=false; } }));
+    feed.querySelectorAll('.rej').forEach(b=>b.addEventListener('click',async()=>{ if(!confirm('Refuser et supprimer cette publication ?'))return; b.disabled=true; const r=await JP.rejectGroupPost(b.dataset.pid); if(r.ok){ JP.toast('Refusée'); await render(); } else { JP.toast(r.msg||'Échec'); b.disabled=false; } }));
+  }
+
+  function galleryHTML(images){
+    const imgs=(images||[]).filter(Boolean);
+    if(!imgs.length) return '';
+    const n=Math.min(imgs.length,6);
+    return `<div class="post-gallery g${n}">`+imgs.slice(0,6).map(u=>`<img src="${u}" alt="" class="gimg">`).join('')+`</div>`;
+  }
+
+  function postHTML(p){
+    const mine=p.authorEmail===me.id;
+    return `<article class="post" data-id="${p.id}">
+      <div class="post-head">
+        ${JP.avatarHTML(p.author,p.authorAvatar,'av')}
+        <div class="meta"><b>${JP.esc(p.author)}</b><span>${JP.esc(p.town)} · ${JP.timeAgo(p.ts)}</span></div>
+        ${mine?`<div class="post-menu"><button class="dots">⋯</button><div class="pop"><button class="edit-post">✏️ Modifier</button><button class="del">Supprimer</button></div></div>`:''}
+      </div>
+      <div class="post-body">${JP.mentionHTML(p.text)}</div>
+      ${galleryHTML(p.images)}
+      <div class="post-actions">
+        <div class="act-react">
+          <button class="act like ${p.myReaction?'reacted':''}">
+            <span class="rx-face">${p.myReaction?JP.reactionMeta(p.myReaction).emoji:'👍'}</span>
+            <span class="rx-label">${p.myReaction?JP.reactionMeta(p.myReaction).label:"J'aime"}</span>
+            <span class="lc">${p.likes}</span>
+          </button>
+          <div class="react-picker">${JP.REACTIONS.map(r=>`<button type="button" class="rx" data-t="${r.type}" title="${r.label}">${r.emoji}</button>`).join('')}</div>
+        </div>
+        <button class="act cbtn"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>${p.comments.length}</span></button>
+      </div>
+      <div class="comments open">
+        <div class="comments-controls" style="display:none">
+          <select class="csort">
+            <option value="all">Tous les commentaires</option>
+            <option value="recent">Les plus récents</option>
+            <option value="top">Le plus de like</option>
+          </select>
+        </div>
+        <button class="see-all" type="button" style="display:none"></button>
+        <div class="comment-list"></div>
+        <div class="comment-form"><input type="text" placeholder="Commenter…" maxlength="240"><button class="btn btn-primary btn-sm csend">Envoyer</button></div>
+      </div>
+    </article>`;
+  }
+
+  function bind(p){
+    const pid=p.id;
+    const el=feed.querySelector(`[data-id="${pid}"]`);
+    /* ---- Réactions multiples (tap = J'aime, appui long = choisir) ---- */
+    const likeBtn=el.querySelector('.like');
+    const picker=el.querySelector('.react-picker');
+    const lc=el.querySelector('.lc'), face=el.querySelector('.rx-face'), lbl=el.querySelector('.rx-label');
+    let myReact=p.myReaction;
+    function paintReact(){
+      likeBtn.classList.toggle('reacted',!!myReact);
+      const m=myReact?JP.reactionMeta(myReact):null;
+      face.textContent=m?m.emoji:'👍'; lbl.textContent=m?m.label:"J'aime";
+    }
+    async function setReact(type){
+      const had=!!myReact, will=!!type; let c=parseInt(lc.textContent)||0;
+      if(had&&!will)c--; else if(!had&&will)c++;
+      lc.textContent=Math.max(0,c); myReact=type||null; paintReact();
+      await JP.reactPost(pid, myReact);
+    }
+    let lpTimer=null, longPressed=false;
+    const cancelLp=()=>clearTimeout(lpTimer);
+    likeBtn.addEventListener('pointerdown',()=>{ longPressed=false; lpTimer=setTimeout(()=>{ longPressed=true; picker.classList.add('open'); },380); });
+    likeBtn.addEventListener('pointerup',()=>{ clearTimeout(lpTimer); if(longPressed) return; setReact(myReact?'':'like'); });
+    likeBtn.addEventListener('pointerleave',cancelLp);
+    likeBtn.addEventListener('pointercancel',cancelLp);
+    likeBtn.addEventListener('click',e=>e.stopPropagation());
+    picker.querySelectorAll('.rx').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); picker.classList.remove('open'); setReact(b.dataset.t); }));
+    document.addEventListener('click',()=>picker.classList.remove('open'));
+    /* ---- Commentaires : aperçu (2) + voir tous + tri + like (façon FB) ---- */
+    const cstate={expanded:expandedPosts.has(pid), sort:'recent'};
+    const cList=el.querySelector('.comment-list');
+    const cCtrls=el.querySelector('.comments-controls');
+    const cSel=el.querySelector('.csort');
+    const cSeeAll=el.querySelector('.see-all');
+    function commentHTML(c,isReply){
+      const mineC=c.authorId===me.id;
+      const parentTarget=isReply?c.parentId:c.id;
+      return `<div class="comment ${isReply?'reply':''}" data-cid="${c.id}">${JP.avatarHTML(c.author,c.avatar,'av')}
+        <div class="bubble"><b>${JP.esc(c.author)}</b><p>${JP.mentionHTML(c.text)}</p>
+          <button class="clike ${c.liked?'liked':''}" type="button" data-cid="${c.id}">♥ <span class="cl-count">${c.likes}</span></button>
+          <button class="creply" type="button" data-parent="${parentTarget}">Répondre</button>
+          ${mineC?`<button class="cedit" type="button" data-cid="${c.id}">Modifier</button>`:''}
+        </div></div>`;
+    }
+    function paintComments(){
+      const byRecent=(a,b)=>new Date(b.ts)-new Date(a.ts);
+      const byOld=(a,b)=>new Date(a.ts)-new Date(b.ts);
+      const sorters={ all:byOld, recent:byRecent, top:(a,b)=>(b.likes-a.likes)||byRecent(a,b) };
+      const tops=p.comments.filter(c=>!c.parentId);
+      const repliesByParent={}; p.comments.filter(c=>c.parentId).forEach(r=>{(repliesByParent[r.parentId]=repliesByParent[r.parentId]||[]).push(r);});
+      let list;
+      if(cstate.expanded){
+        list=tops.slice().sort(sorters[cstate.sort]||sorters.all);
+        cCtrls.style.display=''; cSeeAll.style.display='none';
+        if(cSel) cSel.value=cstate.sort;
+      } else {
+        list=tops.slice().sort(byRecent).slice(0,2).reverse();
+        cCtrls.style.display='none';
+        cSeeAll.textContent='Voir les '+p.comments.length+' commentaires';
+        cSeeAll.style.display = p.comments.length>2 ? '' : 'none';
+      }
+      cList.innerHTML=list.map(top=>{
+        const replies=cstate.expanded ? (repliesByParent[top.id]||[]).slice().sort(byOld) : [];
+        return `<div class="cthread">${commentHTML(top,false)}<div class="replies">${replies.map(r=>commentHTML(r,true)).join('')}</div></div>`;
+      }).join('');
+      cList.querySelectorAll('.clike').forEach(b=>b.addEventListener('click',async()=>{
+        const cid=b.dataset.cid, c=p.comments.find(x=>x.id===cid); if(!c) return;
+        c.liked=!c.liked; c.likes=Math.max(0,c.likes+(c.liked?1:-1));
+        b.classList.toggle('liked',c.liked);
+        const cc=b.querySelector('.cl-count'); if(cc) cc.textContent=c.likes;
+        await JP.toggleCommentLike(cid);
+      }));
+      cList.querySelectorAll('.cedit').forEach(b=>b.addEventListener('click',async()=>{
+        const cid=b.dataset.cid, c=p.comments.find(x=>x.id===cid); if(!c) return;
+        const v=(prompt('Modifier ton commentaire :', c.text)||'').trim();
+        if(!v || v===c.text) return;
+        const r=await JP.editComment(cid, v);
+        if(r.ok){ c.text=v; paintComments(); JP.toast('Commentaire modifié'); }
+        else JP.toast(r.msg||'Échec');
+      }));
+      cList.querySelectorAll('.creply').forEach(b=>b.addEventListener('click',async()=>{
+        const v=(prompt('Ta réponse :','')||'').trim(); if(!v) return;
+        await JP.addComment(pid, v, b.dataset.parent);
+        expandedPosts.add(pid); JP.toast('Réponse envoyée'); await render();
+      }));
+    }
+    if(cSel) cSel.addEventListener('change',()=>{ cstate.sort=cSel.value; paintComments(); });
+    if(cSeeAll) cSeeAll.addEventListener('click',()=>{ cstate.expanded=true; cstate.sort='all'; expandedPosts.add(pid); paintComments(); });
+    el.querySelector('.cbtn').addEventListener('click',()=>{ cstate.expanded=!cstate.expanded; if(cstate.expanded) expandedPosts.add(pid); else expandedPosts.delete(pid); paintComments(); if(cstate.expanded){ const i=el.querySelector('.comment-form input'); if(i) i.focus(); } });
+    paintComments();
+    const inp=el.querySelector('.comment-form input'); JP.attachMentions(inp);
+    const send=async()=>{ const raw=inp.value.trim(); if(!raw) return;
+      const t=JP.tokenizeMentions(raw, inp._mentions); inp.value=''; inp._mentions=[];
+      await JP.addComment(pid,t); expandedPosts.add(pid); await render(); };
+    el.querySelector('.csend').addEventListener('click',send);
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter')send();});
+    const menu=el.querySelector('.post-menu');
+    if(menu){ const pop=menu.querySelector('.pop');
+      menu.querySelector('.dots').addEventListener('click',e=>{e.stopPropagation();pop.classList.toggle('open');});
+      document.addEventListener('click',()=>pop.classList.remove('open'));
+      menu.querySelector('.del').addEventListener('click',async()=>{ if(confirm('Supprimer ?')){ await JP.deletePost(pid); await render(); } });
+      const editP=menu.querySelector('.edit-post');
+      if(editP) editP.addEventListener('click',()=>{
+        const body=el.querySelector('.post-body');
+        if(el.querySelector('.edit-ta')) return;
+        body.innerHTML=`<textarea class="edit-ta" maxlength="500" style="width:100%;min-width:0;min-height:80px;border:1.5px solid var(--line);border-radius:12px;padding:10px;font-family:inherit;font-size:1rem;resize:vertical">${JP.esc(p.text)}</textarea>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="btn btn-ghost btn-sm cancel-edit" type="button">Annuler</button><button class="btn btn-primary btn-sm save-edit" type="button">Enregistrer</button></div>`;
+        const ta=body.querySelector('.edit-ta'); ta.focus();
+        body.querySelector('.cancel-edit').addEventListener('click',()=>{ body.textContent=p.text; });
+        body.querySelector('.save-edit').addEventListener('click',async()=>{
+          const v=ta.value.trim(); if(!v){ JP.toast('Le texte ne peut pas être vide'); return; }
+          const r=await JP.editPost(pid, v);
+          if(r.ok){ p.text=v; body.textContent=v; JP.toast('Publication modifiée'); }
+          else JP.toast(r.msg||'Échec');
+        });
+      });
+    }
+  }
+
+  await loadHeader();
+  await render();
+})();
+
+});
+</script>
+<nav class="mobile-nav">
+<a href="fil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Fil</span></a>
+<a href="recherche.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg><span>Recherche</span></a>
+<a href="amis.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"/></svg><span>Amis</span></a>
+<a href="messages.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span>Messages</span></a>
+<a href="notifications.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><span class="mn-badge" id="mnBell">0</span><span>Alertes</span></a>
+<a href="profil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M4 21v-1a6 6 0 0112 0v1"/></svg><span>Profil</span></a>
+</nav>
+</body>
+</html>

@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Messages — Jurapotes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"></noscript>
+<link rel="stylesheet" href="assets/style.css?v=92">
+<script>(function(){function s(){return window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches}function t(){try{return localStorage.getItem("jp-theme")}catch(e){return null}}function a(m){if(m==="dark")document.documentElement.setAttribute("data-theme","dark");else document.documentElement.removeAttribute("data-theme")}var p=t();a(p?p:(s()?"dark":"light"));window.JPTheme={get:function(){return document.documentElement.getAttribute("data-theme")==="dark"?"dark":"light"},set:function(m){a(m);try{localStorage.setItem("jp-theme",m)}catch(e){}document.dispatchEvent(new CustomEvent("jp-theme-change",{detail:this.get()}))},toggle:function(){this.set(this.get()==="dark"?"light":"dark");return this.get()}}})();</script>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#E11D2A">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jurapotes">
+<script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
+<script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
+<script src="assets/nav.js?v=10" defer data-turbo-track="reload"></script>
+<script src="assets/bell.js?v=23" defer data-turbo-track="reload"></script>
+<script src="assets/calls.js?v=3" defer data-turbo-track="reload"></script>
+<script src="/assets/pwa.js?v=21" defer data-turbo-track="reload"></script>
+</head>
+<body>
+<nav><div class="wrap nav-inner">
+  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">J</span><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <div class="nav-links">
+    <form class="nav-search" onsubmit="location.href='recherche.html?q='+encodeURIComponent(this.q.value);return false;">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input name="q" type="search" placeholder="Rechercher…" aria-label="Rechercher">
+    </form>
+    
+    <a href="fil.html">Le fil</a>
+    <a href="amis.html">Amis</a>
+    <a href="groupes.html">Groupes</a>
+    <a href="pages.html">Pages</a>
+    <a href="marketplace.html">Marché</a>
+    <a href="evenements.html">Événements</a>
+    <a href="messages.html" class="active">Messages</a>
+    <a href="profil.html">Profil</a>
+    <a href="notifications.html" class="nav-bell" id="bell" aria-label="Notifications">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="badge-count" id="bellCount">0</span>
+    </a>
+    <a href="#" id="logout" class="btn btn-ghost btn-sm">Déconnexion</a>
+  </div>
+</div></nav>
+
+<div class="page-pad"><div class="wrap">
+  <div class="msg-layout" id="layout">
+    <div class="conv-col">
+      <div class="conv-head">
+        <h2>Messages</h2>
+        <div style="display:flex;gap:6px">
+          <button class="conv-new" id="newGroup" title="Nouveau groupe" style="font-size:1rem">👥</button>
+          <button class="conv-new" id="newConv" title="Nouvelle conversation">+</button>
+        </div>
+      </div>
+      <div class="conv-items" id="convItems"></div>
+    </div>
+    <div class="thread-col">
+      <div id="threadArea" class="thread-empty">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <p>Choisis une conversation, ou démarres-en une nouvelle avec le bouton +.</p>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<!-- Modale nouvelle conversation -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-head"><h3>Nouvelle conversation</h3><button class="x" id="mClose">&times;</button></div>
+    <div class="modal-body">
+      <div class="field"><input id="search" type="text" placeholder="Chercher un membre par son nom…"></div>
+      <div id="memberList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modale groupe (créer / gérer) -->
+<div class="modal-bg" id="groupModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="gmTitle">Nouveau groupe</h3><button class="x" id="gmClose">&times;</button></div>
+    <div class="modal-body" id="gmBody"></div>
+    <div class="modal-foot" id="gmFoot"></div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox"><button class="lb-close" aria-label="Fermer">&times;</button><img id="lbImg" alt=""></div>
+
+<script>
+document.addEventListener("DOMContentLoaded",function(){
+(async function(){
+  const okAuth = await JP.requireAuth();
+  if(!okAuth) return;
+  const me=JP.user();
+  document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
+
+  const layout=document.getElementById('layout');
+  const convItems=document.getElementById('convItems');
+  const threadArea=document.getElementById('threadArea');
+  let activeConv=null, unsub=null, unsubReact=null, presenceTimer=null, typingCh=null, typingHideTimer=null;
+
+  // Heartbeat de présence : tant que la messagerie est ouverte et visible
+  JP.heartbeat();
+  setInterval(()=>{ if(!document.hidden) JP.heartbeat(); }, 60000);
+
+  // Agrandir une image envoyée dans le chat
+  const _lb=document.getElementById('lightbox');
+  function openLightbox(src){ if(!src) return; document.getElementById('lbImg').src=src; _lb.classList.add('open'); }
+  _lb.querySelector('.lb-close').addEventListener('click',()=>_lb.classList.remove('open'));
+  _lb.addEventListener('click',e=>{ if(e.target===_lb) _lb.classList.remove('open'); });
+
+  // Mobile : toucher une bulle révèle ses actions (réagir/répondre/modifier/supprimer)
+  document.addEventListener('click',e=>{
+    const bubble = e.target.closest && e.target.closest('.bubble-msg');
+    const row = bubble ? bubble.closest('.msg-row') : null;
+    document.querySelectorAll('.msg-row.acts-open').forEach(r=>{ if(r!==row) r.classList.remove('acts-open'); });
+    if(row) row.classList.toggle('acts-open');
+  });
+
+  /* ---- Liste des conversations ---- */
+  async function loadConvs(selectId){
+    const convs=await JP.conversations();
+    let unread={byConv:{},total:0}; try{ unread=await JP.unreadCounts(); }catch(e){}
+    if(!convs.length){
+      convItems.innerHTML='<div style="padding:20px;color:var(--ink-soft);font-size:.9rem">Aucune conversation. Clique sur + pour écrire à quelqu\'un.</div>';
+    } else {
+      convItems.innerHTML=convs.map(c=>{
+        const n=(c.id===activeConv)?0:(unread.byConv[c.id]||0);   // conv ouverte = lue
+        return `
+        <div class="conv-item ${c.id===activeConv?'active':''} ${n?'unread':''}" data-id="${c.id}" data-name="${JP.esc(c.name)}" data-avatar="${c.avatar||''}" data-group="${c.isGroup?'1':''}">
+          ${JP.avatarHTML(c.name,c.avatar,'av')}
+          <div class="ci"><b>${c.isGroup?'👥 ':''}${JP.esc(c.name)}</b><span>${c.lastText?JP.esc(c.lastText):'Démarrez la discussion'}</span></div>
+          ${n?`<span class="conv-unread">${n>9?'9+':n}</span>`:''}
+        </div>`;}).join('');
+      convItems.querySelectorAll('.conv-item').forEach(el=>{
+        el.addEventListener('click',()=>openThread(el.dataset.id, el.dataset.name, el.dataset.avatar, el.dataset.group==='1'));
+      });
+    }
+    if(selectId){
+      const el=convItems.querySelector(`[data-id="${selectId}"]`);
+      if(el) openThread(selectId, el.dataset.name, el.dataset.avatar, el.dataset.group==='1');
+    }
+  }
+
+  /* ---- Ouvrir un fil de discussion ---- */
+  async function openThread(convId, name, avatar, isGroup){
+    activeConv=convId;
+    if(unsub){ unsub(); unsub=null; }
+    if(unsubReact){ unsubReact(); unsubReact=null; }
+    if(presenceTimer){ clearInterval(presenceTimer); presenceTimer=null; }
+    if(typingCh){ typingCh.stop(); typingCh=null; }
+    convItems.querySelectorAll('.conv-item').forEach(e=>e.classList.toggle('active', e.dataset.id===convId));
+    layout.classList.add('show-thread');
+    threadArea.className='';
+    threadArea.style.display='flex';
+    threadArea.style.flexDirection='column';
+    threadArea.style.minHeight='0';
+    threadArea.style.flex='1';
+
+    let membersMap={}, info=null;
+    if(isGroup){
+      info=await JP.conversationInfo(convId);
+      (info.members||[]).forEach(m=>{ membersMap[m.id]={name:m.name, avatar:m.avatar}; });
+    }
+    const sub = isGroup && info ? `<span style="font-size:.76rem;color:var(--ink-soft)">${info.members.length} membres</span>` : `<span class="presence" id="presence"></span>`;
+    const manage = isGroup ? `<button class="btn btn-ghost btn-sm" id="gmManage" style="margin-left:auto;flex:0 0 auto">Gérer</button>` : '';
+    const callBtns = isGroup ? '' : `<div style="margin-left:auto;display:flex;gap:4px;flex:0 0 auto">
+        <button class="call-btn" id="callAudio" title="Appel audio" aria-label="Appel audio">📞</button>
+        <button class="call-btn" id="callVideo" title="Appel vidéo" aria-label="Appel vidéo">🎥</button>
+      </div>`;
+    threadArea.innerHTML=`
+      <div class="thread-head">
+        <button class="back" id="backBtn">‹</button>
+        ${JP.avatarHTML(name,avatar||null,'av')}
+        <div style="min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${isGroup?'👥 ':''}${JP.esc(name)}</b>${sub}</div>
+        ${callBtns}${manage}
+      </div>
+      <div class="thread-body" id="tbody"></div>
+      <div class="composer-zone">
+        <div class="reply-bar" id="replyBar" style="display:none">
+          <div class="rb-text"><b id="rbName"></b><span id="rbSnippet"></span></div>
+          <button class="rb-x" id="rbClose" type="button" aria-label="Annuler">&times;</button>
+        </div>
+        <div class="img-preview" id="imgPreview" style="display:none"></div>
+        <div class="emoji-panel" id="emojiPanel" style="display:none"></div>
+        <div class="gif-panel" id="gifPanel" style="display:none"></div>
+        <div class="typing-ind" id="typingInd" style="display:none"></div>
+        <div class="thread-input">
+          <button class="ti-btn" id="emojiBtn" type="button" aria-label="Emoji">😊</button>
+          <button class="ti-btn" id="attachBtn" type="button" aria-label="Photo">📎</button>
+          <button class="ti-btn ti-gif" id="gifBtn" type="button" aria-label="GIF" style="display:none">GIF</button>
+          <input type="text" id="msgInput" placeholder="Message…" maxlength="1000" autocomplete="off">
+          <button class="ti-send" id="sendBtn" type="button" aria-label="Envoyer"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
+        </div>
+      </div>
+      <input type="file" id="chatImg" accept="image/*" style="display:none">`;
+    document.getElementById('backBtn').addEventListener('click',()=>{ layout.classList.remove('show-thread'); });
+    if(isGroup){ const gm=document.getElementById('gmManage'); if(gm) gm.addEventListener('click',()=>openManageGroup(convId)); }
+
+    // Présence (1-à-1) : « en ligne » / « Vu il y a … », rafraîchi régulièrement
+    if(!isGroup){
+      const updatePresence=async()=>{ const ls=await JP.conversationPresence(convId); const el=document.getElementById('presence'); if(el) el.textContent=JP.presenceLabel(ls); };
+      updatePresence();
+      presenceTimer=setInterval(updatePresence, 45000);
+
+      // Appels audio/vidéo (WebRTC) — résout le destinataire (1-à-1) puis lance l'appel
+      const peerOf=async()=>{ const inf=await JP.conversationInfo(convId); return (inf.members||[]).find(m=>!m.mine); };
+      const ca=document.getElementById('callAudio'), cv=document.getElementById('callVideo');
+      if(ca) ca.addEventListener('click',async()=>{ if(!window.JPCall){return;} const p=await peerOf(); if(p) JPCall.start(p.id,p.name,p.avatar,false); });
+      if(cv) cv.addEventListener('click',async()=>{ if(!window.JPCall){return;} const p=await peerOf(); if(p) JPCall.start(p.id,p.name,p.avatar,true); });
+    }
+
+    const tbody=document.getElementById('tbody');
+    const shown=new Set();
+    const pendingMine=[];   // textes envoyés en optimiste, en attente de l'écho temps réel
+    const msgsById={};      // cache pour résoudre les réponses (temps réel)
+    const msgs=await JP.messagesOf(convId);
+    msgs.forEach(m=>{ shown.add(m.id); if(m.id) msgsById[m.id]=m; });
+    tbody.innerHTML=msgs.map(m=>bubbleHTML(m, isGroup, membersMap)).join('');
+    scrollBottom(tbody);
+    decorateReactions();
+    JP.markConversationRead(convId); document.dispatchEvent(new Event('jp-msg-read'));
+
+    function appendMsg(m){
+      if(m.id && shown.has(m.id)) return;
+      // Réconciliation : mon propre message qui revient par le temps réel
+      if(m.id && m.mine){
+        const i=pendingMine.indexOf(m.text||'');
+        if(i>=0){ pendingMine.splice(i,1); shown.add(m.id); msgsById[m.id]=m; return; }
+      }
+      // Résout l'aperçu de réponse depuis le cache local (messages temps réel)
+      if(m.replyToId && !m.reply){ const s=msgsById[m.replyToId]; if(s) m.reply={ senderName: s.mine?'Toi':(s.senderName||'Membre'), text:s.text, image:s.image }; }
+      if(m.id){ shown.add(m.id); msgsById[m.id]=m; }
+      tbody.insertAdjacentHTML('beforeend', bubbleHTML(m, isGroup, membersMap));
+      scrollBottom(tbody);
+    }
+
+    /* Réactions : récupère + peint les pastilles sous chaque message visible */
+    async function decorateReactions(){
+      const ids=[...tbody.querySelectorAll('.msg-row[data-mid]')].map(r=>r.dataset.mid).filter(Boolean);
+      if(!ids.length) return;
+      let map={}; try{ map=await JP.messageReactions(ids); }catch(e){ return; }
+      tbody.querySelectorAll('.msg-row[data-mid]').forEach(row=>{
+        renderChips(row, map[row.dataset.mid]||[]);
+      });
+    }
+    function renderChips(row, list){
+      const box=row.querySelector('.msg-reactions'); if(!box) return;
+      if(!list.length){ box.innerHTML=''; return; }
+      const counts={}; let mine=null;
+      list.forEach(r=>{ counts[r.emoji]=(counts[r.emoji]||0)+1; if(r.mine) mine=r.emoji; });
+      box.innerHTML=Object.entries(counts).map(([e,c])=>
+        `<button type="button" class="rx-chip ${mine===e?'mine':''}" data-e="${e}">${e} ${c>1?c:''}</button>`).join('');
+      box.querySelectorAll('.rx-chip').forEach(ch=>ch.addEventListener('click',async()=>{
+        const e=ch.dataset.e; const remove=ch.classList.contains('mine');
+        await JP.reactMessage(row.dataset.mid, remove?'':e);
+        decorateReactions();
+      }));
+    }
+    // expose pour le menu d'emojis
+    tbody._react = async (mid, emoji)=>{ await JP.reactMessage(mid, emoji); decorateReactions(); };
+
+    unsub=JP.subscribeMessages(convId, m=>{ appendMsg(m); if(!m.mine){ JP.markConversationRead(convId); document.dispatchEvent(new Event('jp-msg-read')); } loadConvs(); });
+    unsubReact=JP.subscribeMessageReactions(()=>{ decorateReactions(); });
+
+    const input=document.getElementById('msgInput');
+
+    /* ---- « En train d'écrire… » (temps réel) ---- */
+    typingCh = JP.subscribeTyping(convId, (name)=>{
+      const el=document.getElementById('typingInd'); if(!el) return;
+      el.textContent = (isGroup ? name+' ' : '') + 'écrit…';
+      el.style.display='block';
+      clearTimeout(typingHideTimer); typingHideTimer=setTimeout(()=>{ el.style.display='none'; }, 3000);
+    });
+    input.addEventListener('input', ()=>{ if(input.value.trim() && typingCh) typingCh.notify(); });
+
+    /* ---- Réponse à un message ---- */
+    let replyTarget=null, pendingImg=null;
+    const replyBar=document.getElementById('replyBar'), rbName=document.getElementById('rbName'), rbSnippet=document.getElementById('rbSnippet');
+    function setReply(mid){
+      const m=msgsById[mid]; if(!m) return;
+      replyTarget={ id:mid, name:m.mine?'Toi':(m.senderName||'Membre'), snippet:(m.image&&!m.text)?'📷 Photo':(m.text||'') };
+      rbName.textContent=replyTarget.name; rbSnippet.textContent=replyTarget.snippet.slice(0,90);
+      replyBar.style.display='flex'; input.focus();
+    }
+    function clearReply(){ replyTarget=null; replyBar.style.display='none'; }
+    document.getElementById('rbClose').addEventListener('click',clearReply);
+
+    /* ---- Image ---- */
+    const chatImg=document.getElementById('chatImg'), imgPreview=document.getElementById('imgPreview');
+    function clearImg(){ pendingImg=null; imgPreview.style.display='none'; imgPreview.innerHTML=''; }
+    document.getElementById('attachBtn').addEventListener('click',()=>chatImg.click());
+    chatImg.addEventListener('change',()=>{
+      const f=chatImg.files[0]; chatImg.value=''; if(!f) return;
+      if(!f.type.startsWith('image/')){ JP.toast('Choisis une image'); return; }
+      if(f.size>15*1024*1024){ JP.toast('Image trop lourde (15 Mo max)', {error:true}); return; }
+      pendingImg=f;
+      imgPreview.innerHTML=`<img src="${URL.createObjectURL(f)}" alt=""><button class="ip-x" type="button" aria-label="Retirer">&times;</button>`;
+      imgPreview.style.display='flex';
+      imgPreview.querySelector('.ip-x').addEventListener('click',clearImg);
+    });
+
+    /* ---- Emojis (composer) ---- */
+    const EMO=['😀','😂','🤣','😍','🥰','😘','😎','😉','😜','🤗','🤔','😴','😭','😢','😡','😱','🥳','😬','😅','👍','👎','🙏','👏','🙌','💪','❤️','🔥','🎉','✨','💯','👀','🍻','☀️','🌧️','🐴','🧀','⚽','🎶'];
+    const emojiPanel=document.getElementById('emojiPanel');
+    emojiPanel.innerHTML=EMO.map(e=>`<button type="button">${e}</button>`).join('');
+    document.getElementById('emojiBtn').addEventListener('click',()=>{ emojiPanel.style.display = emojiPanel.style.display==='flex'?'none':'flex'; gifPanel.style.display='none'; });
+    emojiPanel.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ input.value+=b.textContent; input.focus(); }));
+
+    /* ---- GIFs (Tenor, si clé configurée) ---- */
+    const TENOR=(window.JP_CONFIG&&JP_CONFIG.TENOR_KEY)||'';
+    const gifBtn=document.getElementById('gifBtn'), gifPanel=document.getElementById('gifPanel');
+    async function loadGifs(q, grid){
+      try{
+        const base=q?`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(q)}&`:'https://tenor.googleapis.com/v2/featured?';
+        const r=await fetch(`${base}key=${TENOR}&client_key=jurapotes&limit=24&contentfilter=high&media_filter=tinygif,gif`);
+        const d=await r.json();
+        const items=(d.results||[]).map(g=>({prev:g.media_formats&&g.media_formats.tinygif&&g.media_formats.tinygif.url, full:g.media_formats&&g.media_formats.gif&&g.media_formats.gif.url})).filter(x=>x.prev&&x.full);
+        grid.innerHTML = items.length ? items.map(g=>`<img src="${g.prev}" data-full="${g.full}" loading="lazy" alt="gif">`).join('') : '<div style="padding:10px;color:var(--ink-soft);font-size:.85rem">Aucun GIF.</div>';
+        grid.querySelectorAll('img').forEach(im=>im.addEventListener('click',()=>sendGif(im.dataset.full)));
+      }catch(e){ grid.innerHTML='<div style="padding:10px;color:var(--ink-soft);font-size:.85rem">GIF indisponible.</div>'; }
+    }
+    function sendGif(url){
+      if(!url) return;
+      gifPanel.style.display='none';
+      appendMsg({ id:null, text:'', image:url, ts:new Date().toISOString(), mine:true, reply:null });
+      pendingMine.push('');
+      JP.sendMessage(convId, { imageUrl:url }).then(r=>{ if(r&&r.error) JP.toast('GIF non envoyé', {error:true}); loadConvs(); });
+    }
+    if(TENOR){
+      gifBtn.style.display='';
+      let gifInited=false;
+      gifBtn.addEventListener('click',()=>{
+        const open = gifPanel.style.display!=='block';
+        gifPanel.style.display = open?'block':'none'; emojiPanel.style.display='none';
+        if(open && !gifInited){
+          gifInited=true;
+          gifPanel.innerHTML='<input class="gif-search" type="text" placeholder="Rechercher un GIF…"><div class="gif-grid"></div>';
+          const si=gifPanel.querySelector('.gif-search'), grid=gifPanel.querySelector('.gif-grid');
+          let t; si.addEventListener('input',()=>{ clearTimeout(t); t=setTimeout(()=>loadGifs(si.value.trim(), grid), 350); });
+          loadGifs('', grid);
+        }
+      });
+    }
+
+    /* ---- Réponse / agrandir / modifier / supprimer (délégation sur le fil) ---- */
+    async function editRow(row){
+      const mid=row && row.dataset.mid, m=msgsById[mid]; if(!m) return;
+      const v=(prompt('Modifier ton message :', m.text||'')||'').trim();
+      if(!v || v===m.text) return;
+      const r=await JP.editMessage(mid, v);
+      if(r.ok){ m.text=v; m.edited=true; row.outerHTML=bubbleHTML(m, isGroup, membersMap); decorateReactions(); }
+      else JP.toast(r.msg||'Échec', {error:true});
+    }
+    async function delRow(row){
+      const mid=row && row.dataset.mid; if(!mid) return;
+      if(!confirm('Supprimer ce message ?')) return;
+      const r=await JP.deleteMessage(mid);
+      if(r.ok){ delete msgsById[mid]; row.remove(); }
+      else JP.toast(r.msg||'Échec', {error:true});
+    }
+    tbody.addEventListener('click',e=>{
+      const rb=e.target.closest && e.target.closest('.msg-reply-btn');
+      if(rb){ const row=rb.closest('.msg-row'); if(row) setReply(row.dataset.mid); return; }
+      const eb=e.target.closest && e.target.closest('.msg-edit-btn');
+      if(eb){ editRow(eb.closest('.msg-row')); return; }
+      const db=e.target.closest && e.target.closest('.msg-del-btn');
+      if(db){ delRow(db.closest('.msg-row')); return; }
+      const im=e.target.closest && e.target.closest('.bubble-img');
+      if(im) openLightbox(im.src);
+    });
+
+    const send=async()=>{
+      const t=input.value.trim();
+      if(!t && !pendingImg) return;
+      const rt=replyTarget, img=pendingImg;
+      input.value=''; emojiPanel.style.display='none'; clearReply(); clearImg();
+      appendMsg({ id:null, text:t, image: img?URL.createObjectURL(img):null, ts:new Date().toISOString(), mine:true,
+                  reply: rt?{ senderName:rt.name, text:rt.snippet.indexOf('📷')===0?'':rt.snippet, image: rt.snippet.indexOf('📷')===0 } : null });
+      pendingMine.push(t);
+      const r=await JP.sendMessage(convId, { text:t, image:img, replyTo: rt?rt.id:null });
+      if(r && r.error){ JP.toast(img?'Photo non envoyée':'Message non envoyé', {error:true}); }
+      loadConvs();
+    };
+    document.getElementById('sendBtn').addEventListener('click',send);
+    input.addEventListener('keydown',e=>{ if(e.key==='Enter') send(); });
+    input.focus();
+  }
+
+  // Rend les liens cliquables dans une bulle (après échappement)
+  function linkifyMsg(t){
+    return JP.esc(t||'').replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">$1</a>');
+  }
+  function bubbleHTML(m, group, membersMap){
+    const time=new Date(m.ts).toLocaleTimeString('fr-CH',{hour:'2-digit',minute:'2-digit'});
+    let label='';
+    if(group && !m.mine){
+      const nm = m.senderName || (membersMap && membersMap[m.senderId] && membersMap[m.senderId].name) || 'Membre';
+      label=`<span class="bubble-sender">${JP.esc(nm)}</span>`;
+    }
+    const mid=m.id||'';
+    let rq='';
+    if(m.reply){ const rt=(m.reply.image && !m.reply.text)?'📷 Photo':(m.reply.text||''); rq=`<div class="bubble-reply"><b>${JP.esc(m.reply.senderName||'')}</b><span>${JP.esc(rt.slice(0,90))}</span></div>`; }
+    const img = m.image ? `<img class="bubble-img" src="${m.image}" alt="photo">` : '';
+    const txt = m.text ? `<span class="bubble-txt">${linkifyMsg(m.text)}</span>` : '';
+    const acts = mid ? `<button type="button" class="msg-react-btn" aria-label="Réagir">🙂</button><button type="button" class="msg-reply-btn" aria-label="Répondre">↩</button>`
+      + (m.mine ? `<button type="button" class="msg-edit-btn" aria-label="Modifier">✏️</button><button type="button" class="msg-del-btn" aria-label="Supprimer">🗑</button>` : '') : '';
+    return `<div class="msg-row ${m.mine?'me':'them'}" data-mid="${mid}">
+      <div class="msg-line">
+        <div class="bubble-msg ${m.mine?'me':'them'} ${m.image?'has-img':''}">${label}${rq}${img}${txt}<span class="bubble-time">${time}${m.edited?' · modifié':''}</span></div>
+        <div class="msg-acts">${acts}</div>
+      </div>
+      <div class="msg-reactions"></div>
+    </div>`;
+  }
+
+  /* ---- Sélecteur d'emoji (réaction à un message) ---- */
+  const RX = JP.MSG_REACTIONS || ['👍','❤️','😆','😮','😢','🙏'];
+  let rxPop=null;
+  const closeRxPop=()=>{ if(rxPop){ rxPop.remove(); rxPop=null; } };
+  document.addEventListener('click', e=>{
+    const btn=e.target.closest && e.target.closest('.msg-react-btn');
+    if(btn){
+      e.stopPropagation();
+      const row=btn.closest('.msg-row'); const tb=btn.closest('.thread-body');
+      const mid=row && row.dataset.mid; if(!mid || !tb) return;
+      closeRxPop();
+      rxPop=document.createElement('div'); rxPop.className='rx-pop';
+      rxPop.innerHTML=RX.map(em=>`<button type="button" data-e="${em}">${em}</button>`).join('');
+      document.body.appendChild(rxPop);
+      const r=btn.getBoundingClientRect();
+      rxPop.style.top=(window.scrollY + r.top - 48)+'px';
+      rxPop.style.left=(window.scrollX + Math.max(8, Math.min(r.left-40, window.innerWidth-220)))+'px';
+      rxPop.querySelectorAll('button').forEach(b=>b.addEventListener('click',ev=>{
+        ev.stopPropagation(); closeRxPop();
+        if(tb._react) tb._react(mid, b.dataset.e);
+      }));
+      return;
+    }
+    closeRxPop();
+  });
+
+  /* ---- Groupes : créer / gérer ---- */
+  const groupModal=document.getElementById('groupModal');
+  document.getElementById('gmClose').addEventListener('click',()=>groupModal.classList.remove('open'));
+  groupModal.addEventListener('click',e=>{ if(e.target===groupModal) groupModal.classList.remove('open'); });
+  function friendRow(f, checkbox){
+    return `<label class="member-row" style="cursor:pointer">${checkbox?`<input type="checkbox" value="${f.id}" style="margin-right:8px">`:''}${JP.avatarHTML(f.name,f.avatar,'av')}<div><b>${JP.esc(f.name)}</b><span>${JP.esc(f.town||'')}</span></div></label>`;
+  }
+  async function openCreateGroup(){
+    document.getElementById('gmTitle').textContent='Nouveau groupe';
+    const friends=await JP.friends();
+    document.getElementById('gmBody').innerHTML=
+      `<div class="field"><label>Nom du groupe</label><input id="gmName" type="text" maxlength="60" placeholder="Sortie raquettes, Comité…"></div>`+
+      `<div class="field"><label>Ajoute des amis</label><div id="gmMembers">${friends.length?friends.map(f=>friendRow(f,true)).join(''):'<p style="color:var(--ink-soft)">Ajoute d\'abord des amis pour créer un groupe.</p>'}</div></div>`;
+    document.getElementById('gmFoot').innerHTML='<button class="btn btn-ghost btn-sm" id="gmCancel">Annuler</button><button class="btn btn-primary btn-sm" id="gmCreate">Créer le groupe</button>';
+    document.getElementById('gmCancel').addEventListener('click',()=>groupModal.classList.remove('open'));
+    document.getElementById('gmCreate').addEventListener('click',async()=>{
+      const name=document.getElementById('gmName').value.trim();
+      const ids=[...document.querySelectorAll('#gmMembers input:checked')].map(c=>c.value);
+      if(!ids.length){ JP.toast('Choisis au moins une personne'); return; }
+      const r=await JP.createGroupConversation(name, ids);
+      if(r.ok){ groupModal.classList.remove('open'); await loadConvs(); openThread(r.id, name||'Groupe', '', true); }
+      else JP.toast(r.msg||'Échec');
+    });
+    groupModal.classList.add('open');
+  }
+  async function openManageGroup(convId){
+    const info=await JP.conversationInfo(convId);
+    document.getElementById('gmTitle').textContent='Gérer le groupe';
+    const friends=await JP.friends();
+    const memberIds=new Set(info.members.map(m=>m.id));
+    const toAdd=friends.filter(f=>!memberIds.has(f.id));
+    document.getElementById('gmBody').innerHTML=
+      `<div class="field"><label>Nom du groupe</label><input id="gmName" type="text" maxlength="60" value="${JP.esc(info.title)}"></div>`+
+      `<div class="field"><label>Membres (${info.members.length})</label>${info.members.map(m=>`<div class="member-row">${JP.avatarHTML(m.name,m.avatar,'av')}<div><b>${JP.esc(m.name)}${m.mine?' (toi)':''}</b></div></div>`).join('')}</div>`+
+      (toAdd.length?`<div class="field"><label>Ajouter des amis</label><div id="gmMembers">${toAdd.map(f=>friendRow(f,true)).join('')}</div></div>`:'');
+    document.getElementById('gmFoot').innerHTML='<button class="btn btn-ghost btn-sm" id="gmLeave" style="color:var(--rouge);margin-right:auto">Quitter</button><button class="btn btn-primary btn-sm" id="gmSave">Enregistrer</button>';
+    document.getElementById('gmSave').addEventListener('click',async()=>{
+      const newName=document.getElementById('gmName').value.trim();
+      if(newName && newName!==info.title) await JP.renameConversation(convId, newName);
+      const add=[...document.querySelectorAll('#gmMembers input:checked')].map(c=>c.value);
+      if(add.length) await JP.addConversationMembers(convId, add);
+      groupModal.classList.remove('open');
+      JP.toast('Groupe mis à jour ✅');
+      await loadConvs();
+      openThread(convId, newName||info.title||'Groupe', '', true);
+    });
+    document.getElementById('gmLeave').addEventListener('click',async()=>{
+      if(!confirm('Quitter ce groupe ?')) return;
+      await JP.leaveConversation(convId);
+      groupModal.classList.remove('open');
+      activeConv=null; if(unsub){ unsub(); unsub=null; }
+      threadArea.className='thread-empty'; threadArea.style.display='';
+      threadArea.innerHTML='<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><p>Choisis une conversation, ou démarres-en une nouvelle.</p>';
+      layout.classList.remove('show-thread');
+      await loadConvs();
+    });
+    groupModal.classList.add('open');
+  }
+  document.getElementById('newGroup').addEventListener('click',openCreateGroup);
+  function scrollBottom(el){ el.scrollTop=el.scrollHeight; }
+
+  /* ---- Modale : nouvelle conversation ---- */
+  const modal=document.getElementById('modal');
+  const memberList=document.getElementById('memberList');
+  const search=document.getElementById('search');
+  async function showMembers(q){
+    memberList.innerHTML='<p style="color:var(--ink-soft);padding:10px">Chargement…</p>';
+    let ms=await JP.friends();
+    if(q){ const t=q.toLowerCase(); ms=ms.filter(m=>(m.name||'').toLowerCase().includes(t)); }
+    if(!ms.length){ memberList.innerHTML='<p style="color:var(--ink-soft);padding:10px">'+(q?'Aucun ami à ce nom.':'Tu n\'as pas encore d\'amis. Ajoute des amis pour leur écrire !')+'</p>'; return; }
+    memberList.innerHTML=ms.map(m=>`
+      <div class="member-row" data-id="${m.id}">
+        ${JP.avatarHTML(m.name,m.avatar,'av')}
+        <div><b>${JP.esc(m.name)}</b><span>${JP.esc(m.town||'')}</span></div>
+      </div>`).join('');
+    memberList.querySelectorAll('.member-row').forEach(el=>{
+      el.addEventListener('click',async()=>{
+        modal.classList.remove('open');
+        const cid=await JP.openConversationWith(el.dataset.id);
+        if(typeof cid==='string'){ await loadConvs(); openThread(cid, el.querySelector('b').textContent, ''); }
+        // sinon openConversationWith a déjà affiché un toast (ex: pas amis)
+      });
+    });
+  }
+  document.getElementById('newConv').addEventListener('click',()=>{ modal.classList.add('open'); search.value=''; showMembers(''); search.focus(); });
+  document.getElementById('mClose').addEventListener('click',()=>modal.classList.remove('open'));
+  modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('open');});
+  let st; search.addEventListener('input',()=>{ clearTimeout(st); st=setTimeout(()=>showMembers(search.value.trim()),250); });
+
+  /* ---- Démarrage : ouvrir direct une conv si ?to=ID (depuis un profil) ---- */
+  const params=new URLSearchParams(location.search);
+  const to=params.get('to');
+  const convParam=params.get('c');   // ouvrir directement une conversation (ex: depuis le Marché)
+  await loadConvs();
+  if(convParam){
+    await loadConvs(convParam);
+  } else if(to){
+    const cid=await JP.openConversationWith(to);
+    if(typeof cid==='string') await loadConvs(cid);
+    // sinon (pas amis) le toast est déjà affiché ; on reste sur la liste
+  } else {
+    // Pas de cible précise :
+    //  - PC (2 colonnes visibles) : on ouvre la dernière discussion pour gagner du temps.
+    //  - Mobile (1 colonne) : on RESTE sur la liste pour voir toutes les discussions
+    //    (sinon la dernière conv masque la liste). On en ouvre une en la touchant.
+    const isMobile = window.matchMedia('(max-width:760px)').matches;
+    if(!isMobile){
+      const first=convItems.querySelector('.conv-item');
+      if(first) openThread(first.dataset.id, first.dataset.name, first.dataset.avatar, first.dataset.group==='1');
+    }
+  }
+
+  // cloche
+})();
+
+});
+</script>
+<nav class="mobile-nav">
+<a href="fil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Fil</span></a>
+<a href="recherche.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg><span>Recherche</span></a>
+<a href="amis.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"/></svg><span>Amis</span></a>
+<a href="messages.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span>Messages</span></a>
+<a href="notifications.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><span class="mn-badge" id="mnBell">0</span><span>Alertes</span></a>
+<a href="profil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M4 21v-1a6 6 0 0112 0v1"/></svg><span>Profil</span></a>
+</nav>
+</body>
+</html>

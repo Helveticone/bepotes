@@ -1,16 +1,17 @@
 node_modules/
-package-lock.json
-package.json
+
 # fichiers de test temporaires (bancs d'essai headless)
 _*.cjs
 _*.html
 _*.png
+
 # fichiers de PRÉPARATION (Étape 0 / dashboard / Turbo) — jamais committés/poussés
 _etape0.js
 _etape0_out/
 _dashboard_out/
 _turbo_out/
 _*.sql
+
 # réglages Claude Code personnels (permissions)
 .claude/settings.local.json
 

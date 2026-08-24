@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Publication — Jurapotes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"></noscript>
+<link rel="stylesheet" href="assets/style.css?v=92">
+<script>(function(){function s(){return window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches}function t(){try{return localStorage.getItem("jp-theme")}catch(e){return null}}function a(m){if(m==="dark")document.documentElement.setAttribute("data-theme","dark");else document.documentElement.removeAttribute("data-theme")}var p=t();a(p?p:(s()?"dark":"light"));window.JPTheme={get:function(){return document.documentElement.getAttribute("data-theme")==="dark"?"dark":"light"},set:function(m){a(m);try{localStorage.setItem("jp-theme",m)}catch(e){}document.dispatchEvent(new CustomEvent("jp-theme-change",{detail:this.get()}))},toggle:function(){this.set(this.get()==="dark"?"light":"dark");return this.get()}}})();</script>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#E11D2A">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jurapotes">
+<script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
+<script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
+<script src="assets/nav.js?v=10" defer data-turbo-track="reload"></script>
+<script src="assets/bell.js?v=23" defer data-turbo-track="reload"></script>
+<script src="assets/calls.js?v=3" defer data-turbo-track="reload"></script>
+<script src="/assets/pwa.js?v=21" defer data-turbo-track="reload"></script>
+</head>
+<body>
+<nav><div class="wrap nav-inner">
+  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">J</span><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <div class="nav-links">
+    <a href="fil.html">Le fil</a>
+    <a href="amis.html">Amis</a>
+    <a href="groupes.html">Groupes</a>
+    <a href="pages.html">Pages</a>
+    <a href="marketplace.html">Marché</a>
+    <a href="evenements.html">Événements</a>
+    <a href="messages.html">Messages</a>
+    <a href="profil.html">Profil</a>
+    <a href="notifications.html" class="nav-bell" id="bell" aria-label="Notifications">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="badge-count" id="bellCount">0</span>
+    </a>
+    <a href="#" id="logout" class="btn btn-ghost btn-sm">Déconnexion</a>
+  </div>
+</div></nav>
+
+<div class="page-pad"><div class="narrow">
+  <a href="fil.html" style="color:var(--ink-soft);text-decoration:none;font-size:.9rem;display:inline-block;margin-bottom:14px">‹ Retour au fil</a>
+  <div id="post"></div>
+</div></div>
+
+<div class="lightbox" id="lightbox"><button class="lb-close" aria-label="Fermer">&times;</button><button class="lb-nav lb-prev" aria-label="Précédent">&#8249;</button><img id="lbImg" alt=""><button class="lb-nav lb-next" aria-label="Suivant">&#8250;</button><span class="lb-count"></span></div>
+
+<script>
+document.addEventListener("DOMContentLoaded",function(){
+(async function(){
+  const okAuth = await JP.requireAuth();
+  if(!okAuth) return;
+  const me=JP.user();
+  document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
+
+  const pid=new URLSearchParams(location.search).get('id');
+  const host=document.getElementById('post');
+  if(!pid){ host.innerHTML='<div class="empty"><p>Publication introuvable.</p></div>'; return; }
+
+  function galleryHTML(images){
+    const imgs=(images||[]).filter(Boolean);
+    if(!imgs.length) return '';
+    const show=Math.min(imgs.length,5), extra=imgs.length-show;
+    let tiles='';
+    for(let i=0;i<show;i++){
+      const full=imgs[i], thumb=JP.thumbUrl(full);
+      const more=(i===show-1 && extra>0)?`<div class="more">+${extra}</div>`:'';
+      const m=full.match(/__(\d+)x(\d+)/); let dimAttr='', ar='';
+      if(m){ dimAttr=` width="${m[1]}" height="${m[2]}"`;
+        if(show===1){ let r=(+m[1])/(+m[2]); r=Math.max(0.8,Math.min(1.91,r)); ar=` style="aspect-ratio:${r.toFixed(3)}"`; } }
+      tiles+=`<div class="gtile"><img src="${thumb}" data-full="${full}" alt="" class="gimg"${dimAttr} loading="lazy"${ar} onerror="this.onerror=null;this.src=this.dataset.full">${more}</div>`;
+    }
+    return `<div class="post-gallery g${show}">${tiles}</div>`;
+  }
+  function pollHTML(poll){
+    if(!poll) return '';
+    const total=poll.total||0;
+    return `<div class="poll">`+
+      poll.options.map((o,i)=>{
+        const c=poll.counts[i]||0;
+        const pct=total?Math.round(c/total*100):0;
+        const mine=poll.myChoice===i;
+        return `<button type="button" class="poll-opt ${mine?'mine':''}" data-choice="${i}">
+          <span class="fill" style="width:${pct}%"></span>
+          <span class="lbl">${mine?'✓ ':''}${JP.esc(o)}</span>
+          <span class="pct">${pct}% · ${c}</span>
+        </button>`;
+      }).join('')+
+      `<div class="poll-meta"><span>${total} vote${total>1?'s':''}</span>${poll.myChoice!=null?'<button type="button" class="poll-clear">Retirer mon vote</button>':''}</div>`+
+    `</div>`;
+  }
+  function sharedCardHTML(s){
+    return `<a href="post.html?id=${s.id}" class="shared-card">
+      ${s.author?`<div class="sc-head">${JP.avatarHTML(s.author,s.authorAvatar,'av')}<b>${JP.esc(s.author)}</b></div>`:''}
+      ${s.text?`<div class="sc-text">${JP.esc(s.text)}</div>`:''}
+      ${s.image?`<img src="${s.image}" alt="" class="sc-img">`:''}
+      ${(!s.image&&s.video)?`<video class="sc-vid" src="${s.video}#t=0.1" muted playsinline preload="metadata"></video>`:''}
+    </a>`;
+  }
+  function linkCardHTML(lp){
+    if(!lp || !lp.url) return '';
+    let host=''; try{ host=new URL(lp.url).hostname.replace(/^www\./,''); }catch(e){}
+    return `<a href="${JP.esc(lp.url)}" target="_blank" rel="noopener nofollow" class="link-card">
+      ${lp.image?`<img src="${JP.esc(lp.image)}" alt="" class="lc-img" loading="lazy">`:''}
+      <div class="lc-body">
+        <span class="lc-site">${JP.esc(lp.site||host)}</span>
+        <b class="lc-title">${JP.esc(lp.title||lp.url)}</b>
+        ${lp.desc?`<span class="lc-desc">${JP.esc(lp.desc)}</span>`:''}
+      </div>
+    </a>`;
+  }
+  function commentHTML(c, depth){
+    const mineC=c.authorId===me.id;
+    const cap=Math.min(depth||0,5);
+    const ind = depth>0 ? ` style="margin-left:calc(${cap} * var(--cind))"` : '';
+    return `<div class="comment ${depth>0?'reply':''}" data-cid="${c.id}"${ind}>
+      ${JP.avatarHTML(c.author,c.avatar,'av')}
+      <div class="bubble"><b>${JP.esc(c.author)}</b><p>${JP.mentionHTML(c.text)}</p>
+        <button class="clike ${c.liked?'liked':''}" type="button" data-cid="${c.id}">♥ <span class="cl-count">${c.likes}</span></button>
+        <button class="creply" type="button" data-parent="${c.id}">Répondre</button>
+        ${mineC?`<button class="cedit" type="button" data-cid="${c.id}">Modifier</button>`:''}
+      </div></div>`;
+  }
+
+  let p=null, sort='all';
+
+  /* ---- Tags de personnes : remplit « 🏷️ Avec … » (bouton déjà rendu par render) ---- */
+  async function decorateTagsPost(){
+    const box=host.querySelector('.photo-tags[data-pid]'); if(!box) return;
+    let map={}; try{ map=await JP.postTags([pid]); }catch(e){ return; }
+    const tags=map[pid]||[];
+    box.querySelectorAll('.pt-list').forEach(n=>n.remove());   // bouton « Identifier » préservé
+    if(tags.length){
+      const names=`<span class="pt-list">🏷️ Avec ${tags.map(t=>`<a href="membre.html?id=${t.id}">${JP.esc(t.name)}</a>`).join(', ')}</span>`;
+      box.insertAdjacentHTML('afterbegin', names);
+    }
+  }
+  // Clic « Identifier » (délégation sur le conteneur persistant)
+  host.addEventListener('click', async e=>{
+    const b=e.target.closest && e.target.closest('.pt-edit'); if(!b) return;
+    let ex=[]; try{ const m=await JP.postTags([pid]); ex=(m[pid]||[]).map(t=>t.id); }catch(err){}
+    openTagModal(pid, ex);
+  });
+  async function openTagModal(postId, existingIds){
+    const mates=await JP.friends();
+    if(!mates.length){ JP.toast('Ajoute des amis pour pouvoir les identifier'); return; }
+    const have=new Set(existingIds||[]);
+    const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.display='flex';
+    bg.innerHTML=`<div class="modal"><div class="modal-head"><h3>Identifier des amis</h3><button class="x" type="button">&times;</button></div>
+      <div class="modal-body"><div class="tag-list">`+
+      mates.map(f=>`<label class="tag-row"><input type="checkbox" value="${f.id}" ${have.has(f.id)?'checked':''}>${JP.avatarHTML(f.name,f.avatar,'av')}<span>${JP.esc(f.name)}</span></label>`).join('')+
+      `</div></div><div class="modal-foot"><button class="btn btn-primary" id="tagSave">Enregistrer</button></div></div>`;
+    document.body.appendChild(bg);
+    const close=()=>bg.remove();
+    bg.addEventListener('click',e=>{ if(e.target===bg) close(); });
+    bg.querySelector('.x').addEventListener('click',close);
+    bg.querySelector('#tagSave').addEventListener('click',async()=>{
+      const checked=new Set([...bg.querySelectorAll('input:checked')].map(i=>i.value));
+      const toAdd=[...checked].filter(id=>!have.has(id));
+      const toRemove=[...have].filter(id=>!checked.has(id));
+      if(toAdd.length){ const r=await JP.tagPeople(postId,toAdd); if(r && !r.ok) JP.toast(r.msg||'Échec'); }
+      for(const id of toRemove){ await JP.untagPerson(postId,id); }
+      close(); JP.toast('Identifications mises à jour 🏷️'); decorateTagsPost();
+    });
+  }
+
+  async function load(){
+    p=await JP.getPost(pid);
+    if(!p){ host.innerHTML='<div class="empty"><p>Publication introuvable ou supprimée.</p></div>'; return; }
+    render();
+  }
+
+  function render(){
+    host.innerHTML=`<article class="post">
+      <div class="post-head">
+        <a href="membre.html?id=${p.authorEmail}" style="text-decoration:none">${JP.avatarHTML(p.author,p.authorAvatar,'av')}</a>
+        <div class="meta"><b><a href="membre.html?id=${p.authorEmail}" style="color:inherit;text-decoration:none">${JP.esc(p.author)}</a></b><span>${JP.esc(p.town)} · ${JP.timeAgo(p.ts)}</span></div>
+        <span class="tag">${JP.esc(p.tag)}</span>
+        ${p.authorEmail===me.id?`<div class="post-menu"><button class="dots">⋯</button><div class="pop"><button class="edit-post">✏️ Modifier</button><button class="del">Supprimer</button></div></div>`:''}
+      </div>
+      <div class="post-body">${JP.mentionHTML(p.text)}</div>
+      ${pollHTML(p.poll)}
+      ${p.video?`<video class="post-video" src="${p.video}" controls preload="metadata" playsinline></video>`:''}
+      ${p.eventId ? `<a href="evenement.html?id=${p.eventId}" class="event-card">${((p.images&&p.images[0])||p.image)?`<img src="${(p.images&&p.images[0])||p.image}" alt="" loading="lazy">`:''}<span class="ev-cta">📅 Voir l'événement →</span></a>` : galleryHTML(p.images)}
+      ${(!p.eventId && p.images&&p.images.length)?`<div class="photo-tags" data-pid="${p.id}">${p.authorEmail===me.id?`<button type="button" class="pt-edit" data-id="${p.id}">🏷️ Identifier</button>`:''}</div>`:''}
+      ${linkCardHTML(p.linkPreview)}
+      ${p.shared?sharedCardHTML(p.shared):''}
+      <div class="post-actions">
+        <div class="act-react">
+          <button class="act like ${p.myReaction?'reacted':''}">
+            <span class="rx-face">${p.myReaction?JP.reactionMeta(p.myReaction).emoji:'👍'}</span>
+            <span class="rx-label">${p.myReaction?JP.reactionMeta(p.myReaction).label:"J'aime"}</span>
+            <span class="lc">${p.likes}</span>
+          </button>
+          <div class="react-picker">${JP.REACTIONS.map(r=>`<button type="button" class="rx" data-t="${r.type}" title="${r.label}">${r.emoji}</button>`).join('')}</div>
+        </div>
+        <button class="act cbtn"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>${p.comments.length}</span></button>
+        <button class="act sh-link"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg> Copier le lien</button>
+      </div>
+      <div class="comments open">
+        ${p.comments.length>1?`<div class="comments-controls"><select class="csort">
+          <option value="all">Tous les commentaires</option>
+          <option value="recent">Les plus récents</option>
+          <option value="top">Le plus de like</option>
+        </select></div>`:''}
+        <div class="comment-list"></div>
+        <div class="comment-form">
+          <input type="text" placeholder="Écris un commentaire…" maxlength="240">
+          <button class="btn btn-primary btn-sm csend">Envoyer</button>
+        </div>
+      </div>
+    </article>`;
+
+    const likeBtn=host.querySelector('.like');
+    const picker=host.querySelector('.react-picker');
+    const lc=host.querySelector('.lc'), face=host.querySelector('.rx-face'), lbl=host.querySelector('.rx-label');
+    let myReact=p.myReaction;
+    function paintReact(){
+      likeBtn.classList.toggle('reacted',!!myReact);
+      const m=myReact?JP.reactionMeta(myReact):null;
+      face.textContent=m?m.emoji:'👍'; lbl.textContent=m?m.label:"J'aime";
+    }
+    async function setReact(type){
+      const had=!!myReact, will=!!type; let c=parseInt(lc.textContent)||0;
+      if(had&&!will)c--; else if(!had&&will)c++;
+      lc.textContent=Math.max(0,c); myReact=type||null; paintReact();
+      await JP.reactPost(pid, myReact);
+    }
+    let lpTimer=null, longPressed=false;
+    const cancelLp=()=>clearTimeout(lpTimer);
+    likeBtn.addEventListener('pointerdown',()=>{ longPressed=false; lpTimer=setTimeout(()=>{ longPressed=true; picker.classList.add('open'); },380); });
+    likeBtn.addEventListener('pointerup',()=>{ clearTimeout(lpTimer); if(longPressed) return; setReact(myReact?'':'like'); });
+    likeBtn.addEventListener('pointerleave',cancelLp);
+    likeBtn.addEventListener('pointercancel',cancelLp);
+    likeBtn.addEventListener('click',e=>e.stopPropagation());
+    picker.querySelectorAll('.rx').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); picker.classList.remove('open'); setReact(b.dataset.t); }));
+    document.addEventListener('click',()=>picker.classList.remove('open'));
+    host.querySelector('.sh-link').addEventListener('click',()=>{
+      const url=location.origin+'/post.html?id='+pid;
+      if(navigator.clipboard) navigator.clipboard.writeText(url).then(()=>JP.toast('Lien copié 🔗'),()=>JP.toast('Lien : '+url));
+      else JP.toast('Lien : '+url);
+    });
+    const pollEl=host.querySelector('.poll');
+    if(pollEl){
+      pollEl.querySelectorAll('.poll-opt').forEach(b=>b.addEventListener('click',async()=>{
+        await JP.votePoll(pid, +b.dataset.choice); await load();
+      }));
+      const clr=pollEl.querySelector('.poll-clear');
+      if(clr) clr.addEventListener('click',async()=>{ await JP.removePollVote(pid); await load(); });
+    }
+    host.querySelector('.cbtn').addEventListener('click',()=>host.querySelector('.comment-form input').focus());
+    host.querySelectorAll('.gimg').forEach(img=>img.addEventListener('click',()=>{
+      const full=img.dataset.full||img.src;
+      const imgs=(p && p.images && p.images.length) ? p.images.filter(Boolean) : [full];
+      JPLightbox.open(imgs, Math.max(0, imgs.indexOf(full)));
+    }));
+    if(p.images && p.images.length) decorateTagsPost();
+    const menu=host.querySelector('.post-menu');
+    if(menu){
+      const pop=menu.querySelector('.pop');
+      menu.querySelector('.dots').addEventListener('click',e=>{e.stopPropagation();pop.classList.toggle('open');});
+      document.addEventListener('click',()=>pop.classList.remove('open'));
+      menu.querySelector('.del').addEventListener('click',async()=>{
+        if(confirm('Supprimer cette publication ?')){ await JP.deletePost(pid); JP.toast('Publication supprimée'); location.href='fil.html'; }
+      });
+      menu.querySelector('.edit-post').addEventListener('click',()=>{
+        const body=host.querySelector('.post-body');
+        if(host.querySelector('.edit-ta')) return;
+        body.innerHTML=`<textarea class="edit-ta" maxlength="500" style="width:100%;min-width:0;min-height:80px;border:1.5px solid var(--line);border-radius:12px;padding:10px;font-family:inherit;font-size:1rem;resize:vertical">${JP.esc(p.text)}</textarea>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="btn btn-ghost btn-sm cancel-edit" type="button">Annuler</button><button class="btn btn-primary btn-sm save-edit" type="button">Enregistrer</button></div>`;
+        const ta=body.querySelector('.edit-ta'); ta.focus();
+        body.querySelector('.cancel-edit').addEventListener('click',()=>{ body.textContent=p.text; });
+        body.querySelector('.save-edit').addEventListener('click',async()=>{
+          const v=ta.value.trim(); if(!v){ JP.toast('Le texte ne peut pas être vide'); return; }
+          const r=await JP.editPost(pid, v);
+          if(r.ok){ p.text=v; body.textContent=v; JP.toast('Publication modifiée'); }
+          else JP.toast(r.msg||'Échec');
+        });
+      });
+    }
+
+    const sel=host.querySelector('.csort');
+    if(sel){ sel.value=sort; sel.addEventListener('change',()=>{ sort=sel.value; paintComments(); }); }
+    const inp=host.querySelector('.comment-form input'); JP.attachMentions(inp);
+    const send=async()=>{ const raw=inp.value.trim(); if(!raw) return; const t=JP.tokenizeMentions(raw, inp._mentions); inp.value=''; inp._mentions=[]; await JP.addComment(pid,t); await load(); };
+    host.querySelector('.csend').addEventListener('click',send);
+    inp.addEventListener('keydown',e=>{ if(e.key==='Enter') send(); });
+    paintComments();
+  }
+
+  function paintComments(){
+    const box=host.querySelector('.comment-list'); if(!box) return;
+    const byRecent=(a,b)=>new Date(b.ts)-new Date(a.ts);
+    const byOld=(a,b)=>new Date(a.ts)-new Date(b.ts);
+    const sorters={ all:byOld, recent:byRecent, top:(a,b)=>(b.likes-a.likes)||byRecent(a,b) };
+    const kids={}; p.comments.forEach(c=>{ const k=c.parentId||'__root'; (kids[k]=kids[k]||[]).push(c); });
+    const tops=(kids['__root']||[]).slice().sort(sorters[sort]||sorters.all);
+    const rows=[];
+    const walk=(parentId,depth)=>{ (kids[parentId]||[]).slice().sort(byOld).forEach(c=>{ rows.push([c,depth]); walk(c.id,depth+1); }); };
+    tops.forEach(top=>{ rows.push([top,0]); walk(top.id,1); });
+    box.innerHTML=rows.map(([c,d])=>commentHTML(c,d)).join('');
+    box.querySelectorAll('.clike').forEach(b=>b.addEventListener('click',async()=>{
+      const cid=b.dataset.cid, c=p.comments.find(x=>x.id===cid); if(!c) return;
+      c.liked=!c.liked; c.likes=Math.max(0,c.likes+(c.liked?1:-1));
+      b.classList.toggle('liked',c.liked);
+      const cc=b.querySelector('.cl-count'); if(cc) cc.textContent=c.likes;
+      await JP.toggleCommentLike(cid);
+    }));
+    box.querySelectorAll('.cedit').forEach(b=>b.addEventListener('click',async()=>{
+      const cid=b.dataset.cid, c=p.comments.find(x=>x.id===cid); if(!c) return;
+      const v=(prompt('Modifier ton commentaire :', c.text)||'').trim();
+      if(!v || v===c.text) return;
+      const r=await JP.editComment(cid, v);
+      if(r.ok){ c.text=v; paintComments(); JP.toast('Commentaire modifié'); }
+      else JP.toast(r.msg||'Échec');
+    }));
+    box.querySelectorAll('.creply').forEach(b=>b.addEventListener('click',async()=>{
+      const v=(prompt('Ta réponse :','')||'').trim(); if(!v) return;
+      await JP.addComment(pid, v, b.dataset.parent); JP.toast('Réponse envoyée'); await load();
+    }));
+  }
+
+  /* ---- Visionneuse photos (galerie : précédent / suivant / swipe) ---- */
+  window.JPLightbox = (function(){
+    const lb=document.getElementById('lightbox');
+    const img=document.getElementById('lbImg');
+    const prev=lb.querySelector('.lb-prev'), next=lb.querySelector('.lb-next'), cnt=lb.querySelector('.lb-count');
+    let imgs=[], idx=0;
+    function paint(){
+      img.src=imgs[idx]||'';
+      const multi=imgs.length>1;
+      if(prev) prev.style.display=multi?'':'none';
+      if(next) next.style.display=multi?'':'none';
+      if(cnt){ cnt.style.display=multi?'':'none'; cnt.textContent=`${idx+1} / ${imgs.length}`; }
+    }
+    function go(d){ if(!imgs.length) return; idx=(idx+d+imgs.length)%imgs.length; paint(); }
+    function open(list, start){ imgs=(list||[]).filter(Boolean); idx=start||0; if(!imgs.length) return; paint(); lb.classList.add('open'); }
+    function close(){ lb.classList.remove('open'); imgs=[]; }
+    if(prev) prev.addEventListener('click',e=>{ e.stopPropagation(); go(-1); });
+    if(next) next.addEventListener('click',e=>{ e.stopPropagation(); go(1); });
+    lb.querySelector('.lb-close').addEventListener('click',close);
+    lb.addEventListener('click',e=>{ if(e.target===lb) close(); });
+    document.addEventListener('keydown',e=>{ if(!lb.classList.contains('open')) return; if(e.key==='Escape')close(); else if(e.key==='ArrowLeft')go(-1); else if(e.key==='ArrowRight')go(1); });
+    let x0=null;
+    lb.addEventListener('touchstart',e=>{ x0=e.touches[0].clientX; },{passive:true});
+    lb.addEventListener('touchend',e=>{ if(x0==null)return; const dx=e.changedTouches[0].clientX-x0; if(Math.abs(dx)>40) go(dx<0?1:-1); x0=null; },{passive:true});
+    return { open, close };
+  })();
+
+  await load();
+})();
+
+});
+</script>
+<nav class="mobile-nav">
+<a href="fil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Fil</span></a>
+<a href="recherche.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg><span>Recherche</span></a>
+<a href="amis.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"/></svg><span>Amis</span></a>
+<a href="messages.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span>Messages</span></a>
+<a href="notifications.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><span class="mn-badge" id="mnBell">0</span><span>Alertes</span></a>
+<a href="profil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M4 21v-1a6 6 0 0112 0v1"/></svg><span>Profil</span></a>
+</nav>
+</body>
+</html>

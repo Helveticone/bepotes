@@ -1,0 +1,27 @@
+User-agent: *
+Allow: /
+
+# Pages réservées aux membres (contenu derrière authentification) — inutile de les indexer
+Disallow: /fil.html
+Disallow: /amis.html
+Disallow: /groupes.html
+Disallow: /groupe.html
+Disallow: /pages.html
+Disallow: /marketplace.html
+Disallow: /evenements.html
+Disallow: /evenement.html
+Disallow: /messages.html
+Disallow: /notifications.html
+Disallow: /profil.html
+Disallow: /membre.html
+Disallow: /parametres.html
+Disallow: /recherche.html
+Disallow: /post.html
+Disallow: /banni.html
+Disallow: /offline.html
+
+# Pages d'administration (privées)
+Disallow: /panneau-hcm-7x2k9.html
+Disallow: /regie-hcm-7x2k9.html
+
+Sitemap: https://jurapotes.ch/sitemap.xml

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Événements — Jurapotes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"></noscript>
+<link rel="stylesheet" href="assets/style.css?v=92">
+<script>(function(){function s(){return window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches}function t(){try{return localStorage.getItem("jp-theme")}catch(e){return null}}function a(m){if(m==="dark")document.documentElement.setAttribute("data-theme","dark");else document.documentElement.removeAttribute("data-theme")}var p=t();a(p?p:(s()?"dark":"light"));window.JPTheme={get:function(){return document.documentElement.getAttribute("data-theme")==="dark"?"dark":"light"},set:function(m){a(m);try{localStorage.setItem("jp-theme",m)}catch(e){}document.dispatchEvent(new CustomEvent("jp-theme-change",{detail:this.get()}))},toggle:function(){this.set(this.get()==="dark"?"light":"dark");return this.get()}}})();</script>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#E11D2A">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jurapotes">
+<script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
+<script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
+<script src="assets/nav.js?v=10" defer data-turbo-track="reload"></script>
+<script src="assets/bell.js?v=23" defer data-turbo-track="reload"></script>
+<script src="assets/calls.js?v=3" defer data-turbo-track="reload"></script>
+<script src="/assets/pwa.js?v=21" defer data-turbo-track="reload"></script>
+</head>
+<body>
+<nav><div class="wrap nav-inner">
+  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">J</span><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <div class="nav-links">
+    <form class="nav-search" onsubmit="location.href='recherche.html?q='+encodeURIComponent(this.q.value);return false;">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input name="q" type="search" placeholder="Rechercher…" aria-label="Rechercher">
+    </form>
+    
+    <a href="fil.html">Le fil</a>
+    <a href="amis.html">Amis</a>
+    <a href="groupes.html">Groupes</a>
+    <a href="pages.html">Pages</a>
+    <a href="marketplace.html">Marché</a>
+    <a href="evenements.html" class="active">Événements</a>
+    <a href="messages.html">Messages</a>
+    <a href="profil.html">Profil</a>
+    <a href="notifications.html" class="nav-bell" id="bell" aria-label="Notifications" title="Notifications">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="badge-count" id="bellCount">0</span>
+    </a>
+    <a href="#" id="logout" class="btn btn-ghost btn-sm">Déconnexion</a>
+  </div>
+</div></nav>
+
+<div class="page-pad"><div class="narrow">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;gap:14px;flex-wrap:wrap">
+    <div>
+      <h1 style="font-size:2.2rem;margin-bottom:6px">Événements dans le Jura</h1>
+      <p style="color:var(--ink-soft)">Ce qui se passe près de chez toi. Clique sur « Je participe » pour t'inscrire.</p>
+    </div>
+    <button class="btn btn-primary" id="newEvBtn">+ Créer un événement</button>
+  </div>
+  <div class="notice"><svg viewBox="0 0 24 24" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+    <div>Seuls les <b>événements en lien avec le Jura</b> sont autorisés. Tout événement contraire à nos règles sera supprimé sans avertissement. Merci de jouer le jeu 🙏</div>
+  </div>
+  <div style="margin-bottom:18px"><select id="evTownFilter" class="chip" style="cursor:pointer"></select></div>
+  <div id="evList"></div>
+</div></div>
+
+<!-- Modale création d'événement -->
+<div class="modal-bg" id="evModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Créer un événement</h3><button class="x" id="evClose">&times;</button></div>
+    <div class="modal-body">
+      <div class="field"><label for="evTitle">Titre</label><input id="evTitle" type="text" maxlength="80" placeholder="Marché du terroir, concert, loto…"></div>
+      <div class="field"><label for="evTown">Commune</label>
+        <select id="evTown">
+          <option>Delémont</option><option>Porrentruy</option><option>Saignelégier</option>
+          <option>Bassecourt</option><option>Courrendlin</option><option>Le Noirmont</option>
+          <option>Les Bois</option><option>Courroux</option><option>Alle</option>
+          <option>Châtenois</option><option>Vicques</option><option>Autre commune du Jura</option>
+        </select>
+      </div>
+      <div class="field" style="display:flex;gap:12px">
+        <div style="flex:1"><label for="evDate">Début</label><input id="evDate" type="datetime-local"></div>
+        <div style="flex:1"><label for="evEnd">Fin (optionnel)</label><input id="evEnd" type="datetime-local"></div>
+      </div>
+      <div class="field"><label for="evDesc">Description (optionnel)</label><textarea id="evDesc" maxlength="400" placeholder="Détails, lieu précis, infos pratiques…"></textarea></div>
+      <div class="field">
+        <label>Photo de couverture (optionnel) <span style="font-weight:400;color:var(--ink-soft);font-size:.85em">— paysage conseillé, ≈ 1600 × 600 px</span></label>
+        <button class="icon-btn" id="evCoverBtn" type="button"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg> Choisir une couverture</button>
+        <div id="evCoverPrev" style="margin-top:8px"></div>
+      </div>
+      <div class="field">
+        <label>Photos (max 6, optionnel)</label>
+        <button class="icon-btn" id="evPhotosBtn" type="button"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg> Ajouter des photos</button>
+        <div class="comp-previews" id="evPhotosPrev"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-sm" id="evCancel">Annuler</button>
+      <button class="btn btn-primary btn-sm" id="evSave">Publier l'événement</button>
+    </div>
+  </div>
+</div>
+<input type="file" id="evCoverFile" accept="image/*" style="display:none">
+<input type="file" id="evPhotosFile" accept="image/*" multiple style="display:none">
+
+<script>
+document.addEventListener("DOMContentLoaded",function(){
+(async function(){
+  const okAuth = await JP.requireAuth();
+  if(!okAuth) return;
+  JP.fillCommuneSelect(document.getElementById('evTown'), {first:'Choisis la commune…'});
+  document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
+  const list=document.getElementById('evList');
+  const evTownFilter=document.getElementById('evTownFilter');
+  JP.fillCommuneSelect(evTownFilter, {first:'📍 Toutes les communes'});
+  evTownFilter.addEventListener('change',()=>render());
+
+  function evCard(e, past){
+    const goCls=e.myStatus==='going'?'btn-primary':'btn-ghost';
+    const intCls=e.myStatus==='interested'?'btn-primary':'btn-ghost';
+    return `
+      <div class="ev${past?' past':''}" data-id="${e.id}">
+        <a class="date" href="evenement.html?id=${e.id}" style="text-decoration:none"><div class="d">${e.day}</div><div class="m">${JP.esc(e.month)}</div></a>
+        <div class="info">
+          <h3><a href="evenement.html?id=${e.id}" style="color:inherit;text-decoration:none">${JP.esc(e.title)}</a></h3>
+          <div class="loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${JP.esc(e.town||'')}</div>
+          <div class="going"><span class="gc">${e.going}</span> participent${e.interested?` · <b>${e.interested}</b> intéressé·e·s`:''}</div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+            <button class="btn ${goCls} btn-sm rsvp-go">${e.myStatus==='going'?'✓ Je participe':'Je participe'}</button>
+            <button class="btn ${intCls} btn-sm rsvp-int">${e.myStatus==='interested'?'✓ Intéressé·e':'Intéressé·e'}</button>
+            <a class="btn btn-ghost btn-sm" href="evenement.html?id=${e.id}">Détails</a>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  async function render(){
+    list.innerHTML='<p style="color:var(--ink-soft)">Chargement…</p>';
+    const evs=await JP.events({town:evTownFilter.value||''});
+    if(!evs.length){ list.innerHTML='<div class="empty"><p>Aucun événement pour l\'instant.</p></div>'; return; }
+    // Agenda : regroupé par date
+    const now=new Date();
+    const todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime();
+    const tomorrow=todayStart+86400000, weekEnd=todayStart+7*86400000;
+    const G={today:[],week:[],later:[],past:[]};
+    evs.forEach(e=>{
+      const t=e.ts?new Date(e.ts).getTime():0;
+      if(t<todayStart) G.past.push(e);
+      else if(t<tomorrow) G.today.push(e);
+      else if(t<weekEnd) G.week.push(e);
+      else G.later.push(e);
+    });
+    const section=(title,arr)=> arr.length ? `<h2 class="agenda-title">${title}</h2>`+arr.map(e=>evCard(e,false)).join('') : '';
+    let html = section('Aujourd\'hui',G.today)+section('Cette semaine',G.week)+section('À venir',G.later);
+    if(G.past.length){
+      const n=G.past.length;
+      html += `<button class="btn btn-ghost btn-sm" id="showPast" style="margin:14px 0">Voir les ${n} événement${n>1?'s':''} passé${n>1?'s':''}</button>`
+            + `<div id="pastWrap" style="display:none">${G.past.slice().reverse().map(e=>evCard(e,true)).join('')}</div>`;
+    }
+    list.innerHTML = html || '<div class="empty"><p>Aucun événement à venir.</p></div>';
+    const sp=document.getElementById('showPast');
+    if(sp) sp.addEventListener('click',()=>{ document.getElementById('pastWrap').style.display=''; sp.style.display='none'; });
+    evs.forEach(e=>{
+      const el=list.querySelector(`[data-id="${e.id}"]`);
+      if(!el) return;
+      el.querySelector('.rsvp-go').addEventListener('click',async()=>{
+        await JP.setEventRsvp(e.id, e.myStatus==='going'?null:'going');
+        JP.toast(e.myStatus==='going'?'Participation annulée':'Tu participes ! 🎉'); await render();
+      });
+      el.querySelector('.rsvp-int').addEventListener('click',async()=>{
+        await JP.setEventRsvp(e.id, e.myStatus==='interested'?null:'interested');
+        JP.toast(e.myStatus==='interested'?'Retiré':'Marqué intéressé·e ✨'); await render();
+      });
+    });
+  }
+
+  /* ---- Modale création d'événement ---- */
+  const evModal=document.getElementById('evModal');
+  let evCover=null, evPhotos=[];
+  function renderEvMedia(){
+    document.getElementById('evCoverPrev').innerHTML = evCover ? `<img src="${URL.createObjectURL(evCover)}" style="width:100%;max-height:140px;object-fit:cover;border-radius:10px">` : '';
+    document.getElementById('evPhotosPrev').innerHTML = evPhotos.map((f,i)=>`<div class="thumb"><img src="${URL.createObjectURL(f)}"><button class="rm" data-i="${i}" type="button">&times;</button></div>`).join('');
+    document.querySelectorAll('#evPhotosPrev .rm').forEach(b=>b.addEventListener('click',()=>{ evPhotos.splice(+b.dataset.i,1); renderEvMedia(); }));
+  }
+  const evCoverFile=document.getElementById('evCoverFile');
+  document.getElementById('evCoverBtn').addEventListener('click',()=>evCoverFile.click());
+  evCoverFile.addEventListener('change',async e=>{
+    const f=e.target.files[0]; evCoverFile.value=''; if(!f) return;
+    const blob=await JP.cropImage(f,{aspect:2.7,round:false,outW:1600,title:'Couverture de l\'événement — image paysage conseillée (≈ 1600 × 600 px)'});
+    if(blob){ evCover=blob; renderEvMedia(); }
+  });
+  const evPhotosFile=document.getElementById('evPhotosFile');
+  document.getElementById('evPhotosBtn').addEventListener('click',()=>evPhotosFile.click());
+  evPhotosFile.addEventListener('change',e=>{
+    [...e.target.files].filter(f=>f.type.startsWith('image/')).forEach(f=>{ if(evPhotos.length<6) evPhotos.push(f); });
+    evPhotosFile.value=''; renderEvMedia();
+  });
+  document.getElementById('newEvBtn').addEventListener('click',()=>{
+    document.getElementById('evTitle').value='';
+    document.getElementById('evDesc').value='';
+    document.getElementById('evDate').value=''; document.getElementById('evEnd').value='';
+    evCover=null; evPhotos=[]; renderEvMedia();
+    evModal.classList.add('open');
+  });
+  const closeEv=()=>evModal.classList.remove('open');
+  document.getElementById('evClose').addEventListener('click',closeEv);
+  document.getElementById('evCancel').addEventListener('click',closeEv);
+  evModal.addEventListener('click',e=>{if(e.target===evModal)closeEv();});
+  document.getElementById('evSave').addEventListener('click',async()=>{
+    const title=document.getElementById('evTitle').value.trim();
+    const town=document.getElementById('evTown').value;
+    const dateVal=document.getElementById('evDate').value;
+    const endVal=document.getElementById('evEnd').value;
+    const desc=document.getElementById('evDesc').value.trim();
+    if(!title){ JP.toast('Donne un titre à l\'événement'); return; }
+    if(!dateVal){ JP.toast('Choisis une date de début'); return; }
+    if(endVal && new Date(endVal) < new Date(dateVal)){ JP.toast('La fin doit être après le début'); return; }
+    const btn=document.getElementById('evSave'); btn.disabled=true; btn.textContent='Publication…';
+    const r=await JP.createEvent({title, town,
+      starts_at:new Date(dateVal).toISOString(),
+      ends_at: endVal?new Date(endVal).toISOString():null,
+      description:desc, cover:evCover, images:evPhotos});
+    btn.disabled=false; btn.textContent="Publier l'événement";
+    if(r.ok){ JP.toast('Événement créé ! 🎉'); closeEv(); await render(); }
+    else JP.toast(r.msg||'Échec de la création');
+  });
+
+  await render();
+})();
+
+});
+</script>
+<nav class="mobile-nav">
+<a href="fil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Fil</span></a>
+<a href="recherche.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg><span>Recherche</span></a>
+<a href="amis.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"/></svg><span>Amis</span></a>
+<a href="messages.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span>Messages</span></a>
+<a href="notifications.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><span class="mn-badge" id="mnBell">0</span><span>Alertes</span></a>
+<a href="profil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M4 21v-1a6 6 0 0112 0v1"/></svg><span>Profil</span></a>
+</nav>
+</body>
+</html>

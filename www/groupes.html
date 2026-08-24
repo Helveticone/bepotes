@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Groupes — Jurapotes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://nvlquqrsjmwgtkhmxazq.supabase.co" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"></noscript>
+<link rel="stylesheet" href="assets/style.css?v=92">
+<script>(function(){function s(){return window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches}function t(){try{return localStorage.getItem("jp-theme")}catch(e){return null}}function a(m){if(m==="dark")document.documentElement.setAttribute("data-theme","dark");else document.documentElement.removeAttribute("data-theme")}var p=t();a(p?p:(s()?"dark":"light"));window.JPTheme={get:function(){return document.documentElement.getAttribute("data-theme")==="dark"?"dark":"light"},set:function(m){a(m);try{localStorage.setItem("jp-theme",m)}catch(e){}document.dispatchEvent(new CustomEvent("jp-theme-change",{detail:this.get()}))},toggle:function(){this.set(this.get()==="dark"?"light":"dark");return this.get()}}})();</script>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#E11D2A">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jurapotes">
+<script src="/assets/supabase.min.js?v=18" defer data-turbo-track="reload"></script>
+<script src="assets/config.js" defer data-turbo-track="reload"></script>
+<script src="assets/app.supabase.js?v=112" defer data-turbo-track="reload"></script>
+<script src="assets/nav.js?v=10" defer data-turbo-track="reload"></script>
+<script src="assets/bell.js?v=23" defer data-turbo-track="reload"></script>
+<script src="assets/calls.js?v=3" defer data-turbo-track="reload"></script>
+<script src="/assets/pwa.js?v=21" defer data-turbo-track="reload"></script>
+</head>
+<body>
+<nav><div class="wrap nav-inner">
+  <a href="index.html" class="logo"><span class="brand-dot" aria-hidden="true">J</span><span class="wordmark">jura<span class="wm-red">potes</span></span></a>
+  <div class="nav-links">
+    <form class="nav-search" onsubmit="location.href='recherche.html?q='+encodeURIComponent(this.q.value);return false;">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input name="q" type="search" placeholder="Rechercher…" aria-label="Rechercher">
+    </form>
+    <a href="fil.html">Le fil</a>
+    <a href="amis.html">Amis</a>
+    <a href="groupes.html" class="active">Groupes</a>
+    <a href="pages.html">Pages</a>
+    <a href="marketplace.html">Marché</a>
+    <a href="evenements.html">Événements</a>
+    <a href="messages.html">Messages</a>
+    <a href="profil.html">Profil</a>
+    <a href="notifications.html" class="nav-bell" id="bell" aria-label="Notifications">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="badge-count" id="bellCount">0</span>
+    </a>
+    <a href="#" id="logout" class="btn btn-ghost btn-sm">Déconnexion</a>
+  </div>
+</div></nav>
+
+<div class="page-pad"><div class="wrap">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;gap:14px;flex-wrap:wrap">
+    <div>
+      <h1 style="font-size:2rem;margin-bottom:6px">Groupes & communautés</h1>
+      <p style="color:var(--ink-soft)">Clubs, quartiers, passions… rejoins les communautés du Jura ou crée la tienne.</p>
+    </div>
+    <button class="btn btn-primary" id="newGroupBtn">+ Créer un groupe</button>
+  </div>
+  <div class="group-grid" id="groupGrid"></div>
+</div></div>
+
+<div class="modal-bg" id="gModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Créer un groupe</h3><button class="x" id="gClose">&times;</button></div>
+    <div class="modal-body">
+      <div class="field"><label for="gName">Nom du groupe</label><input id="gName" type="text" maxlength="60" placeholder="FC Delémont fans, Rando Jura, Troc & dons…"></div>
+      <div class="field"><label for="gTown">Commune (optionnel)</label>
+        <select id="gTown">
+          <option value="">Tout le Jura</option>
+          <option>Delémont</option><option>Porrentruy</option><option>Saignelégier</option>
+          <option>Bassecourt</option><option>Courrendlin</option><option>Le Noirmont</option>
+          <option>Les Bois</option><option>Courroux</option><option>Alle</option>
+          <option>Châtenois</option><option>Vicques</option>
+        </select>
+      </div>
+      <div class="field"><label for="gDesc">Description</label><textarea id="gDesc" maxlength="300" placeholder="De quoi parle ce groupe ?"></textarea></div>
+      <div class="field">
+        <label>Qui peut rejoindre ?</label>
+        <select id="gPrivacy">
+          <option value="open">Ouvert — tout le monde rejoint directement</option>
+          <option value="private">Sur validation — tu acceptes les demandes</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-sm" id="gCancel">Annuler</button>
+      <button class="btn btn-primary btn-sm" id="gSave">Créer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded",function(){
+(async function(){
+  const okAuth = await JP.requireAuth();
+  if(!okAuth) return;
+  JP.fillCommuneSelect(document.getElementById('gTown'), {first:'Tout le Jura'});
+  document.getElementById('logout').addEventListener('click',e=>{e.preventDefault();JP.logout();});
+  const grid=document.getElementById('groupGrid');
+
+  async function render(){
+    grid.innerHTML='<p style="color:var(--ink-soft)">Chargement…</p>';
+    const gs=await JP.listGroups();
+    if(!gs.length){ grid.innerHTML='<div class="empty"><p>Aucun groupe pour l\'instant. Crée le premier !</p></div>'; return; }
+    grid.innerHTML=gs.map(g=>`
+      <div class="group-card">
+        <div class="gcover" ${g.cover?`style="background-image:url(${g.cover})"`:''}></div>
+        <div class="gbody">
+          <h3>${JP.esc(g.name)}</h3>
+          <div class="gtown">📍 ${JP.esc(g.town||'Tout le Jura')}</div>
+          <div class="gdesc">${JP.esc(g.description||'')}</div>
+          <div class="gfoot">
+            <span class="gmembers">${g.memberCount} membre${g.memberCount>1?'s':''}</span>
+            <a href="groupe.html?id=${g.id}" class="btn ${g.isMember?'btn-ghost':'btn-primary'} btn-sm">${g.isMember?'Ouvrir':'Voir'}</a>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  const modal=document.getElementById('gModal');
+  document.getElementById('newGroupBtn').addEventListener('click',()=>{ document.getElementById('gName').value=''; document.getElementById('gDesc').value=''; modal.classList.add('open'); });
+  const close=()=>modal.classList.remove('open');
+  document.getElementById('gClose').addEventListener('click',close);
+  document.getElementById('gCancel').addEventListener('click',close);
+  modal.addEventListener('click',e=>{if(e.target===modal)close();});
+  document.getElementById('gSave').addEventListener('click',async()=>{
+    const name=document.getElementById('gName').value.trim();
+    if(!name){ JP.toast('Donne un nom au groupe'); return; }
+    const r=await JP.createGroup({name, description:document.getElementById('gDesc').value.trim(), town:document.getElementById('gTown').value, isPrivate:document.getElementById('gPrivacy').value==='private'});
+    if(r.ok){ JP.toast('Groupe créé ! 🎉'); location.href='groupe.html?id='+r.id; }
+    else JP.toast(r.msg||'Échec');
+  });
+
+  await render();
+})();
+
+});
+</script>
+<nav class="mobile-nav">
+<a href="fil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Fil</span></a>
+<a href="recherche.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/></svg><span>Recherche</span></a>
+<a href="amis.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"/></svg><span>Amis</span></a>
+<a href="messages.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span>Messages</span></a>
+<a href="notifications.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><span class="mn-badge" id="mnBell">0</span><span>Alertes</span></a>
+<a href="profil.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M4 21v-1a6 6 0 0112 0v1"/></svg><span>Profil</span></a>
+</nav>
+</body>
+</html>
